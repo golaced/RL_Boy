@@ -16,15 +16,13 @@ https://hcn64ij2s2xr.feishu.cn/wiki/EKkhwVXq4ip1C3ks36fc7MlInZg?from=from_copyli
 
 | **Degree of Freedom** | **Control System**       | **Reinforcement Learning**       | **Embodied Operation**       | **Facial Interaction**       | **Remote Control Operation**       |
 |-----------------------|--------------------------|----------------------------------|-----------------------------|------------------------------|------------------------------------|
-| 1 head,1 at the waist,Single Arm 4 + 1,Gripper5 reps per leg| Compatible with Raspberry Pi, Odroid, Coolpi, Chips such as RDK Sweet Potato | Open-source reinforcement learning algorithms support standing, stable walking, and accurate URDF, enabling Zero-
-Shot transfer | Can run upper limb operation algorithms and open-source typical small models such as ACT and DP | The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations | Provides a control device for an isomorphic dual-arm robot, enabling data acquisition of the robot's dual arms |
+| 1 head,1 at the waist,Single Arm 4 + 1,Gripper5 reps per leg| Compatible with Raspberry Pi, Odroid, Coolpi, Chips such as RDK Sweet Potato | Open-source reinforcement learning algorithms support standing, stable walking, and accurate URDF, enabling Zero-Shot transfer| Can run upper limb operation algorithms and open-source typical small models such as ACT and DP | The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations | The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations  | Provides a control device for an isomorphic dual-arm robot, enabling data acquisition of the robot's dual arms |
 
-## BOM List
 
-The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and carbon fiber sheets, which facilitates DIY and processing.
+The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and carbon fiber sheets, which facilitates DIY and processing:
 <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/1.png"></td>
 
-
+## BOM List
 ### Components and Prices (RMB):
 
 | Project               | Attribute               | Link                                                                 | Unit Price |
