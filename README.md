@@ -17,6 +17,8 @@
 ## BOM List
 
 The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and carbon fiber sheets, which facilitates DIY and processing.
+<td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/1.png"></td>
+
 
 ### Components and Prices (RMB):
 
@@ -101,6 +103,8 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 | Double-ended 10cm 4p Off-plane | [Link](https://item.taobao.com/item.htm?id=588775918268)           | 2      |
 | DC Head 0.1m       | [Link](https://detail.tmall.com/item.htm?id=598354258377)           | 2      |
 
+ <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/2.png?raw=true" ></td>
+ 
 ## Software Version Update
 
 ### Method for updating firmware to V1.0:
@@ -155,9 +159,13 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 | Motor 3         | 3507    | 3             |
 | Motor 4         | 3507    | 4             |
 
+ <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/3.png?raw=true" ></td>
+
 ### Firmware Update:
 - **Date:** 2025/7/14
 - **Files:** `extcan.hex`, `extcan.hex`
+  
+ <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/4.png?raw=true" ></td>
 
 ### ODroid Control Software Package Update:
 - Update the software of the Odroid internal system via WinSCP.
