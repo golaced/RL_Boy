@@ -1,0 +1,13 @@
+sinclude(./aclocal.m4)dnl Autoconf lossage.
+GLIBC_PROVIDES dnl See aclocal.m4 in the top level source directory.
+
+# GNU libc on the Hurd is always reentrant.
+DEFINES="$DEFINES -D_LIBC_REENTRANT"
+
+# Don't bother trying to generate any glue code to be compatible with the
+# existing system library, because we are the only system library.
+inhibit_glue=yes
+
+if test "x$prefix" != x; then
+  AC_MSG_WARN([--prefix= (empty) is required for GNU/Hurd to work normally])
+fi

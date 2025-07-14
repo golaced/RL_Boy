@@ -1,0 +1,1133 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Portable Positioning,  Next: Stream Buffering,  Prev: File Positioning,  Up: I/O on Streams
+
+Portable File-Position Functions
+================================
+
+   On the GNU system, the file position is truly a character count.  You
+can specify any character count value as an argument to `fseek' or
+`fseeko' and get reliable results for any random access file.  However,
+some ISO C systems do not represent file positions in this way.
+
+   On some systems where text streams truly differ from binary streams,
+it is impossible to represent the file position of a text stream as a
+count of characters from the beginning of the file.  For example, the
+file position on some systems must encode both a record offset within
+the file, and a character offset within the record.
+
+   As a consequence, if you want your programs to be portable to these
+systems, you must observe certain rules:
+
+   * The value returned from `ftell' on a text stream has no predictable
+     relationship to the number of characters you have read so far.
+     The only thing you can rely on is that you can use it subsequently
+     as the OFFSET argument to `fseek' or `fseeko' to move back to the
+     same file position.
+
+   * In a call to `fseek' or `fseeko' on a text stream, either the
+     OFFSET must be zero, or WHENCE must be `SEEK_SET' and and the
+     OFFSET must be the result of an earlier call to `ftell' on the
+     same stream.
+
+   * The value of the file position indicator of a text stream is
+     undefined while there are characters that have been pushed back
+     with `ungetc' that haven't been read or discarded.  *Note
+     Unreading::.
+
+   But even if you observe these rules, you may still have trouble for
+long files, because `ftell' and `fseek' use a `long int' value to
+represent the file position.  This type may not have room to encode all
+the file positions in a large file.  Using the `ftello' and `fseeko'
+functions might help here since the `off_t' type is expected to be able
+to hold all file position values but this still does not help to handle
+additional information which must be associated with a file position.
+
+   So if you do want to support systems with peculiar encodings for the
+file positions, it is better to use the functions `fgetpos' and
+`fsetpos' instead.  These functions represent the file position using
+the data type `fpos_t', whose internal representation varies from
+system to system.
+
+   These symbols are declared in the header file `stdio.h'.
+
+ - Data Type: fpos_t
+     This is the type of an object that can encode information about the
+     file position of a stream, for use by the functions `fgetpos' and
+     `fsetpos'.
+
+     In the GNU system, `fpos_t' is equivalent to `off_t' or `long
+     int'.  In other systems, it might have a different internal
+     representation.
+
+     When compiling with `_FILE_OFFSET_BITS == 64' on a 32 bit machine
+     this type is in fact equivalent to `off64_t' since the LFS
+     interface transparently replaced the old interface.
+
+ - Data Type: fpos64_t
+     This is the type of an object that can encode information about the
+     file position of a stream, for use by the functions `fgetpos64' and
+     `fsetpos64'.
+
+     In the GNU system, `fpos64_t' is equivalent to `off64_t' or `long
+     long int'.  In other systems, it might have a different internal
+     representation.
+
+ - Function: int fgetpos (FILE *STREAM, fpos_t *POSITION)
+     This function stores the value of the file position indicator for
+     the stream STREAM in the `fpos_t' object pointed to by POSITION.
+     If successful, `fgetpos' returns zero; otherwise it returns a
+     nonzero value and stores an implementation-defined positive value
+     in `errno'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32 bit system the function is in fact `fgetpos64'.  I.e., the LFS
+     interface transparently replaced the old interface.
+
+ - Function: int fgetpos64 (FILE *STREAM, fpos64_t *POSITION)
+     This function is similar to `fgetpos' but the file position is
+     returned in a variable of type `fpos64_t' to which POSITION points.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `fgetpos'
+     and so transparently replaces the old interface.
+
+ - Function: int fsetpos (FILE *STREAM, const fpos_t *POSITION)
+     This function sets the file position indicator for the stream
+     STREAM to the position POSITION, which must have been set by a
+     previous call to `fgetpos' on the same stream.  If successful,
+     `fsetpos' clears the end-of-file indicator on the stream, discards
+     any characters that were "pushed back" by the use of `ungetc', and
+     returns a value of zero.  Otherwise, `fsetpos' returns a nonzero
+     value and stores an implementation-defined positive value in
+     `errno'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32 bit system the function is in fact `fsetpos64'.  I.e., the LFS
+     interface transparently replaced the old interface.
+
+ - Function: int fsetpos64 (FILE *STREAM, const fpos64_t *POSITION)
+     This function is similar to `fsetpos' but the file position used
+     for positioning is provided in a variable of type `fpos64_t' to
+     which POSITION points.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `fsetpos'
+     and so transparently replaces the old interface.
+
+
+File: libc.info,  Node: Stream Buffering,  Next: Other Kinds of Streams,  Prev: Portable Positioning,  Up: I/O on Streams
+
+Stream Buffering
+================
+
+   Characters that are written to a stream are normally accumulated and
+transmitted asynchronously to the file in a block, instead of appearing
+as soon as they are output by the application program.  Similarly,
+streams often retrieve input from the host environment in blocks rather
+than on a character-by-character basis.  This is called "buffering".
+
+   If you are writing programs that do interactive input and output
+using streams, you need to understand how buffering works when you
+design the user interface to your program.  Otherwise, you might find
+that output (such as progress or prompt messages) doesn't appear when
+you intended it to, or displays some other unexpected behavior.
+
+   This section deals only with controlling when characters are
+transmitted between the stream and the file or device, and _not_ with
+how things like echoing, flow control, and the like are handled on
+specific classes of devices.  For information on common control
+operations on terminal devices, see *Note Low-Level Terminal
+Interface::.
+
+   You can bypass the stream buffering facilities altogether by using
+the low-level input and output functions that operate on file
+descriptors instead.  *Note Low-Level I/O::.
+
+* Menu:
+
+* Buffering Concepts::          Terminology is defined here.
+* Flushing Buffers::            How to ensure that output buffers are flushed.
+* Controlling Buffering::       How to specify what kind of buffering to use.
+
+
+File: libc.info,  Node: Buffering Concepts,  Next: Flushing Buffers,  Up: Stream Buffering
+
+Buffering Concepts
+------------------
+
+   There are three different kinds of buffering strategies:
+
+   * Characters written to or read from an "unbuffered" stream are
+     transmitted individually to or from the file as soon as possible.
+
+   * Characters written to a "line buffered" stream are transmitted to
+     the file in blocks when a newline character is encountered.
+
+   * Characters written to or read from a "fully buffered" stream are
+     transmitted to or from the file in blocks of arbitrary size.
+
+   Newly opened streams are normally fully buffered, with one
+exception: a stream connected to an interactive device such as a
+terminal is initially line buffered.  *Note Controlling Buffering::,
+for information on how to select a different kind of buffering.
+Usually the automatic selection gives you the most convenient kind of
+buffering for the file or device you open.
+
+   The use of line buffering for interactive devices implies that output
+messages ending in a newline will appear immediately--which is usually
+what you want.  Output that doesn't end in a newline might or might not
+show up immediately, so if you want them to appear immediately, you
+should flush buffered output explicitly with `fflush', as described in
+*Note Flushing Buffers::.
+
+
+File: libc.info,  Node: Flushing Buffers,  Next: Controlling Buffering,  Prev: Buffering Concepts,  Up: Stream Buffering
+
+Flushing Buffers
+----------------
+
+   "Flushing" output on a buffered stream means transmitting all
+accumulated characters to the file.  There are many circumstances when
+buffered output on a stream is flushed automatically:
+
+   * When you try to do output and the output buffer is full.
+
+   * When the stream is closed.  *Note Closing Streams::.
+
+   * When the program terminates by calling `exit'.  *Note Normal
+     Termination::.
+
+   * When a newline is written, if the stream is line buffered.
+
+   * Whenever an input operation on _any_ stream actually reads data
+     from its file.
+
+   If you want to flush the buffered output at another time, call
+`fflush', which is declared in the header file `stdio.h'.
+
+ - Function: int fflush (FILE *STREAM)
+     This function causes any buffered output on STREAM to be delivered
+     to the file.  If STREAM is a null pointer, then `fflush' causes
+     buffered output on _all_ open output streams to be flushed.
+
+     This function returns `EOF' if a write error occurs, or zero
+     otherwise.
+
+ - Function: int fflush_unlocked (FILE *STREAM)
+     The `fflush_unlocked' function is equivalent to the `fflush'
+     function except that it does not implicitly lock the stream.
+
+   The `fflush' function can be used to flush all streams currently
+opened.  While this is useful in some situations it does often more than
+necessary since it might be done in situations when terminal input is
+required and the program wants to be sure that all output is visible on
+the terminal.  But this means that only line buffered streams have to be
+flushed.  Solaris introduced a function especially for this.  It was
+always available in the GNU C library in some form but never officially
+exported.
+
+ - Function: void _flushlbf (void)
+     The `_flushlbf' function flushes all line buffered streams
+     currently opened.
+
+     This function is declared in the `stdio_ext.h' header.
+
+   *Compatibility Note:* Some brain-damaged operating systems have been
+known to be so thoroughly fixated on line-oriented input and output
+that flushing a line buffered stream causes a newline to be written!
+Fortunately, this "feature" seems to be becoming less common.  You do
+not need to worry about this in the GNU system.
+
+   In some situations it might be useful to not flush the output pending
+for a stream but instead simply forget it.  If transmission is costly
+and the output is not needed anymore this is valid reasoning.  In this
+situation a non-standard function introduced in Solaris and available in
+the GNU C library can be used.
+
+ - Function: void __fpurge (FILE *STREAM)
+     The `__fpurge' function causes the buffer of the stream STREAM to
+     be emptied.  If the stream is currently in read mode all input in
+     the buffer is lost.  If the stream is in output mode the buffered
+     output is not written to the device (or whatever other underlying
+     storage) and the buffer the cleared.
+
+     This function is declared in `stdio_ext.h'.
+
+
+File: libc.info,  Node: Controlling Buffering,  Prev: Flushing Buffers,  Up: Stream Buffering
+
+Controlling Which Kind of Buffering
+-----------------------------------
+
+   After opening a stream (but before any other operations have been
+performed on it), you can explicitly specify what kind of buffering you
+want it to have using the `setvbuf' function.
+
+   The facilities listed in this section are declared in the header
+file `stdio.h'.
+
+ - Function: int setvbuf (FILE *STREAM, char *BUF, int MODE, size_t
+          SIZE)
+     This function is used to specify that the stream STREAM should
+     have the buffering mode MODE, which can be either `_IOFBF' (for
+     full buffering), `_IOLBF' (for line buffering), or `_IONBF' (for
+     unbuffered input/output).
+
+     If you specify a null pointer as the BUF argument, then `setvbuf'
+     allocates a buffer itself using `malloc'.  This buffer will be
+     freed when you close the stream.
+
+     Otherwise, BUF should be a character array that can hold at least
+     SIZE characters.  You should not free the space for this array as
+     long as the stream remains open and this array remains its buffer.
+     You should usually either allocate it statically, or `malloc'
+     (*note Unconstrained Allocation::) the buffer.  Using an automatic
+     array is not a good idea unless you close the file before exiting
+     the block that declares the array.
+
+     While the array remains a stream buffer, the stream I/O functions
+     will use the buffer for their internal purposes.  You shouldn't
+     try to access the values in the array directly while the stream is
+     using it for buffering.
+
+     The `setvbuf' function returns zero on success, or a nonzero value
+     if the value of MODE is not valid or if the request could not be
+     honored.
+
+ - Macro: int _IOFBF
+     The value of this macro is an integer constant expression that can
+     be used as the MODE argument to the `setvbuf' function to specify
+     that the stream should be fully buffered.
+
+ - Macro: int _IOLBF
+     The value of this macro is an integer constant expression that can
+     be used as the MODE argument to the `setvbuf' function to specify
+     that the stream should be line buffered.
+
+ - Macro: int _IONBF
+     The value of this macro is an integer constant expression that can
+     be used as the MODE argument to the `setvbuf' function to specify
+     that the stream should be unbuffered.
+
+ - Macro: int BUFSIZ
+     The value of this macro is an integer constant expression that is
+     good to use for the SIZE argument to `setvbuf'.  This value is
+     guaranteed to be at least `256'.
+
+     The value of `BUFSIZ' is chosen on each system so as to make stream
+     I/O efficient.  So it is a good idea to use `BUFSIZ' as the size
+     for the buffer when you call `setvbuf'.
+
+     Actually, you can get an even better value to use for the buffer
+     size by means of the `fstat' system call: it is found in the
+     `st_blksize' field of the file attributes.  *Note Attribute
+     Meanings::.
+
+     Sometimes people also use `BUFSIZ' as the allocation size of
+     buffers used for related purposes, such as strings used to receive
+     a line of input with `fgets' (*note Character Input::).  There is
+     no particular reason to use `BUFSIZ' for this instead of any other
+     integer, except that it might lead to doing I/O in chunks of an
+     efficient size.
+
+ - Function: void setbuf (FILE *STREAM, char *BUF)
+     If BUF is a null pointer, the effect of this function is
+     equivalent to calling `setvbuf' with a MODE argument of `_IONBF'.
+     Otherwise, it is equivalent to calling `setvbuf' with BUF, and a
+     MODE of `_IOFBF' and a SIZE argument of `BUFSIZ'.
+
+     The `setbuf' function is provided for compatibility with old code;
+     use `setvbuf' in all new programs.
+
+ - Function: void setbuffer (FILE *STREAM, char *BUF, size_t SIZE)
+     If BUF is a null pointer, this function makes STREAM unbuffered.
+     Otherwise, it makes STREAM fully buffered using BUF as the buffer.
+     The SIZE argument specifies the length of BUF.
+
+     This function is provided for compatibility with old BSD code.  Use
+     `setvbuf' instead.
+
+ - Function: void setlinebuf (FILE *STREAM)
+     This function makes STREAM be line buffered, and allocates the
+     buffer for you.
+
+     This function is provided for compatibility with old BSD code.  Use
+     `setvbuf' instead.
+
+   It is possible to query whether a given stream is line buffered or
+not using a non-standard function introduced in Solaris and available
+in the GNU C library.
+
+ - Function: int __flbf (FILE *STREAM)
+     The `__flbf' function will return a nonzero value in case the
+     stream STREAM is line buffered.  Otherwise the return value is
+     zero.
+
+     This function is declared in the `stdio_ext.h' header.
+
+   Two more extensions allow to determine the size of the buffer and how
+much of it is used.  These functions were also introduced in Solaris.
+
+ - Function: size_t __fbufsize (FILE *STREAM)
+     The `__fbufsize' function return the size of the buffer in the
+     stream STREAM.  This value can be used to optimize the use of the
+     stream.
+
+     This function is declared in the `stdio_ext.h' header.
+
+ - Function: size_t __fpending (FILE *STREAM) The `__fpending'
+     function returns the number of bytes currently in the output
+     buffer.  For wide-oriented stream the measuring unit is wide
+     characters.  This function should not be used on buffers in read
+     mode or opened read-only.
+
+     This function is declared in the `stdio_ext.h' header.
+
+
+File: libc.info,  Node: Other Kinds of Streams,  Next: Formatted Messages,  Prev: Stream Buffering,  Up: I/O on Streams
+
+Other Kinds of Streams
+======================
+
+   The GNU library provides ways for you to define additional kinds of
+streams that do not necessarily correspond to an open file.
+
+   One such type of stream takes input from or writes output to a
+string.  These kinds of streams are used internally to implement the
+`sprintf' and `sscanf' functions.  You can also create such a stream
+explicitly, using the functions described in *Note String Streams::.
+
+   More generally, you can define streams that do input/output to
+arbitrary objects using functions supplied by your program.  This
+protocol is discussed in *Note Custom Streams::.
+
+   *Portability Note:* The facilities described in this section are
+specific to GNU.  Other systems or C implementations might or might not
+provide equivalent functionality.
+
+* Menu:
+
+* String Streams::              Streams that get data from or put data in
+                                 a string or memory buffer.
+* Obstack Streams::		Streams that store data in an obstack.
+* Custom Streams::              Defining your own streams with an arbitrary
+                                 input data source and/or output data sink.
+
+
+File: libc.info,  Node: String Streams,  Next: Obstack Streams,  Up: Other Kinds of Streams
+
+String Streams
+--------------
+
+   The `fmemopen' and `open_memstream' functions allow you to do I/O to
+a string or memory buffer.  These facilities are declared in `stdio.h'.
+
+ - Function: FILE * fmemopen (void *BUF, size_t SIZE, const char
+          *OPENTYPE)
+     This function opens a stream that allows the access specified by
+     the OPENTYPE argument, that reads from or writes to the buffer
+     specified by the argument BUF.  This array must be at least SIZE
+     bytes long.
+
+     If you specify a null pointer as the BUF argument, `fmemopen'
+     dynamically allocates an array SIZE bytes long (as with `malloc';
+     *note Unconstrained Allocation::).  This is really only useful if
+     you are going to write things to the buffer and then read them back
+     in again, because you have no way of actually getting a pointer to
+     the buffer (for this, try `open_memstream', below).  The buffer is
+     freed when the stream is open.
+
+     The argument OPENTYPE is the same as in `fopen' (*note Opening
+     Streams::).  If the OPENTYPE specifies append mode, then the
+     initial file position is set to the first null character in the
+     buffer.  Otherwise the initial file position is at the beginning
+     of the buffer.
+
+     When a stream open for writing is flushed or closed, a null
+     character (zero byte) is written at the end of the buffer if it
+     fits.  You should add an extra byte to the SIZE argument to
+     account for this.  Attempts to write more than SIZE bytes to the
+     buffer result in an error.
+
+     For a stream open for reading, null characters (zero bytes) in the
+     buffer do not count as "end of file".  Read operations indicate
+     end of file only when the file position advances past SIZE bytes.
+     So, if you want to read characters from a null-terminated string,
+     you should supply the length of the string as the SIZE argument.
+
+   Here is an example of using `fmemopen' to create a stream for
+reading from a string:
+
+     #include <stdio.h>
+     
+     static char buffer[] = "foobar";
+     
+     int
+     main (void)
+     {
+       int ch;
+       FILE *stream;
+     
+       stream = fmemopen (buffer, strlen (buffer), "r");
+       while ((ch = fgetc (stream)) != EOF)
+         printf ("Got %c\n", ch);
+       fclose (stream);
+     
+       return 0;
+     }
+
+   This program produces the following output:
+
+     Got f
+     Got o
+     Got o
+     Got b
+     Got a
+     Got r
+
+ - Function: FILE * open_memstream (char **PTR, size_t *SIZELOC)
+     This function opens a stream for writing to a buffer.  The buffer
+     is allocated dynamically (as with `malloc'; *note Unconstrained
+     Allocation::) and grown as necessary.
+
+     When the stream is closed with `fclose' or flushed with `fflush',
+     the locations PTR and SIZELOC are updated to contain the pointer
+     to the buffer and its size.  The values thus stored remain valid
+     only as long as no further output on the stream takes place.  If
+     you do more output, you must flush the stream again to store new
+     values before you use them again.
+
+     A null character is written at the end of the buffer.  This null
+     character is _not_ included in the size value stored at SIZELOC.
+
+     You can move the stream's file position with `fseek' or `fseeko'
+     (*note File Positioning::).  Moving the file position past the end
+     of the data already written fills the intervening space with
+     zeroes.
+
+   Here is an example of using `open_memstream':
+
+     #include <stdio.h>
+     
+     int
+     main (void)
+     {
+       char *bp;
+       size_t size;
+       FILE *stream;
+     
+       stream = open_memstream (&bp, &size);
+       fprintf (stream, "hello");
+       fflush (stream);
+       printf ("buf = `%s', size = %d\n", bp, size);
+       fprintf (stream, ", world");
+       fclose (stream);
+       printf ("buf = `%s', size = %d\n", bp, size);
+     
+       return 0;
+     }
+
+   This program produces the following output:
+
+     buf = `hello', size = 5
+     buf = `hello, world', size = 12
+
+
+File: libc.info,  Node: Obstack Streams,  Next: Custom Streams,  Prev: String Streams,  Up: Other Kinds of Streams
+
+Obstack Streams
+---------------
+
+   You can open an output stream that puts it data in an obstack.
+*Note Obstacks::.
+
+ - Function: FILE * open_obstack_stream (struct obstack *OBSTACK)
+     This function opens a stream for writing data into the obstack
+     OBSTACK.  This starts an object in the obstack and makes it grow
+     as data is written (*note Growing Objects::).
+
+     Calling `fflush' on this stream updates the current size of the
+     object to match the amount of data that has been written.  After a
+     call to `fflush', you can examine the object temporarily.
+
+     You can move the file position of an obstack stream with `fseek' or
+     `fseeko' (*note File Positioning::).  Moving the file position past
+     the end of the data written fills the intervening space with zeros.
+
+     To make the object permanent, update the obstack with `fflush', and
+     then use `obstack_finish' to finalize the object and get its
+     address.  The following write to the stream starts a new object in
+     the obstack, and later writes add to that object until you do
+     another `fflush' and `obstack_finish'.
+
+     But how do you find out how long the object is?  You can get the
+     length in bytes by calling `obstack_object_size' (*note Status of
+     an Obstack::), or you can null-terminate the object like this:
+
+          obstack_1grow (OBSTACK, 0);
+
+     Whichever one you do, you must do it _before_ calling
+     `obstack_finish'.  (You can do both if you wish.)
+
+   Here is a sample function that uses `open_obstack_stream':
+
+     char *
+     make_message_string (const char *a, int b)
+     {
+       FILE *stream = open_obstack_stream (&message_obstack);
+       output_task (stream);
+       fprintf (stream, ": ");
+       fprintf (stream, a, b);
+       fprintf (stream, "\n");
+       fclose (stream);
+       obstack_1grow (&message_obstack, 0);
+       return obstack_finish (&message_obstack);
+     }
+
+
+File: libc.info,  Node: Custom Streams,  Prev: Obstack Streams,  Up: Other Kinds of Streams
+
+Programming Your Own Custom Streams
+-----------------------------------
+
+   This section describes how you can make a stream that gets input
+from an arbitrary data source or writes output to an arbitrary data sink
+programmed by you.  We call these "custom streams".  The functions and
+types described here are all GNU extensions.
+
+* Menu:
+
+* Streams and Cookies::         The "cookie" records where to fetch or
+                                 store data that is read or written.
+* Hook Functions::              How you should define the four "hook
+                                 functions" that a custom stream needs.
+
+
+File: libc.info,  Node: Streams and Cookies,  Next: Hook Functions,  Up: Custom Streams
+
+Custom Streams and Cookies
+..........................
+
+   Inside every custom stream is a special object called the "cookie".
+This is an object supplied by you which records where to fetch or store
+the data read or written.  It is up to you to define a data type to use
+for the cookie.  The stream functions in the library never refer
+directly to its contents, and they don't even know what the type is;
+they record its address with type `void *'.
+
+   To implement a custom stream, you must specify _how_ to fetch or
+store the data in the specified place.  You do this by defining "hook
+functions" to read, write, change "file position", and close the
+stream.  All four of these functions will be passed the stream's cookie
+so they can tell where to fetch or store the data.  The library
+functions don't know what's inside the cookie, but your functions will
+know.
+
+   When you create a custom stream, you must specify the cookie pointer,
+and also the four hook functions stored in a structure of type
+`cookie_io_functions_t'.
+
+   These facilities are declared in `stdio.h'.
+
+ - Data Type: cookie_io_functions_t
+     This is a structure type that holds the functions that define the
+     communications protocol between the stream and its cookie.  It has
+     the following members:
+
+    `cookie_read_function_t *read'
+          This is the function that reads data from the cookie.  If the
+          value is a null pointer instead of a function, then read
+          operations on this stream always return `EOF'.
+
+    `cookie_write_function_t *write'
+          This is the function that writes data to the cookie.  If the
+          value is a null pointer instead of a function, then data
+          written to the stream is discarded.
+
+    `cookie_seek_function_t *seek'
+          This is the function that performs the equivalent of file
+          positioning on the cookie.  If the value is a null pointer
+          instead of a function, calls to `fseek' or `fseeko' on this
+          stream can only seek to locations within the buffer; any
+          attempt to seek outside the buffer will return an `ESPIPE'
+          error.
+
+    `cookie_close_function_t *close'
+          This function performs any appropriate cleanup on the cookie
+          when closing the stream.  If the value is a null pointer
+          instead of a function, nothing special is done to close the
+          cookie when the stream is closed.
+
+ - Function: FILE * fopencookie (void *COOKIE, const char *OPENTYPE,
+          cookie_io_functions_t IO-FUNCTIONS)
+     This function actually creates the stream for communicating with
+     the COOKIE using the functions in the IO-FUNCTIONS argument.  The
+     OPENTYPE argument is interpreted as for `fopen'; see *Note Opening
+     Streams::.  (But note that the "truncate on open" option is
+     ignored.)  The new stream is fully buffered.
+
+     The `fopencookie' function returns the newly created stream, or a
+     null pointer in case of an error.
+
+
+File: libc.info,  Node: Hook Functions,  Prev: Streams and Cookies,  Up: Custom Streams
+
+Custom Stream Hook Functions
+............................
+
+   Here are more details on how you should define the four hook
+functions that a custom stream needs.
+
+   You should define the function to read data from the cookie as:
+
+     ssize_t READER (void *COOKIE, char *BUFFER, size_t SIZE)
+
+   This is very similar to the `read' function; see *Note I/O
+Primitives::.  Your function should transfer up to SIZE bytes into the
+BUFFER, and return the number of bytes read, or zero to indicate
+end-of-file.  You can return a value of `-1' to indicate an error.
+
+   You should define the function to write data to the cookie as:
+
+     ssize_t WRITER (void *COOKIE, const char *BUFFER, size_t SIZE)
+
+   This is very similar to the `write' function; see *Note I/O
+Primitives::.  Your function should transfer up to SIZE bytes from the
+buffer, and return the number of bytes written.  You can return a value
+of `-1' to indicate an error.
+
+   You should define the function to perform seek operations on the
+cookie as:
+
+     int SEEKER (void *COOKIE, fpos_t *POSITION, int WHENCE)
+
+   For this function, the POSITION and WHENCE arguments are interpreted
+as for `fgetpos'; see *Note Portable Positioning::.  In the GNU
+library, `fpos_t' is equivalent to `off_t' or `long int', and simply
+represents the number of bytes from the beginning of the file.
+
+   After doing the seek operation, your function should store the
+resulting file position relative to the beginning of the file in
+POSITION.  Your function should return a value of `0' on success and
+`-1' to indicate an error.
+
+   You should define the function to do cleanup operations on the cookie
+appropriate for closing the stream as:
+
+     int CLEANER (void *COOKIE)
+
+   Your function should return `-1' to indicate an error, and `0'
+otherwise.
+
+ - Data Type: cookie_read_function
+     This is the data type that the read function for a custom stream
+     should have.  If you declare the function as shown above, this is
+     the type it will have.
+
+ - Data Type: cookie_write_function
+     The data type of the write function for a custom stream.
+
+ - Data Type: cookie_seek_function
+     The data type of the seek function for a custom stream.
+
+ - Data Type: cookie_close_function
+     The data type of the close function for a custom stream.
+
+
+File: libc.info,  Node: Formatted Messages,  Prev: Other Kinds of Streams,  Up: I/O on Streams
+
+Formatted Messages
+==================
+
+   On systems which are based on System V messages of programs
+(especially the system tools) are printed in a strict form using the
+`fmtmsg' function.  The uniformity sometimes helps the user to
+interpret messages and the strictness tests of the `fmtmsg' function
+ensure that the programmer follows some minimal requirements.
+
+* Menu:
+
+* Printing Formatted Messages::   The `fmtmsg' function.
+* Adding Severity Classes::       Add more severity classes.
+* Example::                       How to use `fmtmsg' and `addseverity'.
+
+
+File: libc.info,  Node: Printing Formatted Messages,  Next: Adding Severity Classes,  Up: Formatted Messages
+
+Printing Formatted Messages
+---------------------------
+
+   Messages can be printed to standard error and/or to the console.  To
+select the destination the programmer can use the following two values,
+bitwise OR combined if wanted, for the CLASSIFICATION parameter of
+`fmtmsg':
+
+`MM_PRINT'
+     Display the message in standard error.
+
+`MM_CONSOLE'
+     Display the message on the system console.
+
+   The erroneous piece of the system can be signalled by exactly one of
+the following values which also is bitwise ORed with the CLASSIFICATION
+parameter to `fmtmsg':
+
+`MM_HARD'
+     The source of the condition is some hardware.
+
+`MM_SOFT'
+     The source of the condition is some software.
+
+`MM_FIRM'
+     The source of the condition is some firmware.
+
+   A third component of the CLASSIFICATION parameter to `fmtmsg' can
+describe the part of the system which detects the problem.  This is
+done by using exactly one of the following values:
+
+`MM_APPL'
+     The erroneous condition is detected by the application.
+
+`MM_UTIL'
+     The erroneous condition is detected by a utility.
+
+`MM_OPSYS'
+     The erroneous condition is detected by the operating system.
+
+   A last component of CLASSIFICATION can signal the results of this
+message.  Exactly one of the following values can be used:
+
+`MM_RECOVER'
+     It is a recoverable error.
+
+`MM_NRECOV'
+     It is a non-recoverable error.
+
+ - Function: int fmtmsg (long int CLASSIFICATION, const char *LABEL,
+          int SEVERITY, const char *TEXT, const char *ACTION, const
+          char *TAG)
+     Display a message described by its parameters on the device(s)
+     specified in the CLASSIFICATION parameter.  The LABEL parameter
+     identifies the source of the message.  The string should consist
+     of two colon separated parts where the first part has not more
+     than 10 and the second part not more than 14 characters.  The TEXT
+     parameter describes the condition of the error, the ACTION
+     parameter possible steps to recover from the error and the TAG
+     parameter is a reference to the online documentation where more
+     information can be found.  It should contain the LABEL value and a
+     unique identification number.
+
+     Each of the parameters can be a special value which means this
+     value is to be omitted.  The symbolic names for these values are:
+
+    `MM_NULLLBL'
+          Ignore LABEL parameter.
+
+    `MM_NULLSEV'
+          Ignore SEVERITY parameter.
+
+    `MM_NULLMC'
+          Ignore CLASSIFICATION parameter.  This implies that nothing is
+          actually printed.
+
+    `MM_NULLTXT'
+          Ignore TEXT parameter.
+
+    `MM_NULLACT'
+          Ignore ACTION parameter.
+
+    `MM_NULLTAG'
+          Ignore TAG parameter.
+
+     There is another way certain fields can be omitted from the output
+     to standard error.  This is described below in the description of
+     environment variables influencing the behaviour.
+
+     The SEVERITY parameter can have one of the values in the following
+     table:
+
+    `MM_NOSEV'
+          Nothing is printed, this value is the same as `MM_NULLSEV'.
+
+    `MM_HALT'
+          This value is printed as `HALT'.
+
+    `MM_ERROR'
+          This value is printed as `ERROR'.
+
+    `MM_WARNING'
+          This value is printed as `WARNING'.
+
+    `MM_INFO'
+          This value is printed as `INFO'.
+
+     The numeric value of these five macros are between `0' and `4'.
+     Using the environment variable `SEV_LEVEL' or using the
+     `addseverity' function one can add more severity levels with their
+     corresponding string to print.  This is described below (*note
+     Adding Severity Classes::).
+
+     If no parameter is ignored the output looks like this:
+
+          LABEL: SEVERITY-STRING: TEXT
+          TO FIX: ACTION TAG
+
+     The colons, new line characters and the `TO FIX' string are
+     inserted if necessary, i.e., if the corresponding parameter is not
+     ignored.
+
+     This function is specified in the X/Open Portability Guide.  It is
+     also available on all systems derived from System V.
+
+     The function returns the value `MM_OK' if no error occurred.  If
+     only the printing to standard error failed, it returns `MM_NOMSG'.
+     If printing to the console fails, it returns `MM_NOCON'.  If
+     nothing is printed `MM_NOTOK' is returned.  Among situations where
+     all outputs fail this last value is also returned if a parameter
+     value is incorrect.
+
+   There are two environment variables which influence the behaviour of
+`fmtmsg'.  The first is `MSGVERB'.  It is used to control the output
+actually happening on standard error (_not_ the console output).  Each
+of the five fields can explicitly be enabled.  To do this the user has
+to put the `MSGVERB' variable with a format like the following in the
+environment before calling the `fmtmsg' function the first time:
+
+     MSGVERB=KEYWORD[:KEYWORD[:...]]
+
+   Valid KEYWORDs are `label', `severity', `text', `action', and `tag'.
+If the environment variable is not given or is the empty string, a not
+supported keyword is given or the value is somehow else invalid, no
+part of the message is masked out.
+
+   The second environment variable which influences the behaviour of
+`fmtmsg' is `SEV_LEVEL'.  This variable and the change in the behaviour
+of `fmtmsg' is not specified in the X/Open Portability Guide.  It is
+available in System V systems, though.  It can be used to introduce new
+severity levels.  By default, only the five severity levels described
+above are available.  Any other numeric value would make `fmtmsg' print
+nothing.
+
+   If the user puts `SEV_LEVEL' with a format like
+
+     SEV_LEVEL=[DESCRIPTION[:DESCRIPTION[:...]]]
+
+in the environment of the process before the first call to `fmtmsg',
+where DESCRIPTION has a value of the form
+
+     SEVERITY-KEYWORD,LEVEL,PRINTSTRING
+
+   The SEVERITY-KEYWORD part is not used by `fmtmsg' but it has to be
+present.  The LEVEL part is a string representation of a number.  The
+numeric value must be a number greater than 4.  This value must be used
+in the SEVERITY parameter of `fmtmsg' to select this class.  It is not
+possible to overwrite any of the predefined classes.  The PRINTSTRING
+is the string printed when a message of this class is processed by
+`fmtmsg' (see above, `fmtsmg' does not print the numeric value but
+instead the string representation).
+
+
+File: libc.info,  Node: Adding Severity Classes,  Next: Example,  Prev: Printing Formatted Messages,  Up: Formatted Messages
+
+Adding Severity Classes
+-----------------------
+
+   There is another possibility to introduce severity classes besides
+using the environment variable `SEV_LEVEL'.  This simplifies the task of
+introducing new classes in a running program.  One could use the
+`setenv' or `putenv' function to set the environment variable, but this
+is toilsome.
+
+ - Function: int addseverity (int SEVERITY, const char *STRING)
+     This function allows the introduction of new severity classes
+     which can be addressed by the SEVERITY parameter of the `fmtmsg'
+     function.  The SEVERITY parameter of `addseverity' must match the
+     value for the parameter with the same name of `fmtmsg', and STRING
+     is the string printed in the actual messages instead of the numeric
+     value.
+
+     If STRING is `NULL' the severity class with the numeric value
+     according to SEVERITY is removed.
+
+     It is not possible to overwrite or remove one of the default
+     severity classes.  All calls to `addseverity' with SEVERITY set to
+     one of the values for the default classes will fail.
+
+     The return value is `MM_OK' if the task was successfully performed.
+     If the return value is `MM_NOTOK' something went wrong.  This could
+     mean that no more memory is available or a class is not available
+     when it has to be removed.
+
+     This function is not specified in the X/Open Portability Guide
+     although the `fmtsmg' function is.  It is available on System V
+     systems.
+
+
+File: libc.info,  Node: Example,  Prev: Adding Severity Classes,  Up: Formatted Messages
+
+How to use `fmtmsg' and `addseverity'
+-------------------------------------
+
+   Here is a simple example program to illustrate the use of the both
+functions described in this section.
+
+     #include <fmtmsg.h>
+     
+     int
+     main (void)
+     {
+       addseverity (5, "NOTE2");
+       fmtmsg (MM_PRINT, "only1field", MM_INFO, "text2", "action2", "tag2");
+       fmtmsg (MM_PRINT, "UX:cat", 5, "invalid syntax", "refer to manual",
+               "UX:cat:001");
+       fmtmsg (MM_PRINT, "label:foo", 6, "text", "action", "tag");
+       return 0;
+     }
+
+   The second call to `fmtmsg' illustrates a use of this function as it
+usually occurs on System V systems, which heavily use this function.
+It seems worthwhile to give a short explanation here of how this system
+works on System V.  The value of the LABEL field (`UX:cat') says that
+the error occured in the Unix program `cat'.  The explanation of the
+error follows and the value for the ACTION parameter is `"refer to
+manual"'.  One could be more specific here, if necessary.  The TAG
+field contains, as proposed above, the value of the string given for
+the LABEL parameter, and additionally a unique ID (`001' in this case).
+For a GNU environment this string could contain a reference to the
+corresponding node in the Info page for the program.
+
+Running this program without specifying the `MSGVERB' and `SEV_LEVEL'
+function produces the following output:
+
+     UX:cat: NOTE2: invalid syntax
+     TO FIX: refer to manual UX:cat:001
+
+   We see the different fields of the message and how the extra glue
+(the colons and the `TO FIX' string) are printed.  But only one of the
+three calls to `fmtmsg' produced output.  The first call does not print
+anything because the LABEL parameter is not in the correct form.  The
+string must contain two fields, separated by a colon (*note Printing
+Formatted Messages::).  The third `fmtmsg' call produced no output
+since the class with the numeric value `6' is not defined.  Although a
+class with numeric value `5' is also not defined by default, the call
+to `addseverity' introduces it and the second call to `fmtmsg' produces
+the above output.
+
+   When we change the environment of the program to contain
+`SEV_LEVEL=XXX,6,NOTE' when running it we get a different result:
+
+     UX:cat: NOTE2: invalid syntax
+     TO FIX: refer to manual UX:cat:001
+     label:foo: NOTE: text
+     TO FIX: action tag
+
+   Now the third call to `fmtmsg' produced some output and we see how
+the string `NOTE' from the environment variable appears in the message.
+
+   Now we can reduce the output by specifying which fields we are
+interested in.  If we additionally set the environment variable
+`MSGVERB' to the value `severity:label:action' we get the following
+output:
+
+     UX:cat: NOTE2
+     TO FIX: refer to manual
+     label:foo: NOTE
+     TO FIX: action
+
+I.e., the output produced by the TEXT and the TAG parameters to
+`fmtmsg' vanished.  Please also note that now there is no colon after
+the `NOTE' and `NOTE2' strings in the output.  This is not necessary
+since there is no more output on this line because the text is missing.
+
+
+File: libc.info,  Node: Low-Level I/O,  Next: File System Interface,  Prev: I/O on Streams,  Up: Top
+
+Low-Level Input/Output
+**********************
+
+   This chapter describes functions for performing low-level
+input/output operations on file descriptors.  These functions include
+the primitives for the higher-level I/O functions described in *Note
+I/O on Streams::, as well as functions for performing low-level control
+operations for which there are no equivalents on streams.
+
+   Stream-level I/O is more flexible and usually more convenient;
+therefore, programmers generally use the descriptor-level functions only
+when necessary.  These are some of the usual reasons:
+
+   * For reading binary files in large chunks.
+
+   * For reading an entire file into core before parsing it.
+
+   * To perform operations other than data transfer, which can only be
+     done with a descriptor.  (You can use `fileno' to get the
+     descriptor corresponding to a stream.)
+
+   * To pass descriptors to a child process.  (The child can create its
+     own stream to use a descriptor that it inherits, but cannot
+     inherit a stream directly.)
+
+* Menu:
+
+* Opening and Closing Files::           How to open and close file
+                                         descriptors.
+* I/O Primitives::                      Reading and writing data.
+* File Position Primitive::             Setting a descriptor's file
+                                         position.
+* Descriptors and Streams::             Converting descriptor to stream
+                                         or vice-versa.
+* Stream/Descriptor Precautions::       Precautions needed if you use both
+                                         descriptors and streams.
+* Scatter-Gather::                      Fast I/O to discontinuous buffers.
+* Memory-mapped I/O::                   Using files like memory.
+* Waiting for I/O::                     How to check for input or output
+					 on multiple file descriptors.
+* Synchronizing I/O::                   Making sure all I/O actions completed.
+* Asynchronous I/O::                    Perform I/O in parallel.
+* Control Operations::                  Various other operations on file
+					 descriptors.
+* Duplicating Descriptors::             Fcntl commands for duplicating
+                                         file descriptors.
+* Descriptor Flags::                    Fcntl commands for manipulating
+                                         flags associated with file
+                                         descriptors.
+* File Status Flags::                   Fcntl commands for manipulating
+                                         flags associated with open files.
+* File Locks::                          Fcntl commands for implementing
+                                         file locking.
+* Interrupt Input::                     Getting an asynchronous signal when
+                                         input arrives.
+* IOCTLs::                              Generic I/O Control operations.
+

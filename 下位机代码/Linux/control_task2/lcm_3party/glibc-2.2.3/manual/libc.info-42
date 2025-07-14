@@ -1,0 +1,1173 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Executing a File,  Next: Process Completion,  Prev: Creating a Process,  Up: Processes
+
+Executing a File
+================
+
+   This section describes the `exec' family of functions, for executing
+a file as a process image.  You can use these functions to make a child
+process execute a new program after it has been forked.
+
+   To see the effects of `exec' from the point of view of the called
+program, *Note Program Basics::.
+
+   The functions in this family differ in how you specify the arguments,
+but otherwise they all do the same thing.  They are declared in the
+header file `unistd.h'.
+
+ - Function: int execv (const char *FILENAME, char *const ARGV[])
+     The `execv' function executes the file named by FILENAME as a new
+     process image.
+
+     The ARGV argument is an array of null-terminated strings that is
+     used to provide a value for the `argv' argument to the `main'
+     function of the program to be executed.  The last element of this
+     array must be a null pointer.  By convention, the first element of
+     this array is the file name of the program sans directory names.
+     *Note Program Arguments::, for full details on how programs can
+     access these arguments.
+
+     The environment for the new process image is taken from the
+     `environ' variable of the current process image; see *Note
+     Environment Variables::, for information about environments.
+
+ - Function: int execl (const char *FILENAME, const char *ARG0, ...)
+     This is similar to `execv', but the ARGV strings are specified
+     individually instead of as an array.  A null pointer must be
+     passed as the last such argument.
+
+ - Function: int execve (const char *FILENAME, char *const ARGV[], char
+          *const ENV[])
+     This is similar to `execv', but permits you to specify the
+     environment for the new program explicitly as the ENV argument.
+     This should be an array of strings in the same format as for the
+     `environ' variable; see *Note Environment Access::.
+
+ - Function: int execle (const char *FILENAME, const char *ARG0, char
+          *const ENV[], ...)
+     This is similar to `execl', but permits you to specify the
+     environment for the new program explicitly.  The environment
+     argument is passed following the null pointer that marks the last
+     ARGV argument, and should be an array of strings in the same
+     format as for the `environ' variable.
+
+ - Function: int execvp (const char *FILENAME, char *const ARGV[])
+     The `execvp' function is similar to `execv', except that it
+     searches the directories listed in the `PATH' environment variable
+     (*note Standard Environment::) to find the full file name of a
+     file from FILENAME if FILENAME does not contain a slash.
+
+     This function is useful for executing system utility programs,
+     because it looks for them in the places that the user has chosen.
+     Shells use it to run the commands that users type.
+
+ - Function: int execlp (const char *FILENAME, const char *ARG0, ...)
+     This function is like `execl', except that it performs the same
+     file name searching as the `execvp' function.
+
+   The size of the argument list and environment list taken together
+must not be greater than `ARG_MAX' bytes.  *Note General Limits::.  In
+the GNU system, the size (which compares against `ARG_MAX') includes,
+for each string, the number of characters in the string, plus the size
+of a `char *', plus one, rounded up to a multiple of the size of a
+`char *'.  Other systems may have somewhat different rules for counting.
+
+   These functions normally don't return, since execution of a new
+program causes the currently executing program to go away completely.
+A value of `-1' is returned in the event of a failure.  In addition to
+the usual file name errors (*note File Name Errors::), the following
+`errno' error conditions are defined for these functions:
+
+`E2BIG'
+     The combined size of the new program's argument list and
+     environment list is larger than `ARG_MAX' bytes.  The GNU system
+     has no specific limit on the argument list size, so this error
+     code cannot result, but you may get `ENOMEM' instead if the
+     arguments are too big for available memory.
+
+`ENOEXEC'
+     The specified file can't be executed because it isn't in the right
+     format.
+
+`ENOMEM'
+     Executing the specified file requires more storage than is
+     available.
+
+   If execution of the new file succeeds, it updates the access time
+field of the file as if the file had been read.  *Note File Times::,
+for more details about access times of files.
+
+   The point at which the file is closed again is not specified, but is
+at some point before the process exits or before another process image
+is executed.
+
+   Executing a new process image completely changes the contents of
+memory, copying only the argument and environment strings to new
+locations.  But many other attributes of the process are unchanged:
+
+   * The process ID and the parent process ID.  *Note Process Creation
+     Concepts::.
+
+   * Session and process group membership.  *Note Concepts of Job
+     Control::.
+
+   * Real user ID and group ID, and supplementary group IDs.  *Note
+     Process Persona::.
+
+   * Pending alarms.  *Note Setting an Alarm::.
+
+   * Current working directory and root directory.  *Note Working
+     Directory::.  In the GNU system, the root directory is not copied
+     when executing a setuid program; instead the system default root
+     directory is used for the new program.
+
+   * File mode creation mask.  *Note Setting Permissions::.
+
+   * Process signal mask; see *Note Process Signal Mask::.
+
+   * Pending signals; see *Note Blocking Signals::.
+
+   * Elapsed processor time associated with the process; see *Note
+     Processor Time::.
+
+   If the set-user-ID and set-group-ID mode bits of the process image
+file are set, this affects the effective user ID and effective group ID
+(respectively) of the process.  These concepts are discussed in detail
+in *Note Process Persona::.
+
+   Signals that are set to be ignored in the existing process image are
+also set to be ignored in the new process image.  All other signals are
+set to the default action in the new process image.  For more
+information about signals, see *Note Signal Handling::.
+
+   File descriptors open in the existing process image remain open in
+the new process image, unless they have the `FD_CLOEXEC'
+(close-on-exec) flag set.  The files that remain open inherit all
+attributes of the open file description from the existing process image,
+including file locks.  File descriptors are discussed in *Note
+Low-Level I/O::.
+
+   Streams, by contrast, cannot survive through `exec' functions,
+because they are located in the memory of the process itself.  The new
+process image has no streams except those it creates afresh.  Each of
+the streams in the pre-`exec' process image has a descriptor inside it,
+and these descriptors do survive through `exec' (provided that they do
+not have `FD_CLOEXEC' set).  The new process image can reconnect these
+to new streams using `fdopen' (*note Descriptors and Streams::).
+
+
+File: libc.info,  Node: Process Completion,  Next: Process Completion Status,  Prev: Executing a File,  Up: Processes
+
+Process Completion
+==================
+
+   The functions described in this section are used to wait for a child
+process to terminate or stop, and determine its status.  These functions
+are declared in the header file `sys/wait.h'.
+
+ - Function: pid_t waitpid (pid_t PID, int *STATUS-PTR, int OPTIONS)
+     The `waitpid' function is used to request status information from a
+     child process whose process ID is PID.  Normally, the calling
+     process is suspended until the child process makes status
+     information available by terminating.
+
+     Other values for the PID argument have special interpretations.  A
+     value of `-1' or `WAIT_ANY' requests status information for any
+     child process; a value of `0' or `WAIT_MYPGRP' requests
+     information for any child process in the same process group as the
+     calling process; and any other negative value - PGID requests
+     information for any child process whose process group ID is PGID.
+
+     If status information for a child process is available
+     immediately, this function returns immediately without waiting.
+     If more than one eligible child process has status information
+     available, one of them is chosen randomly, and its status is
+     returned immediately.  To get the status from the other eligible
+     child processes, you need to call `waitpid' again.
+
+     The OPTIONS argument is a bit mask.  Its value should be the
+     bitwise OR (that is, the `|' operator) of zero or more of the
+     `WNOHANG' and `WUNTRACED' flags.  You can use the `WNOHANG' flag
+     to indicate that the parent process shouldn't wait; and the
+     `WUNTRACED' flag to request status information from stopped
+     processes as well as processes that have terminated.
+
+     The status information from the child process is stored in the
+     object that STATUS-PTR points to, unless STATUS-PTR is a null
+     pointer.
+
+     This function is a cancelation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `waitpid' is called.  If the thread gets canceled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `waitpid' should be protected using cancelation handlers.
+
+     The return value is normally the process ID of the child process
+     whose status is reported.  If there are child processes but none
+     of them is waiting to be noticed, `waitpid' will block until one
+     is.  However, if the `WNOHANG' option was specified, `waitpid'
+     will return zero instead of blocking.
+
+     If a specific PID to wait for was given to `waitpid', it will
+     ignore all other children (if any).  Therefore if there are
+     children waiting to be noticed but the child whose PID was
+     specified is not one of them, `waitpid' will block or return zero
+     as described above.
+
+     A value of `-1' is returned in case of error.  The following
+     `errno' error conditions are defined for this function:
+
+    `EINTR'
+          The function was interrupted by delivery of a signal to the
+          calling process.  *Note Interrupted Primitives::.
+
+    `ECHILD'
+          There are no child processes to wait for, or the specified PID
+          is not a child of the calling process.
+
+    `EINVAL'
+          An invalid value was provided for the OPTIONS argument.
+
+   These symbolic constants are defined as values for the PID argument
+to the `waitpid' function.
+
+`WAIT_ANY'
+     This constant macro (whose value is `-1') specifies that `waitpid'
+     should return status information about any child process.
+
+`WAIT_MYPGRP'
+     This constant (with value `0') specifies that `waitpid' should
+     return status information about any child process in the same
+     process group as the calling process.
+
+   These symbolic constants are defined as flags for the OPTIONS
+argument to the `waitpid' function.  You can bitwise-OR the flags
+together to obtain a value to use as the argument.
+
+`WNOHANG'
+     This flag specifies that `waitpid' should return immediately
+     instead of waiting, if there is no child process ready to be
+     noticed.
+
+`WUNTRACED'
+     This flag specifies that `waitpid' should report the status of any
+     child processes that have been stopped as well as those that have
+     terminated.
+
+ - Function: pid_t wait (int *STATUS-PTR)
+     This is a simplified version of `waitpid', and is used to wait
+     until any one child process terminates.  The call:
+
+          wait (&status)
+
+     is exactly equivalent to:
+
+          waitpid (-1, &status, 0)
+
+     This function is a cancelation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `wait' is called.  If the thread gets canceled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `wait' should be protected using cancelation handlers.
+
+ - Function: pid_t wait4 (pid_t PID, int *STATUS-PTR, int OPTIONS,
+          struct rusage *USAGE)
+     If USAGE is a null pointer, `wait4' is equivalent to `waitpid
+     (PID, STATUS-PTR, OPTIONS)'.
+
+     If USAGE is not null, `wait4' stores usage figures for the child
+     process in `*RUSAGE' (but only if the child has terminated, not if
+     it has stopped).  *Note Resource Usage::.
+
+     This function is a BSD extension.
+
+   Here's an example of how to use `waitpid' to get the status from all
+child processes that have terminated, without ever waiting.  This
+function is designed to be a handler for `SIGCHLD', the signal that
+indicates that at least one child process has terminated.
+
+     void
+     sigchld_handler (int signum)
+     {
+       int pid, status, serrno;
+       serrno = errno;
+       while (1)
+         {
+           pid = waitpid (WAIT_ANY, &status, WNOHANG);
+           if (pid < 0)
+             {
+               perror ("waitpid");
+               break;
+             }
+           if (pid == 0)
+             break;
+           notice_termination (pid, status);
+         }
+       errno = serrno;
+     }
+
+
+File: libc.info,  Node: Process Completion Status,  Next: BSD Wait Functions,  Prev: Process Completion,  Up: Processes
+
+Process Completion Status
+=========================
+
+   If the exit status value (*note Program Termination::) of the child
+process is zero, then the status value reported by `waitpid' or `wait'
+is also zero.  You can test for other kinds of information encoded in
+the returned status value using the following macros.  These macros are
+defined in the header file `sys/wait.h'.
+
+ - Macro: int WIFEXITED (int STATUS)
+     This macro returns a nonzero value if the child process terminated
+     normally with `exit' or `_exit'.
+
+ - Macro: int WEXITSTATUS (int STATUS)
+     If `WIFEXITED' is true of STATUS, this macro returns the low-order
+     8 bits of the exit status value from the child process.  *Note
+     Exit Status::.
+
+ - Macro: int WIFSIGNALED (int STATUS)
+     This macro returns a nonzero value if the child process terminated
+     because it received a signal that was not handled.  *Note Signal
+     Handling::.
+
+ - Macro: int WTERMSIG (int STATUS)
+     If `WIFSIGNALED' is true of STATUS, this macro returns the signal
+     number of the signal that terminated the child process.
+
+ - Macro: int WCOREDUMP (int STATUS)
+     This macro returns a nonzero value if the child process terminated
+     and produced a core dump.
+
+ - Macro: int WIFSTOPPED (int STATUS)
+     This macro returns a nonzero value if the child process is stopped.
+
+ - Macro: int WSTOPSIG (int STATUS)
+     If `WIFSTOPPED' is true of STATUS, this macro returns the signal
+     number of the signal that caused the child process to stop.
+
+
+File: libc.info,  Node: BSD Wait Functions,  Next: Process Creation Example,  Prev: Process Completion Status,  Up: Processes
+
+BSD Process Wait Functions
+==========================
+
+   The GNU library also provides these related facilities for
+compatibility with BSD Unix.  BSD uses the `union wait' data type to
+represent status values rather than an `int'.  The two representations
+are actually interchangeable; they describe the same bit patterns.  The
+GNU C Library defines macros such as `WEXITSTATUS' so that they will
+work on either kind of object, and the `wait' function is defined to
+accept either type of pointer as its STATUS-PTR argument.
+
+   These functions are declared in `sys/wait.h'.
+
+ - Data Type: union wait
+     This data type represents program termination status values.  It
+     has the following members:
+
+    `int w_termsig'
+          The value of this member is the same as that of the
+          `WTERMSIG' macro.
+
+    `int w_coredump'
+          The value of this member is the same as that of the
+          `WCOREDUMP' macro.
+
+    `int w_retcode'
+          The value of this member is the same as that of the
+          `WEXITSTATUS' macro.
+
+    `int w_stopsig'
+          The value of this member is the same as that of the
+          `WSTOPSIG' macro.
+
+     Instead of accessing these members directly, you should use the
+     equivalent macros.
+
+   The `wait3' function is the predecessor to `wait4', which is more
+flexible.  `wait3' is now obsolete.
+
+ - Function: pid_t wait3 (union wait *STATUS-PTR, int OPTIONS, struct
+          rusage *USAGE)
+     If USAGE is a null pointer, `wait3' is equivalent to `waitpid (-1,
+     STATUS-PTR, OPTIONS)'.
+
+     If USAGE is not null, `wait3' stores usage figures for the child
+     process in `*RUSAGE' (but only if the child has terminated, not if
+     it has stopped).  *Note Resource Usage::.
+
+
+File: libc.info,  Node: Process Creation Example,  Prev: BSD Wait Functions,  Up: Processes
+
+Process Creation Example
+========================
+
+   Here is an example program showing how you might write a function
+similar to the built-in `system'.  It executes its COMMAND argument
+using the equivalent of `sh -c COMMAND'.
+
+     #include <stddef.h>
+     #include <stdlib.h>
+     #include <unistd.h>
+     #include <sys/types.h>
+     #include <sys/wait.h>
+     
+     /* Execute the command using this shell program.  */
+     #define SHELL "/bin/sh"
+     
+     int
+     my_system (const char *command)
+     {
+       int status;
+       pid_t pid;
+     
+       pid = fork ();
+       if (pid == 0)
+         {
+           /* This is the child process.  Execute the shell command. */
+           execl (SHELL, SHELL, "-c", command, NULL);
+           _exit (EXIT_FAILURE);
+         }
+       else if (pid < 0)
+         /* The fork failed.  Report failure.  */
+         status = -1;
+       else
+         /* This is the parent process.  Wait for the child to complete.  */
+         if (waitpid (pid, &status, 0) != pid)
+           status = -1;
+       return status;
+     }
+
+   There are a couple of things you should pay attention to in this
+example.
+
+   Remember that the first `argv' argument supplied to the program
+represents the name of the program being executed.  That is why, in the
+call to `execl', `SHELL' is supplied once to name the program to
+execute and a second time to supply a value for `argv[0]'.
+
+   The `execl' call in the child process doesn't return if it is
+successful.  If it fails, you must do something to make the child
+process terminate.  Just returning a bad status code with `return'
+would leave two processes running the original program.  Instead, the
+right behavior is for the child process to report failure to its parent
+process.
+
+   Call `_exit' to accomplish this.  The reason for using `_exit'
+instead of `exit' is to avoid flushing fully buffered streams such as
+`stdout'.  The buffers of these streams probably contain data that was
+copied from the parent process by the `fork', data that will be output
+eventually by the parent process.  Calling `exit' in the child would
+output the data twice.  *Note Termination Internals::.
+
+
+File: libc.info,  Node: Job Control,  Next: Name Service Switch,  Prev: Processes,  Up: Top
+
+Job Control
+***********
+
+   "Job control" refers to the protocol for allowing a user to move
+between multiple "process groups" (or "jobs") within a single "login
+session".  The job control facilities are set up so that appropriate
+behavior for most programs happens automatically and they need not do
+anything special about job control.  So you can probably ignore the
+material in this chapter unless you are writing a shell or login
+program.
+
+   You need to be familiar with concepts relating to process creation
+(*note Process Creation Concepts::) and signal handling (*note Signal
+Handling::) in order to understand this material presented in this
+chapter.
+
+* Menu:
+
+* Concepts of Job Control::     Jobs can be controlled by a shell.
+* Job Control is Optional::     Not all POSIX systems support job control.
+* Controlling Terminal::        How a process gets its controlling terminal.
+* Access to the Terminal::      How processes share the controlling terminal.
+* Orphaned Process Groups::     Jobs left after the user logs out.
+* Implementing a Shell::        What a shell must do to implement job control.
+* Functions for Job Control::   Functions to control process groups.
+
+
+File: libc.info,  Node: Concepts of Job Control,  Next: Job Control is Optional,  Up: Job Control
+
+Concepts of Job Control
+=======================
+
+   The fundamental purpose of an interactive shell is to read commands
+from the user's terminal and create processes to execute the programs
+specified by those commands.  It can do this using the `fork' (*note
+Creating a Process::) and `exec' (*note Executing a File::) functions.
+
+   A single command may run just one process--but often one command uses
+several processes.  If you use the `|' operator in a shell command, you
+explicitly request several programs in their own processes.  But even
+if you run just one program, it can use multiple processes internally.
+For example, a single compilation command such as `cc -c foo.c'
+typically uses four processes (though normally only two at any given
+time).  If you run `make', its job is to run other programs in separate
+processes.
+
+   The processes belonging to a single command are called a "process
+group" or "job".  This is so that you can operate on all of them at
+once.  For example, typing `C-c' sends the signal `SIGINT' to terminate
+all the processes in the foreground process group.
+
+   A "session" is a larger group of processes.  Normally all the
+processes that stem from a single login belong to the same session.
+
+   Every process belongs to a process group.  When a process is
+created, it becomes a member of the same process group and session as
+its parent process.  You can put it in another process group using the
+`setpgid' function, provided the process group belongs to the same
+session.
+
+   The only way to put a process in a different session is to make it
+the initial process of a new session, or a "session leader", using the
+`setsid' function.  This also puts the session leader into a new
+process group, and you can't move it out of that process group again.
+
+   Usually, new sessions are created by the system login program, and
+the session leader is the process running the user's login shell.
+
+   A shell that supports job control must arrange to control which job
+can use the terminal at any time.  Otherwise there might be multiple
+jobs trying to read from the terminal at once, and confusion about which
+process should receive the input typed by the user.  To prevent this,
+the shell must cooperate with the terminal driver using the protocol
+described in this chapter.
+
+   The shell can give unlimited access to the controlling terminal to
+only one process group at a time.  This is called the "foreground job"
+on that controlling terminal.  Other process groups managed by the shell
+that are executing without such access to the terminal are called
+"background jobs".
+
+   If a background job needs to read from its controlling terminal, it
+is "stopped" by the terminal driver; if the `TOSTOP' mode is set,
+likewise for writing.  The user can stop a foreground job by typing the
+SUSP character (*note Special Characters::) and a program can stop any
+job by sending it a `SIGSTOP' signal.  It's the responsibility of the
+shell to notice when jobs stop, to notify the user about them, and to
+provide mechanisms for allowing the user to interactively continue
+stopped jobs and switch jobs between foreground and background.
+
+   *Note Access to the Terminal::, for more information about I/O to the
+controlling terminal,
+
+
+File: libc.info,  Node: Job Control is Optional,  Next: Controlling Terminal,  Prev: Concepts of Job Control,  Up: Job Control
+
+Job Control is Optional
+=======================
+
+   Not all operating systems support job control.  The GNU system does
+support job control, but if you are using the GNU library on some other
+system, that system may not support job control itself.
+
+   You can use the `_POSIX_JOB_CONTROL' macro to test at compile-time
+whether the system supports job control.  *Note System Options::.
+
+   If job control is not supported, then there can be only one process
+group per session, which behaves as if it were always in the foreground.
+The functions for creating additional process groups simply fail with
+the error code `ENOSYS'.
+
+   The macros naming the various job control signals (*note Job Control
+Signals::) are defined even if job control is not supported.  However,
+the system never generates these signals, and attempts to send a job
+control signal or examine or specify their actions report errors or do
+nothing.
+
+
+File: libc.info,  Node: Controlling Terminal,  Next: Access to the Terminal,  Prev: Job Control is Optional,  Up: Job Control
+
+Controlling Terminal of a Process
+=================================
+
+   One of the attributes of a process is its controlling terminal.
+Child processes created with `fork' inherit the controlling terminal
+from their parent process.  In this way, all the processes in a session
+inherit the controlling terminal from the session leader.  A session
+leader that has control of a terminal is called the "controlling
+process" of that terminal.
+
+   You generally do not need to worry about the exact mechanism used to
+allocate a controlling terminal to a session, since it is done for you
+by the system when you log in.
+
+   An individual process disconnects from its controlling terminal when
+it calls `setsid' to become the leader of a new session.  *Note Process
+Group Functions::.
+
+
+File: libc.info,  Node: Access to the Terminal,  Next: Orphaned Process Groups,  Prev: Controlling Terminal,  Up: Job Control
+
+Access to the Controlling Terminal
+==================================
+
+   Processes in the foreground job of a controlling terminal have
+unrestricted access to that terminal; background processes do not.  This
+section describes in more detail what happens when a process in a
+background job tries to access its controlling terminal.
+
+   When a process in a background job tries to read from its controlling
+terminal, the process group is usually sent a `SIGTTIN' signal.  This
+normally causes all of the processes in that group to stop (unless they
+handle the signal and don't stop themselves).  However, if the reading
+process is ignoring or blocking this signal, then `read' fails with an
+`EIO' error instead.
+
+   Similarly, when a process in a background job tries to write to its
+controlling terminal, the default behavior is to send a `SIGTTOU'
+signal to the process group.  However, the behavior is modified by the
+`TOSTOP' bit of the local modes flags (*note Local Modes::).  If this
+bit is not set (which is the default), then writing to the controlling
+terminal is always permitted without sending a signal.  Writing is also
+permitted if the `SIGTTOU' signal is being ignored or blocked by the
+writing process.
+
+   Most other terminal operations that a program can do are treated as
+reading or as writing.  (The description of each operation should say
+which.)
+
+   For more information about the primitive `read' and `write'
+functions, see *Note I/O Primitives::.
+
+
+File: libc.info,  Node: Orphaned Process Groups,  Next: Implementing a Shell,  Prev: Access to the Terminal,  Up: Job Control
+
+Orphaned Process Groups
+=======================
+
+   When a controlling process terminates, its terminal becomes free and
+a new session can be established on it.  (In fact, another user could
+log in on the terminal.)  This could cause a problem if any processes
+from the old session are still trying to use that terminal.
+
+   To prevent problems, process groups that continue running even after
+the session leader has terminated are marked as "orphaned process
+groups".
+
+   When a process group becomes an orphan, its processes are sent a
+`SIGHUP' signal.  Ordinarily, this causes the processes to terminate.
+However, if a program ignores this signal or establishes a handler for
+it (*note Signal Handling::), it can continue running as in the orphan
+process group even after its controlling process terminates; but it
+still cannot access the terminal any more.
+
+
+File: libc.info,  Node: Implementing a Shell,  Next: Functions for Job Control,  Prev: Orphaned Process Groups,  Up: Job Control
+
+Implementing a Job Control Shell
+================================
+
+   This section describes what a shell must do to implement job
+control, by presenting an extensive sample program to illustrate the
+concepts involved.
+
+* Menu:
+
+* Data Structures::             Introduction to the sample shell.
+* Initializing the Shell::      What the shell must do to take
+				 responsibility for job control.
+* Launching Jobs::              Creating jobs to execute commands.
+* Foreground and Background::   Putting a job in foreground of background.
+* Stopped and Terminated Jobs::  Reporting job status.
+* Continuing Stopped Jobs::     How to continue a stopped job in
+				 the foreground or background.
+* Missing Pieces::              Other parts of the shell.
+
+
+File: libc.info,  Node: Data Structures,  Next: Initializing the Shell,  Up: Implementing a Shell
+
+Data Structures for the Shell
+-----------------------------
+
+   All of the program examples included in this chapter are part of a
+simple shell program.  This section presents data structures and
+utility functions which are used throughout the example.
+
+   The sample shell deals mainly with two data structures.  The `job'
+type contains information about a job, which is a set of subprocesses
+linked together with pipes.  The `process' type holds information about
+a single subprocess.  Here are the relevant data structure declarations:
+
+     /* A process is a single process.  */
+     typedef struct process
+     {
+       struct process *next;       /* next process in pipeline */
+       char **argv;                /* for exec */
+       pid_t pid;                  /* process ID */
+       char completed;             /* true if process has completed */
+       char stopped;               /* true if process has stopped */
+       int status;                 /* reported status value */
+     } process;
+     
+     /* A job is a pipeline of processes.  */
+     typedef struct job
+     {
+       struct job *next;           /* next active job */
+       char *command;              /* command line, used for messages */
+       process *first_process;     /* list of processes in this job */
+       pid_t pgid;                 /* process group ID */
+       char notified;              /* true if user told about stopped job */
+       struct termios tmodes;      /* saved terminal modes */
+       int stdin, stdout, stderr;  /* standard i/o channels */
+     } job;
+     
+     /* The active jobs are linked into a list.  This is its head.   */
+     job *first_job = NULL;
+
+   Here are some utility functions that are used for operating on `job'
+objects.
+
+     /* Find the active job with the indicated PGID.  */
+     job *
+     find_job (pid_t pgid)
+     {
+       job *j;
+     
+       for (j = first_job; j; j = j->next)
+         if (j->pgid == pgid)
+           return j;
+       return NULL;
+     }
+     
+     /* Return true if all processes in the job have stopped or completed.  */
+     int
+     job_is_stopped (job *j)
+     {
+       process *p;
+     
+       for (p = j->first_process; p; p = p->next)
+         if (!p->completed && !p->stopped)
+           return 0;
+       return 1;
+     }
+     
+     /* Return true if all processes in the job have completed.  */
+     int
+     job_is_completed (job *j)
+     {
+       process *p;
+     
+       for (p = j->first_process; p; p = p->next)
+         if (!p->completed)
+           return 0;
+       return 1;
+     }
+
+
+File: libc.info,  Node: Initializing the Shell,  Next: Launching Jobs,  Prev: Data Structures,  Up: Implementing a Shell
+
+Initializing the Shell
+----------------------
+
+   When a shell program that normally performs job control is started,
+it has to be careful in case it has been invoked from another shell
+that is already doing its own job control.
+
+   A subshell that runs interactively has to ensure that it has been
+placed in the foreground by its parent shell before it can enable job
+control itself.  It does this by getting its initial process group ID
+with the `getpgrp' function, and comparing it to the process group ID
+of the current foreground job associated with its controlling terminal
+(which can be retrieved using the `tcgetpgrp' function).
+
+   If the subshell is not running as a foreground job, it must stop
+itself by sending a `SIGTTIN' signal to its own process group.  It may
+not arbitrarily put itself into the foreground; it must wait for the
+user to tell the parent shell to do this.  If the subshell is continued
+again, it should repeat the check and stop itself again if it is still
+not in the foreground.
+
+   Once the subshell has been placed into the foreground by its parent
+shell, it can enable its own job control.  It does this by calling
+`setpgid' to put itself into its own process group, and then calling
+`tcsetpgrp' to place this process group into the foreground.
+
+   When a shell enables job control, it should set itself to ignore all
+the job control stop signals so that it doesn't accidentally stop
+itself.  You can do this by setting the action for all the stop signals
+to `SIG_IGN'.
+
+   A subshell that runs non-interactively cannot and should not support
+job control.  It must leave all processes it creates in the same process
+group as the shell itself; this allows the non-interactive shell and its
+child processes to be treated as a single job by the parent shell.  This
+is easy to do--just don't use any of the job control primitives--but
+you must remember to make the shell do it.
+
+   Here is the initialization code for the sample shell that shows how
+to do all of this.
+
+     /* Keep track of attributes of the shell.  */
+     
+     #include <sys/types.h>
+     #include <termios.h>
+     #include <unistd.h>
+     
+     pid_t shell_pgid;
+     struct termios shell_tmodes;
+     int shell_terminal;
+     int shell_is_interactive;
+     
+     
+     /* Make sure the shell is running interactively as the foreground job
+        before proceeding. */
+     
+     void
+     init_shell ()
+     {
+     
+       /* See if we are running interactively.  */
+       shell_terminal = STDIN_FILENO;
+       shell_is_interactive = isatty (shell_terminal);
+     
+       if (shell_is_interactive)
+         {
+           /* Loop until we are in the foreground.  */
+           while (tcgetpgrp (shell_terminal) != (shell_pgid = getpgrp ()))
+             kill (- shell_pgid, SIGTTIN);
+     
+           /* Ignore interactive and job-control signals.  */
+           signal (SIGINT, SIG_IGN);
+           signal (SIGQUIT, SIG_IGN);
+           signal (SIGTSTP, SIG_IGN);
+           signal (SIGTTIN, SIG_IGN);
+           signal (SIGTTOU, SIG_IGN);
+           signal (SIGCHLD, SIG_IGN);
+     
+           /* Put ourselves in our own process group.  */
+           shell_pgid = getpid ();
+           if (setpgid (shell_pgid, shell_pgid) < 0)
+             {
+               perror ("Couldn't put the shell in its own process group");
+               exit (1);
+             }
+     
+           /* Grab control of the terminal.  */
+           tcsetpgrp (shell_terminal, shell_pgid);
+     
+           /* Save default terminal attributes for shell.  */
+           tcgetattr (shell_terminal, &shell_tmodes);
+         }
+     }
+
+
+File: libc.info,  Node: Launching Jobs,  Next: Foreground and Background,  Prev: Initializing the Shell,  Up: Implementing a Shell
+
+Launching Jobs
+--------------
+
+   Once the shell has taken responsibility for performing job control on
+its controlling terminal, it can launch jobs in response to commands
+typed by the user.
+
+   To create the processes in a process group, you use the same `fork'
+and `exec' functions described in *Note Process Creation Concepts::.
+Since there are multiple child processes involved, though, things are a
+little more complicated and you must be careful to do things in the
+right order.  Otherwise, nasty race conditions can result.
+
+   You have two choices for how to structure the tree of parent-child
+relationships among the processes.  You can either make all the
+processes in the process group be children of the shell process, or you
+can make one process in group be the ancestor of all the other processes
+in that group.  The sample shell program presented in this chapter uses
+the first approach because it makes bookkeeping somewhat simpler.
+
+   As each process is forked, it should put itself in the new process
+group by calling `setpgid'; see *Note Process Group Functions::.  The
+first process in the new group becomes its "process group leader", and
+its process ID becomes the "process group ID" for the group.
+
+   The shell should also call `setpgid' to put each of its child
+processes into the new process group.  This is because there is a
+potential timing problem: each child process must be put in the process
+group before it begins executing a new program, and the shell depends on
+having all the child processes in the group before it continues
+executing.  If both the child processes and the shell call `setpgid',
+this ensures that the right things happen no matter which process gets
+to it first.
+
+   If the job is being launched as a foreground job, the new process
+group also needs to be put into the foreground on the controlling
+terminal using `tcsetpgrp'.  Again, this should be done by the shell as
+well as by each of its child processes, to avoid race conditions.
+
+   The next thing each child process should do is to reset its signal
+actions.
+
+   During initialization, the shell process set itself to ignore job
+control signals; see *Note Initializing the Shell::.  As a result, any
+child processes it creates also ignore these signals by inheritance.
+This is definitely undesirable, so each child process should explicitly
+set the actions for these signals back to `SIG_DFL' just after it is
+forked.
+
+   Since shells follow this convention, applications can assume that
+they inherit the correct handling of these signals from the parent
+process.  But every application has a responsibility not to mess up the
+handling of stop signals.  Applications that disable the normal
+interpretation of the SUSP character should provide some other
+mechanism for the user to stop the job.  When the user invokes this
+mechanism, the program should send a `SIGTSTP' signal to the process
+group of the process, not just to the process itself.  *Note Signaling
+Another Process::.
+
+   Finally, each child process should call `exec' in the normal way.
+This is also the point at which redirection of the standard input and
+output channels should be handled.  *Note Duplicating Descriptors::,
+for an explanation of how to do this.
+
+   Here is the function from the sample shell program that is
+responsible for launching a program.  The function is executed by each
+child process immediately after it has been forked by the shell, and
+never returns.
+
+     void
+     launch_process (process *p, pid_t pgid,
+                     int infile, int outfile, int errfile,
+                     int foreground)
+     {
+       pid_t pid;
+     
+       if (shell_is_interactive)
+         {
+           /* Put the process into the process group and give the process group
+              the terminal, if appropriate.
+              This has to be done both by the shell and in the individual
+              child processes because of potential race conditions.  */
+           pid = getpid ();
+           if (pgid == 0) pgid = pid;
+           setpgid (pid, pgid);
+           if (foreground)
+             tcsetpgrp (shell_terminal, pgid);
+     
+           /* Set the handling for job control signals back to the default.  */
+           signal (SIGINT, SIG_DFL);
+           signal (SIGQUIT, SIG_DFL);
+           signal (SIGTSTP, SIG_DFL);
+           signal (SIGTTIN, SIG_DFL);
+           signal (SIGTTOU, SIG_DFL);
+           signal (SIGCHLD, SIG_DFL);
+         }
+     
+       /* Set the standard input/output channels of the new process.  */
+       if (infile != STDIN_FILENO)
+         {
+           dup2 (infile, STDIN_FILENO);
+           close (infile);
+         }
+       if (outfile != STDOUT_FILENO)
+         {
+           dup2 (outfile, STDOUT_FILENO);
+           close (outfile);
+         }
+       if (errfile != STDERR_FILENO)
+         {
+           dup2 (errfile, STDERR_FILENO);
+           close (errfile);
+         }
+     
+       /* Exec the new process.  Make sure we exit.  */
+       execvp (p->argv[0], p->argv);
+       perror ("execvp");
+       exit (1);
+     }
+
+   If the shell is not running interactively, this function does not do
+anything with process groups or signals.  Remember that a shell not
+performing job control must keep all of its subprocesses in the same
+process group as the shell itself.
+
+   Next, here is the function that actually launches a complete job.
+After creating the child processes, this function calls some other
+functions to put the newly created job into the foreground or
+background; these are discussed in *Note Foreground and Background::.
+
+     void
+     launch_job (job *j, int foreground)
+     {
+       process *p;
+       pid_t pid;
+       int mypipe[2], infile, outfile;
+     
+       infile = j->stdin;
+       for (p = j->first_process; p; p = p->next)
+         {
+           /* Set up pipes, if necessary.  */
+           if (p->next)
+             {
+               if (pipe (mypipe) < 0)
+                 {
+                   perror ("pipe");
+                   exit (1);
+                 }
+               outfile = mypipe[1];
+             }
+           else
+             outfile = j->stdout;
+     
+           /* Fork the child processes.  */
+           pid = fork ();
+           if (pid == 0)
+             /* This is the child process.  */
+             launch_process (p, j->pgid, infile,
+                             outfile, j->stderr, foreground);
+           else if (pid < 0)
+             {
+               /* The fork failed.  */
+               perror ("fork");
+               exit (1);
+             }
+           else
+             {
+               /* This is the parent process.  */
+               p->pid = pid;
+               if (shell_is_interactive)
+                 {
+                   if (!j->pgid)
+                     j->pgid = pid;
+                   setpgid (pid, j->pgid);
+                 }
+             }
+     
+           /* Clean up after pipes.  */
+           if (infile != j->stdin)
+             close (infile);
+           if (outfile != j->stdout)
+             close (outfile);
+           infile = mypipe[0];
+         }
+     
+       format_job_info (j, "launched");
+     
+       if (!shell_is_interactive)
+         wait_for_job (j);
+       else if (foreground)
+         put_job_in_foreground (j, 0);
+       else
+         put_job_in_background (j, 0);
+     }
+
+
+File: libc.info,  Node: Foreground and Background,  Next: Stopped and Terminated Jobs,  Prev: Launching Jobs,  Up: Implementing a Shell
+
+Foreground and Background
+-------------------------
+
+   Now let's consider what actions must be taken by the shell when it
+launches a job into the foreground, and how this differs from what must
+be done when a background job is launched.
+
+   When a foreground job is launched, the shell must first give it
+access to the controlling terminal by calling `tcsetpgrp'.  Then, the
+shell should wait for processes in that process group to terminate or
+stop.  This is discussed in more detail in *Note Stopped and Terminated
+Jobs::.
+
+   When all of the processes in the group have either completed or
+stopped, the shell should regain control of the terminal for its own
+process group by calling `tcsetpgrp' again.  Since stop signals caused
+by I/O from a background process or a SUSP character typed by the user
+are sent to the process group, normally all the processes in the job
+stop together.
+
+   The foreground job may have left the terminal in a strange state, so
+the shell should restore its own saved terminal modes before
+continuing.  In case the job is merely stopped, the shell should first
+save the current terminal modes so that it can restore them later if
+the job is continued.  The functions for dealing with terminal modes are
+`tcgetattr' and `tcsetattr'; these are described in *Note Terminal
+Modes::.
+
+   Here is the sample shell's function for doing all of this.
+
+     /* Put job J in the foreground.  If CONT is nonzero,
+        restore the saved terminal modes and send the process group a
+        `SIGCONT' signal to wake it up before we block.  */
+     
+     void
+     put_job_in_foreground (job *j, int cont)
+     {
+       /* Put the job into the foreground.  */
+       tcsetpgrp (shell_terminal, j->pgid);
+     
+       /* Send the job a continue signal, if necessary.  */
+       if (cont)
+         {
+           tcsetattr (shell_terminal, TCSADRAIN, &j->tmodes);
+           if (kill (- j->pgid, SIGCONT) < 0)
+             perror ("kill (SIGCONT)");
+         }
+     
+       /* Wait for it to report.  */
+       wait_for_job (j);
+     
+       /* Put the shell back in the foreground.  */
+       tcsetpgrp (shell_terminal, shell_pgid);
+     
+       /* Restore the shell's terminal modes.  */
+       tcgetattr (shell_terminal, &j->tmodes);
+       tcsetattr (shell_terminal, TCSADRAIN, &shell_tmodes);
+     }
+
+   If the process group is launched as a background job, the shell
+should remain in the foreground itself and continue to read commands
+from the terminal.
+
+   In the sample shell, there is not much that needs to be done to put
+a job into the background.  Here is the function it uses:
+
+     /* Put a job in the background.  If the cont argument is true, send
+        the process group a `SIGCONT' signal to wake it up.  */
+     
+     void
+     put_job_in_background (job *j, int cont)
+     {
+       /* Send the job a continue signal, if necessary.  */
+       if (cont)
+         if (kill (-j->pgid, SIGCONT) < 0)
+           perror ("kill (SIGCONT)");
+     }
+

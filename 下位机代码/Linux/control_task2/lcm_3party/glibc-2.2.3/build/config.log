@@ -1,0 +1,5 @@
+This file contains any messages produced by compilers while
+running configure, to aid debugging if configure makes a mistake.
+
+configure:904: checking host system type
+configure:1050: checking sysdep dirs

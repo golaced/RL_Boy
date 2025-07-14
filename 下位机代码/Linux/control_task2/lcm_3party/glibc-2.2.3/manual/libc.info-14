@@ -1,0 +1,1194 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Tree Search Function,  Prev: Hash Search Function,  Up: Searching and Sorting
+
+The `tsearch' function.
+=======================
+
+   Another common form to organize data for efficient search is to use
+trees.  The `tsearch' function family provides a nice interface to
+functions to organize possibly large amounts of data by providing a mean
+access time proportional to the logarithm of the number of elements.
+The GNU C library implementation even guarantees that this bound is
+never exceeded even for input data which cause problems for simple
+binary tree implementations.
+
+   The functions described in the chapter are all described in the
+System V and X/Open specifications and are therefore quite portable.
+
+   In contrast to the `hsearch' functions the `tsearch' functions can
+be used with arbitrary data and not only zero-terminated strings.
+
+   The `tsearch' functions have the advantage that no function to
+initialize data structures is necessary.  A simple pointer of type
+`void *' initialized to `NULL' is a valid tree and can be extended or
+searched.
+
+ - Function: void * tsearch (const void *KEY, void **ROOTP,
+          comparison_fn_t COMPAR)
+     The `tsearch' function searches in the tree pointed to by `*ROOTP'
+     for an element matching KEY.  The function pointed to by COMPAR is
+     used to determine whether two elements match.  *Note Comparison
+     Functions::, for a specification of the functions which can be
+     used for the COMPAR parameter.
+
+     If the tree does not contain a matching entry the KEY value will
+     be added to the tree.  `tsearch' does not make a copy of the object
+     pointed to by KEY (how could it since the size is unknown).
+     Instead it adds a reference to this object which means the object
+     must be available as long as the tree data structure is used.
+
+     The tree is represented by a pointer to a pointer since it is
+     sometimes necessary to change the root node of the tree.  So it
+     must not be assumed that the variable pointed to by ROOTP has the
+     same value after the call.  This also shows that it is not safe to
+     call the `tsearch' function more than once at the same time using
+     the same tree.  It is no problem to run it more than once at a
+     time on different trees.
+
+     The return value is a pointer to the matching element in the tree.
+     If a new element was created the pointer points to the new data
+     (which is in fact KEY).  If an entry had to be created and the
+     program ran out of space `NULL' is returned.
+
+ - Function: void * tfind (const void *KEY, void *const *ROOTP,
+          comparison_fn_t COMPAR)
+     The `tfind' function is similar to the `tsearch' function.  It
+     locates an element matching the one pointed to by KEY and returns
+     a pointer to this element.  But if no matching element is
+     available no new element is entered (note that the ROOTP parameter
+     points to a constant pointer).  Instead the function returns
+     `NULL'.
+
+   Another advantage of the `tsearch' function in contrast to the
+`hsearch' functions is that there is an easy way to remove elements.
+
+ - Function: void * tdelete (const void *KEY, void **ROOTP,
+          comparison_fn_t COMPAR)
+     To remove a specific element matching KEY from the tree `tdelete'
+     can be used.  It locates the matching element using the same
+     method as `tfind'.  The corresponding element is then removed and
+     a pointer to the parent of the deleted node is returned by the
+     function.  If there is no matching entry in the tree nothing can be
+     deleted and the function returns `NULL'.  If the root of the tree
+     is deleted `tdelete' returns some unspecified value not equal to
+     `NULL'.
+
+ - Function: void tdestroy (void *VROOT, __free_fn_t FREEFCT)
+     If the complete search tree has to be removed one can use
+     `tdestroy'.  It frees all resources allocated by the `tsearch'
+     function to generate the tree pointed to by VROOT.
+
+     For the data in each tree node the function FREEFCT is called.
+     The pointer to the data is passed as the argument to the function.
+     If no such work is necessary FREEFCT must point to a function
+     doing nothing.  It is called in any case.
+
+     This function is a GNU extension and not covered by the System V or
+     X/Open specifications.
+
+   In addition to the function to create and destroy the tree data
+structure, there is another function which allows you to apply a
+function to all elements of the tree.  The function must have this type:
+
+     void __action_fn_t (const void *nodep, VISIT value, int level);
+
+   The NODEP is the data value of the current node (once given as the
+KEY argument to `tsearch').  LEVEL is a numeric value which corresponds
+to the depth of the current node in the tree.  The root node has the
+depth 0 and its children have a depth of 1 and so on.  The `VISIT' type
+is an enumeration type.
+
+ - Data Type: VISIT
+     The `VISIT' value indicates the status of the current node in the
+     tree and how the function is called.  The status of a node is
+     either `leaf' or `internal node'.  For each leaf node the function
+     is called exactly once, for each internal node it is called three
+     times: before the first child is processed, after the first child
+     is processed and after both children are processed.  This makes it
+     possible to handle all three methods of tree traversal (or even a
+     combination of them).
+
+    `preorder'
+          The current node is an internal node and the function is
+          called before the first child was processed.
+
+    `postorder'
+          The current node is an internal node and the function is
+          called after the first child was processed.
+
+    `endorder'
+          The current node is an internal node and the function is
+          called after the second child was processed.
+
+    `leaf'
+          The current node is a leaf.
+
+ - Function: void twalk (const void *ROOT, __action_fn_t ACTION)
+     For each node in the tree with a node pointed to by ROOT, the
+     `twalk' function calls the function provided by the parameter
+     ACTION.  For leaf nodes the function is called exactly once with
+     VALUE set to `leaf'.  For internal nodes the function is called
+     three times, setting the VALUE parameter or ACTION to the
+     appropriate value.  The LEVEL argument for the ACTION function is
+     computed while descending the tree with increasing the value by
+     one for the descend to a child, starting with the value 0 for the
+     root node.
+
+     Since the functions used for the ACTION parameter to `twalk' must
+     not modify the tree data, it is safe to run `twalk' in more than
+     one thread at the same time, working on the same tree.  It is also
+     safe to call `tfind' in parallel.  Functions which modify the tree
+     must not be used, otherwise the behaviour is undefined.
+
+
+File: libc.info,  Node: Pattern Matching,  Next: I/O Overview,  Prev: Searching and Sorting,  Up: Top
+
+Pattern Matching
+****************
+
+   The GNU C Library provides pattern matching facilities for two kinds
+of patterns: regular expressions and file-name wildcards.  The library
+also provides a facility for expanding variable and command references
+and parsing text into words in the way the shell does.
+
+* Menu:
+
+* Wildcard Matching::    Matching a wildcard pattern against a single string.
+* Globbing::             Finding the files that match a wildcard pattern.
+* Regular Expressions::  Matching regular expressions against strings.
+* Word Expansion::       Expanding shell variables, nested commands,
+			    arithmetic, and wildcards.
+			    This is what the shell does with shell commands.
+
+
+File: libc.info,  Node: Wildcard Matching,  Next: Globbing,  Up: Pattern Matching
+
+Wildcard Matching
+=================
+
+   This section describes how to match a wildcard pattern against a
+particular string.  The result is a yes or no answer: does the string
+fit the pattern or not.  The symbols described here are all declared in
+`fnmatch.h'.
+
+ - Function: int fnmatch (const char *PATTERN, const char *STRING, int
+          FLAGS)
+     This function tests whether the string STRING matches the pattern
+     PATTERN.  It returns `0' if they do match; otherwise, it returns
+     the nonzero value `FNM_NOMATCH'.  The arguments PATTERN and STRING
+     are both strings.
+
+     The argument FLAGS is a combination of flag bits that alter the
+     details of matching.  See below for a list of the defined flags.
+
+     In the GNU C Library, `fnmatch' cannot experience an "error"--it
+     always returns an answer for whether the match succeeds.  However,
+     other implementations of `fnmatch' might sometimes report "errors".
+     They would do so by returning nonzero values that are not equal to
+     `FNM_NOMATCH'.
+
+   These are the available flags for the FLAGS argument:
+
+`FNM_FILE_NAME'
+     Treat the `/' character specially, for matching file names.  If
+     this flag is set, wildcard constructs in PATTERN cannot match `/'
+     in STRING.  Thus, the only way to match `/' is with an explicit
+     `/' in PATTERN.
+
+`FNM_PATHNAME'
+     This is an alias for `FNM_FILE_NAME'; it comes from POSIX.2.  We
+     don't recommend this name because we don't use the term "pathname"
+     for file names.
+
+`FNM_PERIOD'
+     Treat the `.' character specially if it appears at the beginning of
+     STRING.  If this flag is set, wildcard constructs in PATTERN
+     cannot match `.' as the first character of STRING.
+
+     If you set both `FNM_PERIOD' and `FNM_FILE_NAME', then the special
+     treatment applies to `.' following `/' as well as to `.' at the
+     beginning of STRING.  (The shell uses the `FNM_PERIOD' and
+     `FNM_FILE_NAME' flags together for matching file names.)
+
+`FNM_NOESCAPE'
+     Don't treat the `\' character specially in patterns.  Normally,
+     `\' quotes the following character, turning off its special meaning
+     (if any) so that it matches only itself.  When quoting is enabled,
+     the pattern `\?' matches only the string `?', because the question
+     mark in the pattern acts like an ordinary character.
+
+     If you use `FNM_NOESCAPE', then `\' is an ordinary character.
+
+`FNM_LEADING_DIR'
+     Ignore a trailing sequence of characters starting with a `/' in
+     STRING; that is to say, test whether STRING starts with a
+     directory name that PATTERN matches.
+
+     If this flag is set, either `foo*' or `foobar' as a pattern would
+     match the string `foobar/frobozz'.
+
+`FNM_CASEFOLD'
+     Ignore case in comparing STRING to PATTERN.
+
+`FNM_EXTMATCH'
+     Recognize beside the normal patterns also the extended patterns
+     introduced in `ksh'.  The patterns are written in the form
+     explained in the following table where PATTERN-LIST is a `|'
+     separated list of patterns.
+
+    `?(PATTERN-LIST)'
+          The pattern matches if zero or one occurences of any of the
+          patterns in the PATTERN-LIST allow matching the input string.
+
+    `*(PATTERN-LIST)'
+          The pattern matches if zero or more occurences of any of the
+          patterns in the PATTERN-LIST allow matching the input string.
+
+    `+(PATTERN-LIST)'
+          The pattern matches if one or more occurences of any of the
+          patterns in the PATTERN-LIST allow matching the input string.
+
+    `@(PATTERN-LIST)'
+          The pattern matches if exactly one occurence of any of the
+          patterns in the PATTERN-LIST allows matching the input string.
+
+    `!(PATTERN-LIST)'
+          The pattern matches if the input string cannot be matched
+          with any of the patterns in the PATTERN-LIST.
+
+
+File: libc.info,  Node: Globbing,  Next: Regular Expressions,  Prev: Wildcard Matching,  Up: Pattern Matching
+
+Globbing
+========
+
+   The archetypal use of wildcards is for matching against the files in
+a directory, and making a list of all the matches.  This is called
+"globbing".
+
+   You could do this using `fnmatch', by reading the directory entries
+one by one and testing each one with `fnmatch'.  But that would be slow
+(and complex, since you would have to handle subdirectories by hand).
+
+   The library provides a function `glob' to make this particular use
+of wildcards convenient.  `glob' and the other symbols in this section
+are declared in `glob.h'.
+
+* Menu:
+
+* Calling Glob::             Basic use of `glob'.
+* Flags for Globbing::       Flags that enable various options in `glob'.
+* More Flags for Globbing::  GNU specific extensions to `glob'.
+
+
+File: libc.info,  Node: Calling Glob,  Next: Flags for Globbing,  Up: Globbing
+
+Calling `glob'
+--------------
+
+   The result of globbing is a vector of file names (strings).  To
+return this vector, `glob' uses a special data type, `glob_t', which is
+a structure.  You pass `glob' the address of the structure, and it
+fills in the structure's fields to tell you about the results.
+
+ - Data Type: glob_t
+     This data type holds a pointer to a word vector.  More precisely,
+     it records both the address of the word vector and its size.  The
+     GNU implementation contains some more fields which are non-standard
+     extensions.
+
+    `gl_pathc'
+          The number of elements in the vector, excluding the initial
+          null entries if the GLOB_DOOFFS flag is used (see gl_offs
+          below).
+
+    `gl_pathv'
+          The address of the vector.  This field has type `char **'.
+
+    `gl_offs'
+          The offset of the first real element of the vector, from its
+          nominal address in the `gl_pathv' field.  Unlike the other
+          fields, this is always an input to `glob', rather than an
+          output from it.
+
+          If you use a nonzero offset, then that many elements at the
+          beginning of the vector are left empty.  (The `glob' function
+          fills them with null pointers.)
+
+          The `gl_offs' field is meaningful only if you use the
+          `GLOB_DOOFFS' flag.  Otherwise, the offset is always zero
+          regardless of what is in this field, and the first real
+          element comes at the beginning of the vector.
+
+    `gl_closedir'
+          The address of an alternative implementation of the `closedir'
+          function.  It is used if the `GLOB_ALTDIRFUNC' bit is set in
+          the flag parameter.  The type of this field is
+          `void (*) (void *)'.
+
+          This is a GNU extension.
+
+    `gl_readdir'
+          The address of an alternative implementation of the `readdir'
+          function used to read the contents of a directory.  It is
+          used if the `GLOB_ALTDIRFUNC' bit is set in the flag
+          parameter.  The type of this field is
+          `struct dirent *(*) (void *)'.
+
+          This is a GNU extension.
+
+    `gl_opendir'
+          The address of an alternative implementation of the `opendir'
+          function.  It is used if the `GLOB_ALTDIRFUNC' bit is set in
+          the flag parameter.  The type of this field is
+          `void *(*) (const char *)'.
+
+          This is a GNU extension.
+
+    `gl_stat'
+          The address of an alternative implementation of the `stat'
+          function to get information about an object in the
+          filesystem.  It is used if the `GLOB_ALTDIRFUNC' bit is set
+          in the flag parameter.  The type of this field is
+          `int (*) (const char *, struct stat *)'.
+
+          This is a GNU extension.
+
+    `gl_lstat'
+          The address of an alternative implementation of the `lstat'
+          function to get information about an object in the
+          filesystems, not following symbolic links.  It is used if the
+          `GLOB_ALTDIRFUNC' bit is set in the flag parameter.  The type
+          of this field is `int (*) (const char *, struct stat *)'.
+
+          This is a GNU extension.
+
+   For use in the `glob64' function `glob.h' contains another
+definition for a very similar type.  `glob64_t' differs from `glob_t'
+only in the types of the members `gl_readdir', `gl_stat', and
+`gl_lstat'.
+
+ - Data Type: glob64_t
+     This data type holds a pointer to a word vector.  More precisely,
+     it records both the address of the word vector and its size.  The
+     GNU implementation contains some more fields which are non-standard
+     extensions.
+
+    `gl_pathc'
+          The number of elements in the vector, excluding the initial
+          null entries if the GLOB_DOOFFS flag is used (see gl_offs
+          below).
+
+    `gl_pathv'
+          The address of the vector.  This field has type `char **'.
+
+    `gl_offs'
+          The offset of the first real element of the vector, from its
+          nominal address in the `gl_pathv' field.  Unlike the other
+          fields, this is always an input to `glob', rather than an
+          output from it.
+
+          If you use a nonzero offset, then that many elements at the
+          beginning of the vector are left empty.  (The `glob' function
+          fills them with null pointers.)
+
+          The `gl_offs' field is meaningful only if you use the
+          `GLOB_DOOFFS' flag.  Otherwise, the offset is always zero
+          regardless of what is in this field, and the first real
+          element comes at the beginning of the vector.
+
+    `gl_closedir'
+          The address of an alternative implementation of the `closedir'
+          function.  It is used if the `GLOB_ALTDIRFUNC' bit is set in
+          the flag parameter.  The type of this field is
+          `void (*) (void *)'.
+
+          This is a GNU extension.
+
+    `gl_readdir'
+          The address of an alternative implementation of the
+          `readdir64' function used to read the contents of a
+          directory.  It is used if the `GLOB_ALTDIRFUNC' bit is set in
+          the flag parameter.  The type of this field is
+          `struct dirent64 *(*) (void *)'.
+
+          This is a GNU extension.
+
+    `gl_opendir'
+          The address of an alternative implementation of the `opendir'
+          function.  It is used if the `GLOB_ALTDIRFUNC' bit is set in
+          the flag parameter.  The type of this field is
+          `void *(*) (const char *)'.
+
+          This is a GNU extension.
+
+    `gl_stat'
+          The address of an alternative implementation of the `stat64'
+          function to get information about an object in the
+          filesystem.  It is used if the `GLOB_ALTDIRFUNC' bit is set
+          in the flag parameter.  The type of this field is
+          `int (*) (const char *, struct stat64 *)'.
+
+          This is a GNU extension.
+
+    `gl_lstat'
+          The address of an alternative implementation of the `lstat64'
+          function to get information about an object in the
+          filesystems, not following symbolic links.  It is used if the
+          `GLOB_ALTDIRFUNC' bit is set in the flag parameter.  The type
+          of this field is `int (*) (const char *, struct stat64 *)'.
+
+          This is a GNU extension.
+
+ - Function: int glob (const char *PATTERN, int FLAGS, int (*ERRFUNC)
+          (const char *FILENAME, int ERROR-CODE), glob_t *VECTOR-PTR)
+     The function `glob' does globbing using the pattern PATTERN in the
+     current directory.  It puts the result in a newly allocated
+     vector, and stores the size and address of this vector into
+     `*VECTOR-PTR'.  The argument FLAGS is a combination of bit flags;
+     see *Note Flags for Globbing::, for details of the flags.
+
+     The result of globbing is a sequence of file names.  The function
+     `glob' allocates a string for each resulting word, then allocates
+     a vector of type `char **' to store the addresses of these
+     strings.  The last element of the vector is a null pointer.  This
+     vector is called the "word vector".
+
+     To return this vector, `glob' stores both its address and its
+     length (number of elements, not counting the terminating null
+     pointer) into `*VECTOR-PTR'.
+
+     Normally, `glob' sorts the file names alphabetically before
+     returning them.  You can turn this off with the flag `GLOB_NOSORT'
+     if you want to get the information as fast as possible.  Usually
+     it's a good idea to let `glob' sort them--if you process the files
+     in alphabetical order, the users will have a feel for the rate of
+     progress that your application is making.
+
+     If `glob' succeeds, it returns 0.  Otherwise, it returns one of
+     these error codes:
+
+    `GLOB_ABORTED'
+          There was an error opening a directory, and you used the flag
+          `GLOB_ERR' or your specified ERRFUNC returned a nonzero value.
+          *Note Flags for Globbing::, for an explanation of the
+          `GLOB_ERR' flag and ERRFUNC.
+
+    `GLOB_NOMATCH'
+          The pattern didn't match any existing files.  If you use the
+          `GLOB_NOCHECK' flag, then you never get this error code,
+          because that flag tells `glob' to _pretend_ that the pattern
+          matched at least one file.
+
+    `GLOB_NOSPACE'
+          It was impossible to allocate memory to hold the result.
+
+     In the event of an error, `glob' stores information in
+     `*VECTOR-PTR' about all the matches it has found so far.
+
+     It is important to notive that the `glob' function will not fail if
+     it encounters directories or files which cannot be handled without
+     the LFS interfaces.  The implementation of `glob' is supposed to
+     use these functions internally.  This at least is the assumptions
+     made by the Unix standard.  The GNU extension of allowing the user
+     to provide own directory handling and `stat' functions complicates
+     things a bit.  If these callback functions are used and a large
+     file or directory is encountered `glob' _can_ fail.
+
+ - Function: int glob64 (const char *PATTERN, int FLAGS, int (*ERRFUNC)
+          (const char *FILENAME, int ERROR-CODE), glob64_t *VECTOR-PTR)
+     The `glob64' function was added as part of the Large File Summit
+     extensions but is not part of the original LFS proposal.  The
+     reason for this is simple: it is not necessary.  The necessity for
+     a `glob64' function is added by the extensions of the GNU `glob'
+     implementation which allows the user to provide own directory
+     handling and `stat' functions.  The `readdir' and `stat' functions
+     do depend on the choice of `_FILE_OFFSET_BITS' since the definition
+     of the types `struct dirent' and `struct stat' will change
+     depending on the choice.
+
+     Beside this difference the `glob64' works just like `glob' in all
+     aspects.
+
+     This function is a GNU extension.
+
+
+File: libc.info,  Node: Flags for Globbing,  Next: More Flags for Globbing,  Prev: Calling Glob,  Up: Globbing
+
+Flags for Globbing
+------------------
+
+   This section describes the flags that you can specify in the FLAGS
+argument to `glob'.  Choose the flags you want, and combine them with
+the C bitwise OR operator `|'.
+
+`GLOB_APPEND'
+     Append the words from this expansion to the vector of words
+     produced by previous calls to `glob'.  This way you can
+     effectively expand several words as if they were concatenated with
+     spaces between them.
+
+     In order for appending to work, you must not modify the contents
+     of the word vector structure between calls to `glob'.  And, if you
+     set `GLOB_DOOFFS' in the first call to `glob', you must also set
+     it when you append to the results.
+
+     Note that the pointer stored in `gl_pathv' may no longer be valid
+     after you call `glob' the second time, because `glob' might have
+     relocated the vector.  So always fetch `gl_pathv' from the
+     `glob_t' structure after each `glob' call; *never* save the
+     pointer across calls.
+
+`GLOB_DOOFFS'
+     Leave blank slots at the beginning of the vector of words.  The
+     `gl_offs' field says how many slots to leave.  The blank slots
+     contain null pointers.
+
+`GLOB_ERR'
+     Give up right away and report an error if there is any difficulty
+     reading the directories that must be read in order to expand
+     PATTERN fully.  Such difficulties might include a directory in
+     which you don't have the requisite access.  Normally, `glob' tries
+     its best to keep on going despite any errors, reading whatever
+     directories it can.
+
+     You can exercise even more control than this by specifying an
+     error-handler function ERRFUNC when you call `glob'.  If ERRFUNC
+     is not a null pointer, then `glob' doesn't give up right away when
+     it can't read a directory; instead, it calls ERRFUNC with two
+     arguments, like this:
+
+          (*ERRFUNC) (FILENAME, ERROR-CODE)
+
+     The argument FILENAME is the name of the directory that `glob'
+     couldn't open or couldn't read, and ERROR-CODE is the `errno'
+     value that was reported to `glob'.
+
+     If the error handler function returns nonzero, then `glob' gives up
+     right away.  Otherwise, it continues.
+
+`GLOB_MARK'
+     If the pattern matches the name of a directory, append `/' to the
+     directory's name when returning it.
+
+`GLOB_NOCHECK'
+     If the pattern doesn't match any file names, return the pattern
+     itself as if it were a file name that had been matched.
+     (Normally, when the pattern doesn't match anything, `glob' returns
+     that there were no matches.)
+
+`GLOB_NOSORT'
+     Don't sort the file names; return them in no particular order.
+     (In practice, the order will depend on the order of the entries in
+     the directory.)  The only reason _not_ to sort is to save time.
+
+`GLOB_NOESCAPE'
+     Don't treat the `\' character specially in patterns.  Normally,
+     `\' quotes the following character, turning off its special meaning
+     (if any) so that it matches only itself.  When quoting is enabled,
+     the pattern `\?' matches only the string `?', because the question
+     mark in the pattern acts like an ordinary character.
+
+     If you use `GLOB_NOESCAPE', then `\' is an ordinary character.
+
+     `glob' does its work by calling the function `fnmatch' repeatedly.
+     It handles the flag `GLOB_NOESCAPE' by turning on the
+     `FNM_NOESCAPE' flag in calls to `fnmatch'.
+
+
+File: libc.info,  Node: More Flags for Globbing,  Prev: Flags for Globbing,  Up: Globbing
+
+More Flags for Globbing
+-----------------------
+
+   Beside the flags described in the last section, the GNU
+implementation of `glob' allows a few more flags which are also defined
+in the `glob.h' file.  Some of the extensions implement functionality
+which is available in modern shell implementations.
+
+`GLOB_PERIOD'
+     The `.' character (period) is treated special.  It cannot be
+     matched by wildcards.  *Note Wildcard Matching::, `FNM_PERIOD'.
+
+`GLOB_MAGCHAR'
+     The `GLOB_MAGCHAR' value is not to be given to `glob' in the FLAGS
+     parameter.  Instead, `glob' sets this bit in the GL_FLAGS element
+     of the GLOB_T structure provided as the result if the pattern used
+     for matching contains any wildcard character.
+
+`GLOB_ALTDIRFUNC'
+     Instead of the using the using the normal functions for accessing
+     the filesystem the `glob' implementation uses the user-supplied
+     functions specified in the structure pointed to by PGLOB
+     parameter.  For more information about the functions refer to the
+     sections about directory handling see *Note Accessing
+     Directories::, and *Note Reading Attributes::.
+
+`GLOB_BRACE'
+     If this flag is given the handling of braces in the pattern is
+     changed.  It is now required that braces appear correctly grouped.
+     I.e., for each opening brace there must be a closing one.  Braces
+     can be used recursively.  So it is possible to define one brace
+     expression in another one.  It is important to note that the range
+     of each brace expression is completely contained in the outer
+     brace expression (if there is one).
+
+     The string between the matching braces is separated into single
+     expressions by splitting at `,' (comma) characters.  The commas
+     themself are discarded.  Please note what we said above about
+     recursive brace expressions.  The commas used to separate the
+     subexpressions must be at the same level.  Commas in brace
+     subexpressions are not matched.  They are used during expansion of
+     the brace expression of the deeper level.  The example below shows
+     this
+
+          glob ("{foo/{,bar,biz},baz}", GLOB_BRACE, NULL, &result)
+
+     is equivalent to the sequence
+
+          glob ("foo/", GLOB_BRACE, NULL, &result)
+          glob ("foo/bar", GLOB_BRACE|GLOB_APPEND, NULL, &result)
+          glob ("foo/biz", GLOB_BRACE|GLOB_APPEND, NULL, &result)
+          glob ("baz", GLOB_BRACE|GLOB_APPEND, NULL, &result)
+
+     if we leave aside error handling.
+
+`GLOB_NOMAGIC'
+     If the pattern contains no wildcard constructs (it is a literal
+     file name), return it as the sole "matching" word, even if no file
+     exists by that name.
+
+`GLOB_TILDE'
+     If this flag is used the character `~' (tilde) is handled special
+     if it appears at the beginning of the pattern.  Instead of being
+     taken verbatim it is used to represent the home directory of a
+     known user.
+
+     If `~' is the only character in pattern or it is followed by a `/'
+     (slash), the home directory of the process owner is substituted.
+     Using `getlogin' and `getpwnam' the information is read from the
+     system databases.  As an example take user `bart' with his home
+     directory at `/home/bart'.  For him a call like
+
+          glob ("~/bin/*", GLOB_TILDE, NULL, &result)
+
+     would return the contents of the directory `/home/bart/bin'.
+     Instead of referring to the own home directory it is also possible
+     to name the home directory of other users.  To do so one has to
+     append the user name after the tilde character.  So the contents
+     of user `homer''s `bin' directory can be retrieved by
+
+          glob ("~homer/bin/*", GLOB_TILDE, NULL, &result)
+
+     If the user name is not valid or the home directory cannot be
+     determined for some reason the pattern is left untouched and
+     itself used as the result.  I.e., if in the last example `home' is
+     not available the tilde expansion yields to `"~homer/bin/*"' and
+     `glob' is not looking for a directory named `~homer'.
+
+     This functionality is equivalent to what is available in C-shells
+     if the `nonomatch' flag is set.
+
+`GLOB_TILDE_CHECK'
+     If this flag is used `glob' behaves like as if `GLOB_TILDE' is
+     given.  The only difference is that if the user name is not
+     available or the home directory cannot be determined for other
+     reasons this leads to an error.  `glob' will return `GLOB_NOMATCH'
+     instead of using the pattern itself as the name.
+
+     This functionality is equivalent to what is available in C-shells
+     if `nonomatch' flag is not set.
+
+`GLOB_ONLYDIR'
+     If this flag is used the globbing function takes this as a *hint*
+     that the caller is only interested in directories matching the
+     pattern.  If the information about the type of the file is easily
+     available non-directories will be rejected but no extra work will
+     be done to determine the information for each file.  I.e., the
+     caller must still be able to filter directories out.
+
+     This functionality is only available with the GNU `glob'
+     implementation.  It is mainly used internally to increase the
+     performance but might be useful for a user as well and therefore is
+     documented here.
+
+   Calling `glob' will in most cases allocate resources which are used
+to represent the result of the function call.  If the same object of
+type `glob_t' is used in multiple call to `glob' the resources are
+freed or reused so that no leaks appear.  But this does not include the
+time when all `glob' calls are done.
+
+ - Function: void globfree (glob_t *PGLOB)
+     The `globfree' function frees all resources allocated by previous
+     calls to `glob' associated with the object pointed to by PGLOB.
+     This function should be called whenever the currently used
+     `glob_t' typed object isn't used anymore.
+
+ - Function: void globfree64 (glob64_t *PGLOB)
+     This function is equivalent to `globfree' but it frees records of
+     type `glob64_t' which were allocated by `glob64'.
+
+
+File: libc.info,  Node: Regular Expressions,  Next: Word Expansion,  Prev: Globbing,  Up: Pattern Matching
+
+Regular Expression Matching
+===========================
+
+   The GNU C library supports two interfaces for matching regular
+expressions.  One is the standard POSIX.2 interface, and the other is
+what the GNU system has had for many years.
+
+   Both interfaces are declared in the header file `regex.h'.  If you
+define `_POSIX_C_SOURCE', then only the POSIX.2 functions, structures,
+and constants are declared.
+
+* Menu:
+
+* POSIX Regexp Compilation::    Using `regcomp' to prepare to match.
+* Flags for POSIX Regexps::     Syntax variations for `regcomp'.
+* Matching POSIX Regexps::      Using `regexec' to match the compiled
+				   pattern that you get from `regcomp'.
+* Regexp Subexpressions::       Finding which parts of the string were matched.
+* Subexpression Complications:: Find points of which parts were matched.
+* Regexp Cleanup::		Freeing storage; reporting errors.
+
+
+File: libc.info,  Node: POSIX Regexp Compilation,  Next: Flags for POSIX Regexps,  Up: Regular Expressions
+
+POSIX Regular Expression Compilation
+------------------------------------
+
+   Before you can actually match a regular expression, you must
+"compile" it.  This is not true compilation--it produces a special data
+structure, not machine instructions.  But it is like ordinary
+compilation in that its purpose is to enable you to "execute" the
+pattern fast.  (*Note Matching POSIX Regexps::, for how to use the
+compiled regular expression for matching.)
+
+   There is a special data type for compiled regular expressions:
+
+ - Data Type: regex_t
+     This type of object holds a compiled regular expression.  It is
+     actually a structure.  It has just one field that your programs
+     should look at:
+
+    `re_nsub'
+          This field holds the number of parenthetical subexpressions
+          in the regular expression that was compiled.
+
+     There are several other fields, but we don't describe them here,
+     because only the functions in the library should use them.
+
+   After you create a `regex_t' object, you can compile a regular
+expression into it by calling `regcomp'.
+
+ - Function: int regcomp (regex_t *COMPILED, const char *PATTERN, int
+          CFLAGS)
+     The function `regcomp' "compiles" a regular expression into a data
+     structure that you can use with `regexec' to match against a
+     string.  The compiled regular expression format is designed for
+     efficient matching.  `regcomp' stores it into `*COMPILED'.
+
+     It's up to you to allocate an object of type `regex_t' and pass its
+     address to `regcomp'.
+
+     The argument CFLAGS lets you specify various options that control
+     the syntax and semantics of regular expressions.  *Note Flags for
+     POSIX Regexps::.
+
+     If you use the flag `REG_NOSUB', then `regcomp' omits from the
+     compiled regular expression the information necessary to record
+     how subexpressions actually match.  In this case, you might as well
+     pass `0' for the MATCHPTR and NMATCH arguments when you call
+     `regexec'.
+
+     If you don't use `REG_NOSUB', then the compiled regular expression
+     does have the capacity to record how subexpressions match.  Also,
+     `regcomp' tells you how many subexpressions PATTERN has, by
+     storing the number in `COMPILED->re_nsub'.  You can use that value
+     to decide how long an array to allocate to hold information about
+     subexpression matches.
+
+     `regcomp' returns `0' if it succeeds in compiling the regular
+     expression; otherwise, it returns a nonzero error code (see the
+     table below).  You can use `regerror' to produce an error message
+     string describing the reason for a nonzero value; see *Note Regexp
+     Cleanup::.
+
+
+   Here are the possible nonzero values that `regcomp' can return:
+
+`REG_BADBR'
+     There was an invalid `\{...\}' construct in the regular
+     expression.  A valid `\{...\}' construct must contain either a
+     single number, or two numbers in increasing order separated by a
+     comma.
+
+`REG_BADPAT'
+     There was a syntax error in the regular expression.
+
+`REG_BADRPT'
+     A repetition operator such as `?' or `*' appeared in a bad
+     position (with no preceding subexpression to act on).
+
+`REG_ECOLLATE'
+     The regular expression referred to an invalid collating element
+     (one not defined in the current locale for string collation).
+     *Note Locale Categories::.
+
+`REG_ECTYPE'
+     The regular expression referred to an invalid character class name.
+
+`REG_EESCAPE'
+     The regular expression ended with `\'.
+
+`REG_ESUBREG'
+     There was an invalid number in the `\DIGIT' construct.
+
+`REG_EBRACK'
+     There were unbalanced square brackets in the regular expression.
+
+`REG_EPAREN'
+     An extended regular expression had unbalanced parentheses, or a
+     basic regular expression had unbalanced `\(' and `\)'.
+
+`REG_EBRACE'
+     The regular expression had unbalanced `\{' and `\}'.
+
+`REG_ERANGE'
+     One of the endpoints in a range expression was invalid.
+
+`REG_ESPACE'
+     `regcomp' ran out of memory.
+
+
+File: libc.info,  Node: Flags for POSIX Regexps,  Next: Matching POSIX Regexps,  Prev: POSIX Regexp Compilation,  Up: Regular Expressions
+
+Flags for POSIX Regular Expressions
+-----------------------------------
+
+   These are the bit flags that you can use in the CFLAGS operand when
+compiling a regular expression with `regcomp'.
+
+`REG_EXTENDED'
+     Treat the pattern as an extended regular expression, rather than
+     as a basic regular expression.
+
+`REG_ICASE'
+     Ignore case when matching letters.
+
+`REG_NOSUB'
+     Don't bother storing the contents of the MATCHES-PTR array.
+
+`REG_NEWLINE'
+     Treat a newline in STRING as dividing STRING into multiple lines,
+     so that `$' can match before the newline and `^' can match after.
+     Also, don't permit `.' to match a newline, and don't permit
+     `[^...]' to match a newline.
+
+     Otherwise, newline acts like any other ordinary character.
+
+
+File: libc.info,  Node: Matching POSIX Regexps,  Next: Regexp Subexpressions,  Prev: Flags for POSIX Regexps,  Up: Regular Expressions
+
+Matching a Compiled POSIX Regular Expression
+--------------------------------------------
+
+   Once you have compiled a regular expression, as described in *Note
+POSIX Regexp Compilation::, you can match it against strings using
+`regexec'.  A match anywhere inside the string counts as success,
+unless the regular expression contains anchor characters (`^' or `$').
+
+ - Function: int regexec (regex_t *COMPILED, char *STRING, size_t
+          NMATCH, regmatch_t MATCHPTR [], int EFLAGS)
+     This function tries to match the compiled regular expression
+     `*COMPILED' against STRING.
+
+     `regexec' returns `0' if the regular expression matches;
+     otherwise, it returns a nonzero value.  See the table below for
+     what nonzero values mean.  You can use `regerror' to produce an
+     error message string describing the reason for a nonzero value;
+     see *Note Regexp Cleanup::.
+
+     The argument EFLAGS is a word of bit flags that enable various
+     options.
+
+     If you want to get information about what part of STRING actually
+     matched the regular expression or its subexpressions, use the
+     arguments MATCHPTR and NMATCH.  Otherwise, pass `0' for NMATCH,
+     and `NULL' for MATCHPTR.  *Note Regexp Subexpressions::.
+
+   You must match the regular expression with the same set of current
+locales that were in effect when you compiled the regular expression.
+
+   The function `regexec' accepts the following flags in the EFLAGS
+argument:
+
+`REG_NOTBOL'
+     Do not regard the beginning of the specified string as the
+     beginning of a line; more generally, don't make any assumptions
+     about what text might precede it.
+
+`REG_NOTEOL'
+     Do not regard the end of the specified string as the end of a
+     line; more generally, don't make any assumptions about what text
+     might follow it.
+
+   Here are the possible nonzero values that `regexec' can return:
+
+`REG_NOMATCH'
+     The pattern didn't match the string.  This isn't really an error.
+
+`REG_ESPACE'
+     `regexec' ran out of memory.
+
+
+File: libc.info,  Node: Regexp Subexpressions,  Next: Subexpression Complications,  Prev: Matching POSIX Regexps,  Up: Regular Expressions
+
+Match Results with Subexpressions
+---------------------------------
+
+   When `regexec' matches parenthetical subexpressions of PATTERN, it
+records which parts of STRING they match.  It returns that information
+by storing the offsets into an array whose elements are structures of
+type `regmatch_t'.  The first element of the array (index `0') records
+the part of the string that matched the entire regular expression.
+Each other element of the array records the beginning and end of the
+part that matched a single parenthetical subexpression.
+
+ - Data Type: regmatch_t
+     This is the data type of the MATCHARRAY array that you pass to
+     `regexec'.  It contains two structure fields, as follows:
+
+    `rm_so'
+          The offset in STRING of the beginning of a substring.  Add
+          this value to STRING to get the address of that part.
+
+    `rm_eo'
+          The offset in STRING of the end of the substring.
+
+ - Data Type: regoff_t
+     `regoff_t' is an alias for another signed integer type.  The
+     fields of `regmatch_t' have type `regoff_t'.
+
+   The `regmatch_t' elements correspond to subexpressions positionally;
+the first element (index `1') records where the first subexpression
+matched, the second element records the second subexpression, and so
+on.  The order of the subexpressions is the order in which they begin.
+
+   When you call `regexec', you specify how long the MATCHPTR array is,
+with the NMATCH argument.  This tells `regexec' how many elements to
+store.  If the actual regular expression has more than NMATCH
+subexpressions, then you won't get offset information about the rest of
+them.  But this doesn't alter whether the pattern matches a particular
+string or not.
+
+   If you don't want `regexec' to return any information about where
+the subexpressions matched, you can either supply `0' for NMATCH, or
+use the flag `REG_NOSUB' when you compile the pattern with `regcomp'.
+
+
+File: libc.info,  Node: Subexpression Complications,  Next: Regexp Cleanup,  Prev: Regexp Subexpressions,  Up: Regular Expressions
+
+Complications in Subexpression Matching
+---------------------------------------
+
+   Sometimes a subexpression matches a substring of no characters.  This
+happens when `f\(o*\)' matches the string `fum'.  (It really matches
+just the `f'.)  In this case, both of the offsets identify the point in
+the string where the null substring was found.  In this example, the
+offsets are both `1'.
+
+   Sometimes the entire regular expression can match without using some
+of its subexpressions at all--for example, when `ba\(na\)*' matches the
+string `ba', the parenthetical subexpression is not used.  When this
+happens, `regexec' stores `-1' in both fields of the element for that
+subexpression.
+
+   Sometimes matching the entire regular expression can match a
+particular subexpression more than once--for example, when `ba\(na\)*'
+matches the string `bananana', the parenthetical subexpression matches
+three times.  When this happens, `regexec' usually stores the offsets
+of the last part of the string that matched the subexpression.  In the
+case of `bananana', these offsets are `6' and `8'.
+
+   But the last match is not always the one that is chosen.  It's more
+accurate to say that the last _opportunity_ to match is the one that
+takes precedence.  What this means is that when one subexpression
+appears within another, then the results reported for the inner
+subexpression reflect whatever happened on the last match of the outer
+subexpression.  For an example, consider `\(ba\(na\)*s \)*' matching
+the string `bananas bas '.  The last time the inner expression actually
+matches is near the end of the first word.  But it is _considered_
+again in the second word, and fails to match there.  `regexec' reports
+nonuse of the "na" subexpression.
+
+   Another place where this rule applies is when the regular expression
+     \(ba\(na\)*s \|nefer\(ti\)* \)*
+
+matches `bananas nefertiti'.  The "na" subexpression does match in the
+first word, but it doesn't match in the second word because the other
+alternative is used there.  Once again, the second repetition of the
+outer subexpression overrides the first, and within that second
+repetition, the "na" subexpression is not used.  So `regexec' reports
+nonuse of the "na" subexpression.
+
+
+File: libc.info,  Node: Regexp Cleanup,  Prev: Subexpression Complications,  Up: Regular Expressions
+
+POSIX Regexp Matching Cleanup
+-----------------------------
+
+   When you are finished using a compiled regular expression, you can
+free the storage it uses by calling `regfree'.
+
+ - Function: void regfree (regex_t *COMPILED)
+     Calling `regfree' frees all the storage that `*COMPILED' points
+     to.  This includes various internal fields of the `regex_t'
+     structure that aren't documented in this manual.
+
+     `regfree' does not free the object `*COMPILED' itself.
+
+   You should always free the space in a `regex_t' structure with
+`regfree' before using the structure to compile another regular
+expression.
+
+   When `regcomp' or `regexec' reports an error, you can use the
+function `regerror' to turn it into an error message string.
+
+ - Function: size_t regerror (int ERRCODE, regex_t *COMPILED, char
+          *BUFFER, size_t LENGTH)
+     This function produces an error message string for the error code
+     ERRCODE, and stores the string in LENGTH bytes of memory starting
+     at BUFFER.  For the COMPILED argument, supply the same compiled
+     regular expression structure that `regcomp' or `regexec' was
+     working with when it got the error.  Alternatively, you can supply
+     `NULL' for COMPILED; you will still get a meaningful error
+     message, but it might not be as detailed.
+
+     If the error message can't fit in LENGTH bytes (including a
+     terminating null character), then `regerror' truncates it.  The
+     string that `regerror' stores is always null-terminated even if it
+     has been truncated.
+
+     The return value of `regerror' is the minimum length needed to
+     store the entire error message.  If this is less than LENGTH, then
+     the error message was not truncated, and you can use it.
+     Otherwise, you should call `regerror' again with a larger buffer.
+
+     Here is a function which uses `regerror', but always dynamically
+     allocates a buffer for the error message:
+
+          char *get_regerror (int errcode, regex_t *compiled)
+          {
+            size_t length = regerror (errcode, compiled, NULL, 0);
+            char *buffer = xmalloc (length);
+            (void) regerror (errcode, compiled, buffer, length);
+            return buffer;
+          }
+
+
+File: libc.info,  Node: Word Expansion,  Prev: Regular Expressions,  Up: Pattern Matching
+
+Shell-Style Word Expansion
+==========================
+
+   "Word expansion" means the process of splitting a string into
+"words" and substituting for variables, commands, and wildcards just as
+the shell does.
+
+   For example, when you write `ls -l foo.c', this string is split into
+three separate words--`ls', `-l' and `foo.c'.  This is the most basic
+function of word expansion.
+
+   When you write `ls *.c', this can become many words, because the
+word `*.c' can be replaced with any number of file names.  This is
+called "wildcard expansion", and it is also a part of word expansion.
+
+   When you use `echo $PATH' to print your path, you are taking
+advantage of "variable substitution", which is also part of word
+expansion.
+
+   Ordinary programs can perform word expansion just like the shell by
+calling the library function `wordexp'.
+
+* Menu:
+
+* Expansion Stages::            What word expansion does to a string.
+* Calling Wordexp::             How to call `wordexp'.
+* Flags for Wordexp::           Options you can enable in `wordexp'.
+* Wordexp Example::             A sample program that does word expansion.
+* Tilde Expansion::             Details of how tilde expansion works.
+* Variable Substitution::       Different types of variable substitution.
+
+
+File: libc.info,  Node: Expansion Stages,  Next: Calling Wordexp,  Up: Word Expansion
+
+The Stages of Word Expansion
+----------------------------
+
+   When word expansion is applied to a sequence of words, it performs
+the following transformations in the order shown here:
+
+  1. "Tilde expansion": Replacement of `~foo' with the name of the home
+     directory of `foo'.
+
+  2. Next, three different transformations are applied in the same step,
+     from left to right:
+
+        * "Variable substitution": Environment variables are
+          substituted for references such as `$foo'.
+
+        * "Command substitution": Constructs such as ``cat foo`' and
+          the equivalent `$(cat foo)' are replaced with the output from
+          the inner command.
+
+        * "Arithmetic expansion": Constructs such as `$(($x-1))' are
+          replaced with the result of the arithmetic computation.
+
+  3. "Field splitting": subdivision of the text into "words".
+
+  4. "Wildcard expansion": The replacement of a construct such as `*.c'
+     with a list of `.c' file names.  Wildcard expansion applies to an
+     entire word at a time, and replaces that word with 0 or more file
+     names that are themselves words.
+
+  5. "Quote removal": The deletion of string-quotes, now that they have
+     done their job by inhibiting the above transformations when
+     appropriate.
+
+   For the details of these transformations, and how to write the
+constructs that use them, see `The BASH Manual' (to appear).
+

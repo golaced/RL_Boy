@@ -1,0 +1,1354 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Mount-Unmount-Remount,  Prev: Mount Information,  Up: Filesystem Handling
+
+Mount, Unmount, Remount
+-----------------------
+
+   This section describes the functions for mounting, unmounting, and
+remounting filesystems.
+
+   Only the superuser can mount, unmount, or remount a filesystem.
+
+   These functions do not access the `fstab' and `mtab' files.  You
+should maintain and use these separately.  *Note Mount Information::.
+
+   The symbols in this section are declared in `sys/mount.h'.
+
+ - Function: int mount (const char *SPECIAL_FILE, const char *DIR,
+          const char *FSTYPE, unsigned long int OPTIONS, const void
+          *DATA)
+     `mount' mounts or remounts a filesystem.  The two operations are
+     quite different and are merged rather unnnaturally into this one
+     function.  The `MS_REMOUNT' option, explained below, determines
+     whether `mount' mounts or remounts.
+
+     For a mount, the filesystem on the block device represented by the
+     device special file named SPECIAL_FILE gets mounted over the mount
+     point DIR.  This means that the directory DIR (along with any
+     files in it) is no longer visible; in its place (and still with
+     the name DIR) is the root directory of the filesystem on the
+     device.
+
+     As an exception, if the filesystem type (see below) is one which
+     is not based on a device (e.g. "proc"), `mount' instantiates a
+     filesystem and mounts it over DIR and ignores SPECIAL_FILE.
+
+     For a remount, DIR specifies the mount point where the filesystem
+     to be remounted is (and remains) mounted and SPECIAL_FILE is
+     ignored.  Remounting a filesystem means changing the options that
+     control operations on the filesystem while it is mounted.  It does
+     not mean unmounting and mounting again.
+
+     For a mount, you must identify the type of the filesystem as
+     FSTYPE.  This type tells the kernel how to access the filesystem
+     and can be thought of as the name of a filesystem driver.  The
+     acceptable values are system dependent.  On a system with a Linux
+     kernel and the `proc' filesystem, the list of possible values is
+     in the file `filesystems' in the `proc' filesystem (e.g. type `cat
+     /proc/filesystems' to see the list).  With a Linux kernel, the
+     types of filesystems that `mount' can mount, and their type names,
+     depends on what filesystem drivers are configured into the kernel
+     or loaded as loadable kernel modules.  An example of a common
+     value for FSTYPE is `ext2'.
+
+     For a remount, `mount' ignores FSTYPE.
+
+     OPTIONS specifies a variety of options that apply until the
+     filesystem is unmounted or remounted.  The precise meaning of an
+     option depends on the filesystem and with some filesystems, an
+     option may have no effect at all.  Furthermore, for some
+     filesystems, some of these options (but never `MS_RDONLY') can be
+     overridden for individual file accesses via `ioctl'.
+
+     OPTIONS is a bit string with bit fields defined using the
+     following mask and masked value macros:
+
+    `MS_MGC_MASK'
+          This multibit field contains a magic number.  If it does not
+          have the value `MS_MGC_VAL', `mount' assumes all the
+          following bits are zero and the DATA argument is a null
+          string, regardless of their actual values.
+
+    `MS_REMOUNT'
+          This bit on means to remount the filesystem.  Off means to
+          mount it.
+
+    `MS_RDONLY'
+          This bit on specifies that no writing to the filesystem shall
+          be allowed while it is mounted.  This cannot be overridden by
+          `ioctl'.  This option is available on nearly all filesystems.
+
+    `S_IMMUTABLE'
+          This bit on specifies that no writing to the files in the
+          filesystem shall be allowed while it is mounted.  This can be
+          overridden for a particular file access by a properly
+          privileged call to `ioctl'.  This option is a relatively new
+          invention and is not available on many filesystems.
+
+    `S_APPEND'
+          This bit on specifies that the only file writing that shall
+          be allowed while the filesystem is mounted is appending.
+          Some filesystems allow this to be overridden for a particular
+          process by a properly privileged call to `ioctl'.  This is a
+          relatively new invention and is not available on many
+          filesystems.
+
+    `MS_NOSUID'
+          This bit on specifies that Setuid and Setgid permissions on
+          files in the filesystem shall be ignored while it is mounted.
+
+    `MS_NOEXEC'
+          This bit on specifies that no files in the filesystem shall
+          be executed while the filesystem is mounted.
+
+    `MS_NODEV'
+          This bit on specifies that no device special files in the
+          filesystem shall be accessible while the filesystem is
+          mounted.
+
+    `MS_SYNCHRONOUS'
+          This bit on specifies that all writes to the filesystem while
+          it is mounted shall be synchronous; i.e. data shall be synced
+          before each write completes rather than held in the buffer
+          cache.
+
+    `MS_MANDLOCK'
+          This bit on specifies that mandatory locks on files shall be
+          permitted while the filesystem is mounted.
+
+    `MS_NOATIME'
+          This bit on specifies that access times of files shall not be
+          updated when the files are accessed while the filesystem is
+          mounted.
+
+    `MS_NODIRATIME'
+          This bit on specifies that access times of directories shall
+          not be updated when the directories are accessed while the
+          filesystem in mounted.
+
+     Any bits not covered by the above masks should be set off;
+     otherwise, results are undefined.
+
+     The meaning of DATA depends on the filesystem type and is
+     controlled entirely by the filesystem driver in the kernel.
+
+     Example:
+
+          #include <sys/mount.h>
+          
+          mount("/dev/hdb", "/cdrom", MS_MGC_VAL | MS_RDONLY | MS_NOSUID, "");
+          
+          mount("/dev/hda2", "/mnt", MS_MGC_VAL | MS_REMOUNT, "");
+
+     Appropriate arguments for `mount' are conventionally recorded in
+     the `fstab' table.  *Note Mount Information::.
+
+     The return value is zero if the mount or remount is successful.
+     Otherwise, it is `-1' and `errno' is set appropriately.  The
+     values of `errno' are filesystem dependent, but here is a general
+     list:
+
+    `EPERM'
+          The process is not superuser.
+
+    `ENODEV'
+          The file system type FSTYPE is not known to the kernel.
+
+    `ENOTBLK'
+          The file DEV is not a block device special file.
+
+    `EBUSY'
+             * The device is already mounted.
+
+             * The mount point is busy.  (E.g. it is some process'
+               working directory or has a filesystem mounted on it
+               already).
+
+             * The request is to remount read-only, but there are files
+               open for write.
+
+    `EINVAL'
+             * A remount was attempted, but there is no filesystem
+               mounted over the specified mount point.
+
+             * The supposed filesystem has an invalid superblock.
+
+
+    `EACCESS'
+             * The filesystem is inherently read-only (possibly due to
+               a switch on the device) and the process attempted to
+               mount it read/write (by setting the `MS_RDONLY' bit off).
+
+             * SPECIAL_FILE or DIR is not accessible due to file
+               permissions.
+
+             * SPECIAL_FILE is not accessible because it is in a
+               filesystem that is mounted with the `MS_NODEV' option.
+
+
+    `EM_FILE'
+          The table of dummy devices is full.  `mount' needs to create a
+          dummy device (aka "unnamed" device) if the filesystem being
+          mounted is not one that uses a device.
+
+
+ - Function: int umount2 (const char *FILE, int FLAGS)
+     `umount2' unmounts a filesystem.
+
+     You can identify the filesystem to unmount either by the device
+     special file that contains the filesystem or by the mount point.
+     The effect is the same.  Specify either as the string FILE.
+
+     FLAGS contains the one-bit field identified by the following mask
+     macro:
+
+    `MNT_FORCE'
+          This bit on means to force the unmounting even if the
+          filesystem is busy, by making it unbusy first.  If the bit is
+          off and the filesystem is busy, `umount2' fails with `errno'
+          = `EBUSY'.  Depending on the filesystem, this may override
+          all, some, or no busy conditions.
+
+     All other bits in FLAGS should be set to zero; otherwise, the
+     result is undefined.
+
+     Example:
+
+          #include <sys/mount.h>
+          
+          umount2("/mnt", MNT_FORCE);
+          
+          umount2("/dev/hdd1", 0);
+
+     After the filesystem is unmounted, the directory that was the
+     mount point is visible, as are any files in it.
+
+     As part of unmounting, `umount2' syncs the filesystem.
+
+     If the unmounting is successful, the return value is zero.
+     Otherwise, it is `-1' and `errno' is set accordingly:
+
+    `EPERM'
+          The process is not superuser.
+
+    `EBUSY'
+          The filesystem cannot be unmounted because it is busy.  E.g.
+          it contains a directory that is some process's working
+          directory or a file that some process has open.  With some
+          filesystems in some cases, you can avoid this failure with
+          the `MNT_FORCE' option.
+
+    `EINVAL'
+          FILE validly refers to a file, but that file is neither a
+          mount point nor a device special file of a currently mounted
+          filesystem.
+
+     This function is not available on all systems.
+
+ - Function: int umount (const char *FILE)
+     `umount' does the same thing as `umount2' with FLAGS set to
+     zeroes.  It is more widely available than `umount2' but since it
+     lacks the possibility to forcefully unmount a filesystem is
+     deprecated when `umount2' is also available.
+
+
+File: libc.info,  Node: System Parameters,  Prev: Filesystem Handling,  Up: System Management
+
+System Parameters
+=================
+
+   This section describes the `sysctl' function, which gets and sets a
+variety of system parameters.
+
+   The symbols used in this section are declared in the file `sysctl.h'.
+
+ - Function: int sysctl (int *NAMES, int NLEN, void *OLDVAL,
+     size_t *OLDLENP, void *NEWVAL, size_t NEWLEN)
+
+     `sysctl' gets or sets a specified system parameter.  There are so
+     many of these parameters that it is not practical to list them all
+     here, but here are some examples:
+
+        * network domain name
+
+        * paging parameters
+
+        * network Address Resolution Protocol timeout time
+
+        * maximum number of files that may be open
+
+        * root filesystem device
+
+        * when kernel was built
+
+     The set of available parameters depends on the kernel
+     configuration and can change while the system is running,
+     particularly when you load and unload loadable kernel modules.
+
+     The system parameters with which `syslog' is concerned are arranged
+     in a hierarchical structure like a hierarchical filesystem.  To
+     identify a particular parameter, you specify a path through the
+     structure in a way analogous to specifying the pathname of a file.
+     Each component of the path is specified by an integer and each of
+     these integers has a macro defined for it by `sysctl.h'.  NAMES is
+     the path, in the form of an array of integers.  Each component of
+     the path is one element of the array, in order.  NLEN is the
+     number of components in the path.
+
+     For example, the first component of the path for all the paging
+     parameters is the value `CTL_VM'.  For the free page thresholds,
+     the second component of the path is `VM_FREEPG'.  So to get the
+     free page threshold values, make NAMES an array containing the two
+     elements `CTL_VM' and `VM_FREEPG' and make NLEN = 2.
+
+     The format of the value of a parameter depends on the parameter.
+     Sometimes it is an integer; sometimes it is an ASCII string;
+     sometimes it is an elaborate structure.  In the case of the free
+     page thresholds used in the example above, the parameter value is
+     a structure containing several integers.
+
+     In any case, you identify a place to return the parameter's value
+     with OLDVAL and specify the amount of storage available at that
+     location as *OLDLENP.  *OLDLENP does double duty because it is
+     also the output location that contains the actual length of the
+     returned value.
+
+     If you don't want the parameter value returned, specify a null
+     pointer for OLDVAL.
+
+     To set the parameter, specify the address and length of the new
+     value as NEWVAL and NEWLEN.  If you don't want to set the
+     parameter, specify a null pointer as NEWVAL.
+
+     If you get and set a parameter in the same `sysctl' call, the value
+     returned is the value of the parameter before it was set.
+
+     Each system parameter has a set of permissions similar to the
+     permissions for a file (including the permissions on directories
+     in its path) that determine whether you may get or set it.  For
+     the purposes of these permissions, every parameter is considered
+     to be owned by the superuser and Group 0 so processes with that
+     effective uid or gid may have more access to system parameters.
+     Unlike with files, the superuser does not invariably have full
+     permission to all system parameters, because some of them are
+     designed not to be changed ever.
+
+     `sysctl' returns a zero return value if it succeeds.  Otherwise, it
+     returns `-1' and sets `errno' appropriately.  Besides the failures
+     that apply to all system calls, the following are the `errno'
+     codes for all possible failures:
+
+    `EPERM'
+          The process is not permitted to access one of the components
+          of the path of the system parameter or is not permitted to
+          access the system parameter itself in the way (read or write)
+          that it requested.
+
+    `ENOTDIR'
+          There is no system parameter corresponding to NAME.
+
+    `EFAULT'
+          OLDVAL is not null, which means the process wanted to read
+          the parameter, but *OLDLENP is zero, so there is no place to
+          return it.
+
+    `EINVAL'
+             * The process attempted to set a system parameter to a
+               value that is not valid for that parameter.
+
+             * The space provided for the return of the system
+               parameter is not the right size for that parameter.
+
+    `ENOMEM'
+          This value may be returned instead of the more correct
+          `EINVAL' in some cases where the space provided for the
+          return of the system parameter is too small.
+
+
+   If you have a Linux kernel with the `proc' filesystem, you can get
+and set most of the same parameters by reading and writing to files in
+the `sys' directory of the `proc' filesystem.  In the `sys' directory,
+the directory structure represents the hierarchical structure of the
+parameters.  E.g. you can display the free page thresholds with
+     cat /proc/sys/vm/freepages
+
+   Some more traditional and more widely available, though less general,
+GNU C library functions for getting and setting some of the same system
+parameters are:
+
+   * `getdomainname', `setdomainname'
+
+   * `gethostname', `sethostname' (*Note Host Identification::.)
+
+   * `uname' (*Note Platform Type::.)
+
+   * `bdflush'
+
+
+File: libc.info,  Node: System Configuration,  Next: Cryptographic Functions,  Prev: System Management,  Up: Top
+
+System Configuration Parameters
+*******************************
+
+   The functions and macros listed in this chapter give information
+about configuration parameters of the operating system--for example,
+capacity limits, presence of optional POSIX features, and the default
+path for executable files (*note String Parameters::).
+
+* Menu:
+
+* General Limits::           Constants and functions that describe
+				various process-related limits that have
+				one uniform value for any given machine.
+* System Options::           Optional POSIX features.
+* Version Supported::        Version numbers of POSIX.1 and POSIX.2.
+* Sysconf::                  Getting specific configuration values
+                                of general limits and system options.
+* Minimums::                 Minimum values for general limits.
+
+* Limits for Files::         Size limitations that pertain to individual files.
+                                These can vary between file systems
+                                or even from file to file.
+* Options for Files::        Optional features that some files may support.
+* File Minimums::            Minimum values for file limits.
+* Pathconf::                 Getting the limit values for a particular file.
+
+* Utility Limits::           Capacity limits of some POSIX.2 utility programs.
+* Utility Minimums::         Minimum allowable values of those limits.
+
+* String Parameters::        Getting the default search path.
+
+
+File: libc.info,  Node: General Limits,  Next: System Options,  Up: System Configuration
+
+General Capacity Limits
+=======================
+
+   The POSIX.1 and POSIX.2 standards specify a number of parameters that
+describe capacity limitations of the system.  These limits can be fixed
+constants for a given operating system, or they can vary from machine to
+machine.  For example, some limit values may be configurable by the
+system administrator, either at run time or by rebuilding the kernel,
+and this should not require recompiling application programs.
+
+   Each of the following limit parameters has a macro that is defined in
+`limits.h' only if the system has a fixed, uniform limit for the
+parameter in question.  If the system allows different file systems or
+files to have different limits, then the macro is undefined; use
+`sysconf' to find out the limit that applies at a particular time on a
+particular machine.  *Note Sysconf::.
+
+   Each of these parameters also has another macro, with a name starting
+with `_POSIX', which gives the lowest value that the limit is allowed
+to have on _any_ POSIX system.  *Note Minimums::.
+
+ - Macro: int ARG_MAX
+     If defined, the unvarying maximum combined length of the ARGV and
+     ENVIRON arguments that can be passed to the `exec' functions.
+
+ - Macro: int CHILD_MAX
+     If defined, the unvarying maximum number of processes that can
+     exist with the same real user ID at any one time.  In BSD and GNU,
+     this is controlled by the `RLIMIT_NPROC' resource limit; *note
+     Limits on Resources::.
+
+ - Macro: int OPEN_MAX
+     If defined, the unvarying maximum number of files that a single
+     process can have open simultaneously.  In BSD and GNU, this is
+     controlled by the `RLIMIT_NOFILE' resource limit; *note Limits on
+     Resources::.
+
+ - Macro: int STREAM_MAX
+     If defined, the unvarying maximum number of streams that a single
+     process can have open simultaneously.  *Note Opening Streams::.
+
+ - Macro: int TZNAME_MAX
+     If defined, the unvarying maximum length of a time zone name.
+     *Note Time Zone Functions::.
+
+   These limit macros are always defined in `limits.h'.
+
+ - Macro: int NGROUPS_MAX
+     The maximum number of supplementary group IDs that one process can
+     have.
+
+     The value of this macro is actually a lower bound for the maximum.
+     That is, you can count on being able to have that many
+     supplementary group IDs, but a particular machine might let you
+     have even more.  You can use `sysconf' to see whether a particular
+     machine will let you have more (*note Sysconf::).
+
+ - Macro: int SSIZE_MAX
+     The largest value that can fit in an object of type `ssize_t'.
+     Effectively, this is the limit on the number of bytes that can be
+     read or written in a single operation.
+
+     This macro is defined in all POSIX systems because this limit is
+     never configurable.
+
+ - Macro: int RE_DUP_MAX
+     The largest number of repetitions you are guaranteed is allowed in
+     the construct `\{MIN,MAX\}' in a regular expression.
+
+     The value of this macro is actually a lower bound for the maximum.
+     That is, you can count on being able to have that many
+     repetitions, but a particular machine might let you have even
+     more.  You can use `sysconf' to see whether a particular machine
+     will let you have more (*note Sysconf::).  And even the value that
+     `sysconf' tells you is just a lower bound--larger values might
+     work.
+
+     This macro is defined in all POSIX.2 systems, because POSIX.2 says
+     it should always be defined even if there is no specific imposed
+     limit.
+
+
+File: libc.info,  Node: System Options,  Next: Version Supported,  Prev: General Limits,  Up: System Configuration
+
+Overall System Options
+======================
+
+   POSIX defines certain system-specific options that not all POSIX
+systems support.  Since these options are provided in the kernel, not
+in the library, simply using the GNU C library does not guarantee any
+of these features is supported; it depends on the system you are using.
+
+   You can test for the availability of a given option using the macros
+in this section, together with the function `sysconf'.  The macros are
+defined only if you include `unistd.h'.
+
+   For the following macros, if the macro is defined in `unistd.h',
+then the option is supported.  Otherwise, the option may or may not be
+supported; use `sysconf' to find out.  *Note Sysconf::.
+
+ - Macro: int _POSIX_JOB_CONTROL
+     If this symbol is defined, it indicates that the system supports
+     job control.  Otherwise, the implementation behaves as if all
+     processes within a session belong to a single process group.
+     *Note Job Control::.
+
+ - Macro: int _POSIX_SAVED_IDS
+     If this symbol is defined, it indicates that the system remembers
+     the effective user and group IDs of a process before it executes an
+     executable file with the set-user-ID or set-group-ID bits set, and
+     that explicitly changing the effective user or group IDs back to
+     these values is permitted.  If this option is not defined, then if
+     a nonprivileged process changes its effective user or group ID to
+     the real user or group ID of the process, it can't change it back
+     again.  *Note Enable/Disable Setuid::.
+
+   For the following macros, if the macro is defined in `unistd.h',
+then its value indicates whether the option is supported.  A value of
+`-1' means no, and any other value means yes.  If the macro is not
+defined, then the option may or may not be supported; use `sysconf' to
+find out.  *Note Sysconf::.
+
+ - Macro: int _POSIX2_C_DEV
+     If this symbol is defined, it indicates that the system has the
+     POSIX.2 C compiler command, `c89'.  The GNU C library always
+     defines this as `1', on the assumption that you would not have
+     installed it if you didn't have a C compiler.
+
+ - Macro: int _POSIX2_FORT_DEV
+     If this symbol is defined, it indicates that the system has the
+     POSIX.2 Fortran compiler command, `fort77'.  The GNU C library
+     never defines this, because we don't know what the system has.
+
+ - Macro: int _POSIX2_FORT_RUN
+     If this symbol is defined, it indicates that the system has the
+     POSIX.2 `asa' command to interpret Fortran carriage control.  The
+     GNU C library never defines this, because we don't know what the
+     system has.
+
+ - Macro: int _POSIX2_LOCALEDEF
+     If this symbol is defined, it indicates that the system has the
+     POSIX.2 `localedef' command.  The GNU C library never defines
+     this, because we don't know what the system has.
+
+ - Macro: int _POSIX2_SW_DEV
+     If this symbol is defined, it indicates that the system has the
+     POSIX.2 commands `ar', `make', and `strip'.  The GNU C library
+     always defines this as `1', on the assumption that you had to have
+     `ar' and `make' to install the library, and it's unlikely that
+     `strip' would be absent when those are present.
+
+
+File: libc.info,  Node: Version Supported,  Next: Sysconf,  Prev: System Options,  Up: System Configuration
+
+Which Version of POSIX is Supported
+===================================
+
+ - Macro: long int _POSIX_VERSION
+     This constant represents the version of the POSIX.1 standard to
+     which the implementation conforms.  For an implementation
+     conforming to the 1995 POSIX.1 standard, the value is the integer
+     `199506L'.
+
+     `_POSIX_VERSION' is always defined (in `unistd.h') in any POSIX
+     system.
+
+     *Usage Note:* Don't try to test whether the system supports POSIX
+     by including `unistd.h' and then checking whether `_POSIX_VERSION'
+     is defined.  On a non-POSIX system, this will probably fail
+     because there is no `unistd.h'.  We do not know of _any_ way you
+     can reliably test at compilation time whether your target system
+     supports POSIX or whether `unistd.h' exists.
+
+     The GNU C compiler predefines the symbol `__POSIX__' if the target
+     system is a POSIX system.  Provided you do not use any other
+     compilers on POSIX systems, testing `defined (__POSIX__)' will
+     reliably detect such systems.
+
+ - Macro: long int _POSIX2_C_VERSION
+     This constant represents the version of the POSIX.2 standard which
+     the library and system kernel support.  We don't know what value
+     this will be for the first version of the POSIX.2 standard,
+     because the value is based on the year and month in which the
+     standard is officially adopted.
+
+     The value of this symbol says nothing about the utilities
+     installed on the system.
+
+     *Usage Note:* You can use this macro to tell whether a POSIX.1
+     system library supports POSIX.2 as well.  Any POSIX.1 system
+     contains `unistd.h', so include that file and then test `defined
+     (_POSIX2_C_VERSION)'.
+
+
+File: libc.info,  Node: Sysconf,  Next: Minimums,  Prev: Version Supported,  Up: System Configuration
+
+Using `sysconf'
+===============
+
+   When your system has configurable system limits, you can use the
+`sysconf' function to find out the value that applies to any particular
+machine.  The function and the associated PARAMETER constants are
+declared in the header file `unistd.h'.
+
+* Menu:
+
+* Sysconf Definition::        Detailed specifications of `sysconf'.
+* Constants for Sysconf::     The list of parameters `sysconf' can read.
+* Examples of Sysconf::       How to use `sysconf' and the parameter
+				 macros properly together.
+
+
+File: libc.info,  Node: Sysconf Definition,  Next: Constants for Sysconf,  Up: Sysconf
+
+Definition of `sysconf'
+-----------------------
+
+ - Function: long int sysconf (int PARAMETER)
+     This function is used to inquire about runtime system parameters.
+     The PARAMETER argument should be one of the `_SC_' symbols listed
+     below.
+
+     The normal return value from `sysconf' is the value you requested.
+     A value of `-1' is returned both if the implementation does not
+     impose a limit, and in case of an error.
+
+     The following `errno' error conditions are defined for this
+     function:
+
+    `EINVAL'
+          The value of the PARAMETER is invalid.
+
+
+File: libc.info,  Node: Constants for Sysconf,  Next: Examples of Sysconf,  Prev: Sysconf Definition,  Up: Sysconf
+
+Constants for `sysconf' Parameters
+----------------------------------
+
+   Here are the symbolic constants for use as the PARAMETER argument to
+`sysconf'.  The values are all integer constants (more specifically,
+enumeration type values).
+
+`_SC_ARG_MAX'
+     Inquire about the parameter corresponding to `ARG_MAX'.
+
+`_SC_CHILD_MAX'
+     Inquire about the parameter corresponding to `CHILD_MAX'.
+
+`_SC_OPEN_MAX'
+     Inquire about the parameter corresponding to `OPEN_MAX'.
+
+`_SC_STREAM_MAX'
+     Inquire about the parameter corresponding to `STREAM_MAX'.
+
+`_SC_TZNAME_MAX'
+     Inquire about the parameter corresponding to `TZNAME_MAX'.
+
+`_SC_NGROUPS_MAX'
+     Inquire about the parameter corresponding to `NGROUPS_MAX'.
+
+`_SC_JOB_CONTROL'
+     Inquire about the parameter corresponding to `_POSIX_JOB_CONTROL'.
+
+`_SC_SAVED_IDS'
+     Inquire about the parameter corresponding to `_POSIX_SAVED_IDS'.
+
+`_SC_VERSION'
+     Inquire about the parameter corresponding to `_POSIX_VERSION'.
+
+`_SC_CLK_TCK'
+     Inquire about the parameter corresponding to `CLOCKS_PER_SEC';
+     *note CPU Time::.
+
+`_SC_CHARCLASS_NAME_MAX'
+     Inquire about the parameter corresponding to maximal length
+     allowed for a character class name in an extended locale
+     specification.  These extensions are not yet standardized and so
+     this option is not standardized as well.
+
+`_SC_REALTIME_SIGNALS'
+     Inquire about the parameter corresponding to
+     `_POSIX_REALTIME_SIGNALS'.
+
+`_SC_PRIORITY_SCHEDULING'
+     Inquire about the parameter corresponding to
+     `_POSIX_PRIORITY_SCHEDULING'.
+
+`_SC_TIMERS'
+     Inquire about the parameter corresponding to `_POSIX_TIMERS'.
+
+`_SC_ASYNCHRONOUS_IO'
+     Inquire about the parameter corresponding to
+     `_POSIX_ASYNCHRONOUS_IO'.
+
+`_SC_PRIORITIZED_IO'
+     Inquire about the parameter corresponding to
+     `_POSIX_PRIORITIZED_IO'.
+
+`_SC_SYNCHRONIZED_IO'
+     Inquire about the parameter corresponding to
+     `_POSIX_SYNCHRONIZED_IO'.
+
+`_SC_FSYNC'
+     Inquire about the parameter corresponding to `_POSIX_FSYNC'.
+
+`_SC_MAPPED_FILES'
+     Inquire about the parameter corresponding to `_POSIX_MAPPED_FILES'.
+
+`_SC_MEMLOCK'
+     Inquire about the parameter corresponding to `_POSIX_MEMLOCK'.
+
+`_SC_MEMLOCK_RANGE'
+     Inquire about the parameter corresponding to
+     `_POSIX_MEMLOCK_RANGE'.
+
+`_SC_MEMORY_PROTECTION'
+     Inquire about the parameter corresponding to
+     `_POSIX_MEMORY_PROTECTION'.
+
+`_SC_MESSAGE_PASSING'
+     Inquire about the parameter corresponding to
+     `_POSIX_MESSAGE_PASSING'.
+
+`_SC_SEMAPHORES'
+     Inquire about the parameter corresponding to `_POSIX_SEMAPHORES'.
+
+`_SC_SHARED_MEMORY_OBJECTS'
+     Inquire about the parameter corresponding to
+     `_POSIX_SHARED_MEMORY_OBJECTS'.
+
+`_SC_AIO_LISTIO_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_AIO_LISTIO_MAX'.
+
+`_SC_AIO_MAX'
+     Inquire about the parameter corresponding to `_POSIX_AIO_MAX'.
+
+`_SC_AIO_PRIO_DELTA_MAX'
+     Inquire the value by which a process can decrease its asynchronous
+     I/O priority level from its own scheduling priority.  This
+     corresponds to the run-time invariant value `AIO_PRIO_DELTA_MAX'.
+
+`_SC_DELAYTIMER_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_DELAYTIMER_MAX'.
+
+`_SC_MQ_OPEN_MAX'
+     Inquire about the parameter corresponding to `_POSIX_MQ_OPEN_MAX'.
+
+`_SC_MQ_PRIO_MAX'
+     Inquire about the parameter corresponding to `_POSIX_MQ_PRIO_MAX'.
+
+`_SC_RTSIG_MAX'
+     Inquire about the parameter corresponding to `_POSIX_RTSIG_MAX'.
+
+`_SC_SEM_NSEMS_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_SEM_NSEMS_MAX'.
+
+`_SC_SEM_VALUE_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_SEM_VALUE_MAX'.
+
+`_SC_SIGQUEUE_MAX'
+     Inquire about the parameter corresponding to `_POSIX_SIGQUEUE_MAX'.
+
+`_SC_TIMER_MAX'
+     Inquire about the parameter corresponding to `_POSIX_TIMER_MAX'.
+
+`_SC_PII'
+     Inquire about the parameter corresponding to `_POSIX_PII'.
+
+`_SC_PII_XTI'
+     Inquire about the parameter corresponding to `_POSIX_PII_XTI'.
+
+`_SC_PII_SOCKET'
+     Inquire about the parameter corresponding to `_POSIX_PII_SOCKET'.
+
+`_SC_PII_INTERNET'
+     Inquire about the parameter corresponding to `_POSIX_PII_INTERNET'.
+
+`_SC_PII_OSI'
+     Inquire about the parameter corresponding to `_POSIX_PII_OSI'.
+
+`_SC_SELECT'
+     Inquire about the parameter corresponding to `_POSIX_SELECT'.
+
+`_SC_UIO_MAXIOV'
+     Inquire about the parameter corresponding to `_POSIX_UIO_MAXIOV'.
+
+`_SC_PII_INTERNET_STREAM'
+     Inquire about the parameter corresponding to
+     `_POSIX_PII_INTERNET_STREAM'.
+
+`_SC_PII_INTERNET_DGRAM'
+     Inquire about the parameter corresponding to
+     `_POSIX_PII_INTERNET_DGRAM'.
+
+`_SC_PII_OSI_COTS'
+     Inquire about the parameter corresponding to `_POSIX_PII_OSI_COTS'.
+
+`_SC_PII_OSI_CLTS'
+     Inquire about the parameter corresponding to `_POSIX_PII_OSI_CLTS'.
+
+`_SC_PII_OSI_M'
+     Inquire about the parameter corresponding to `_POSIX_PII_OSI_M'.
+
+`_SC_T_IOV_MAX'
+     Inquire the value of the value associated with the `T_IOV_MAX'
+     variable.
+
+`_SC_THREADS'
+     Inquire about the parameter corresponding to `_POSIX_THREADS'.
+
+`_SC_THREAD_SAFE_FUNCTIONS'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_SAFE_FUNCTIONS'.
+
+`_SC_GETGR_R_SIZE_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_GETGR_R_SIZE_MAX'.
+
+`_SC_GETPW_R_SIZE_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_GETPW_R_SIZE_MAX'.
+
+`_SC_LOGIN_NAME_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_LOGIN_NAME_MAX'.
+
+`_SC_TTY_NAME_MAX'
+     Inquire about the parameter corresponding to `_POSIX_TTY_NAME_MAX'.
+
+`_SC_THREAD_DESTRUCTOR_ITERATIONS'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_DESTRUCTOR_ITERATIONS'.
+
+`_SC_THREAD_KEYS_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_KEYS_MAX'.
+
+`_SC_THREAD_STACK_MIN'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_STACK_MIN'.
+
+`_SC_THREAD_THREADS_MAX'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_THREADS_MAX'.
+
+`_SC_THREAD_ATTR_STACKADDR'
+     Inquire about the parameter corresponding to
+     a `_POSIX_THREAD_ATTR_STACKADDR'.
+
+`_SC_THREAD_ATTR_STACKSIZE'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_ATTR_STACKSIZE'.
+
+`_SC_THREAD_PRIORITY_SCHEDULING'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_PRIORITY_SCHEDULING'.
+
+`_SC_THREAD_PRIO_INHERIT'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_PRIO_INHERIT'.
+
+`_SC_THREAD_PRIO_PROTECT'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_PRIO_PROTECT'.
+
+`_SC_THREAD_PROCESS_SHARED'
+     Inquire about the parameter corresponding to
+     `_POSIX_THREAD_PROCESS_SHARED'.
+
+`_SC_2_C_DEV'
+     Inquire about whether the system has the POSIX.2 C compiler
+     command, `c89'.
+
+`_SC_2_FORT_DEV'
+     Inquire about whether the system has the POSIX.2 Fortran compiler
+     command, `fort77'.
+
+`_SC_2_FORT_RUN'
+     Inquire about whether the system has the POSIX.2 `asa' command to
+     interpret Fortran carriage control.
+
+`_SC_2_LOCALEDEF'
+     Inquire about whether the system has the POSIX.2 `localedef'
+     command.
+
+`_SC_2_SW_DEV'
+     Inquire about whether the system has the POSIX.2 commands `ar',
+     `make', and `strip'.
+
+`_SC_BC_BASE_MAX'
+     Inquire about the maximum value of `obase' in the `bc' utility.
+
+`_SC_BC_DIM_MAX'
+     Inquire about the maximum size of an array in the `bc' utility.
+
+`_SC_BC_SCALE_MAX'
+     Inquire about the maximum value of `scale' in the `bc' utility.
+
+`_SC_BC_STRING_MAX'
+     Inquire about the maximum size of a string constant in the `bc'
+     utility.
+
+`_SC_COLL_WEIGHTS_MAX'
+     Inquire about the maximum number of weights that can necessarily
+     be used in defining the collating sequence for a locale.
+
+`_SC_EXPR_NEST_MAX'
+     Inquire about the maximum number of expressions nested within
+     parentheses when using the `expr' utility.
+
+`_SC_LINE_MAX'
+     Inquire about the maximum size of a text line that the POSIX.2 text
+     utilities can handle.
+
+`_SC_EQUIV_CLASS_MAX'
+     Inquire about the maximum number of weights that can be assigned
+     to an entry of the `LC_COLLATE' category `order' keyword in a
+     locale definition.  The GNU C library does not presently support
+     locale definitions.
+
+`_SC_VERSION'
+     Inquire about the version number of POSIX.1 that the library and
+     kernel support.
+
+`_SC_2_VERSION'
+     Inquire about the version number of POSIX.2 that the system
+     utilities support.
+
+`_SC_PAGESIZE'
+     Inquire about the virtual memory page size of the machine.
+     `getpagesize' returns the same value (*note Query Memory
+     Parameters::).
+
+`_SC_NPROCESSORS_CONF'
+     Inquire about the number of configured processors.
+
+`_SC_NPROCESSORS_ONLN'
+     Inquire about the number of processors online.
+
+`_SC_PHYS_PAGES'
+     Inquire about the number of physical pages in the system.
+
+`_SC_AVPHYS_PAGES'
+     Inquire about the number of available physical pages in the system.
+
+`_SC_ATEXIT_MAX'
+     Inquire about the number of functions which can be registered as
+     termination functions for `atexit'; *note Cleanups on Exit::.
+
+`_SC_XOPEN_VERSION'
+     Inquire about the parameter corresponding to `_XOPEN_VERSION'.
+
+`_SC_XOPEN_XCU_VERSION'
+     Inquire about the parameter corresponding to `_XOPEN_XCU_VERSION'.
+
+`_SC_XOPEN_UNIX'
+     Inquire about the parameter corresponding to `_XOPEN_UNIX'.
+
+`_SC_XOPEN_REALTIME'
+     Inquire about the parameter corresponding to `_XOPEN_REALTIME'.
+
+`_SC_XOPEN_REALTIME_THREADS'
+     Inquire about the parameter corresponding to
+     `_XOPEN_REALTIME_THREADS'.
+
+`_SC_XOPEN_LEGACY'
+     Inquire about the parameter corresponding to `_XOPEN_LEGACY'.
+
+`_SC_XOPEN_CRYPT'
+     Inquire about the parameter corresponding to `_XOPEN_CRYPT'.
+
+`_SC_XOPEN_ENH_I18N'
+     Inquire about the parameter corresponding to `_XOPEN_ENH_I18N'.
+
+`_SC_XOPEN_SHM'
+     Inquire about the parameter corresponding to `_XOPEN_SHM'.
+
+`_SC_XOPEN_XPG2'
+     Inquire about the parameter corresponding to `_XOPEN_XPG2'.
+
+`_SC_XOPEN_XPG3'
+     Inquire about the parameter corresponding to `_XOPEN_XPG3'.
+
+`_SC_XOPEN_XPG4'
+     Inquire about the parameter corresponding to `_XOPEN_XPG4'.
+
+`_SC_CHAR_BIT'
+     Inquire about the number of bits in a variable of type `char'.
+
+`_SC_CHAR_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `char'.
+
+`_SC_CHAR_MIN'
+     Inquire about the minimum value which can be stored in a variable
+     of type `char'.
+
+`_SC_INT_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `int'.
+
+`_SC_INT_MIN'
+     Inquire about the minimum value which can be stored in a variable
+     of type `int'.
+
+`_SC_LONG_BIT'
+     Inquire about the number of bits in a variable of type `long int'.
+
+`_SC_WORD_BIT'
+     Inquire about the number of bits in a variable of a register word.
+
+`_SC_MB_LEN_MAX'
+     Inquire the maximum length of a multi-byte representation of a wide
+     character value.
+
+`_SC_NZERO'
+     Inquire about the value used to internally represent the zero
+     priority level for the process execution.
+
+`SC_SSIZE_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `ssize_t'.
+
+`_SC_SCHAR_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `signed char'.
+
+`_SC_SCHAR_MIN'
+     Inquire about the minimum value which can be stored in a variable
+     of type `signed char'.
+
+`_SC_SHRT_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `short int'.
+
+`_SC_SHRT_MIN'
+     Inquire about the minimum value which can be stored in a variable
+     of type `short int'.
+
+`_SC_UCHAR_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `unsigned char'.
+
+`_SC_UINT_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `unsigned int'.
+
+`_SC_ULONG_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `unsigned long int'.
+
+`_SC_USHRT_MAX'
+     Inquire about the maximum value which can be stored in a variable
+     of type `unsigned short int'.
+
+`_SC_NL_ARGMAX'
+     Inquire about the parameter corresponding to `NL_ARGMAX'.
+
+`_SC_NL_LANGMAX'
+     Inquire about the parameter corresponding to `NL_LANGMAX'.
+
+`_SC_NL_MSGMAX'
+     Inquire about the parameter corresponding to `NL_MSGMAX'.
+
+`_SC_NL_NMAX'
+     Inquire about  the parameter corresponding to `NL_NMAX'.
+
+`_SC_NL_SETMAX'
+     Inquire about the parameter corresponding to `NL_SETMAX'.
+
+`_SC_NL_TEXTMAX'
+     Inquire about the parameter corresponding to `NL_TEXTMAX'.
+
+
+File: libc.info,  Node: Examples of Sysconf,  Prev: Constants for Sysconf,  Up: Sysconf
+
+Examples of `sysconf'
+---------------------
+
+   We recommend that you first test for a macro definition for the
+parameter you are interested in, and call `sysconf' only if the macro
+is not defined.  For example, here is how to test whether job control
+is supported:
+
+     int
+     have_job_control (void)
+     {
+     #ifdef _POSIX_JOB_CONTROL
+       return 1;
+     #else
+       int value = sysconf (_SC_JOB_CONTROL);
+       if (value < 0)
+         /* If the system is that badly wedged,
+            there's no use trying to go on.  */
+         fatal (strerror (errno));
+       return value;
+     #endif
+     }
+
+   Here is how to get the value of a numeric limit:
+
+     int
+     get_child_max ()
+     {
+     #ifdef CHILD_MAX
+       return CHILD_MAX;
+     #else
+       int value = sysconf (_SC_CHILD_MAX);
+       if (value < 0)
+         fatal (strerror (errno));
+       return value;
+     #endif
+     }
+
+
+File: libc.info,  Node: Minimums,  Next: Limits for Files,  Prev: Sysconf,  Up: System Configuration
+
+Minimum Values for General Capacity Limits
+==========================================
+
+   Here are the names for the POSIX minimum upper bounds for the system
+limit parameters.  The significance of these values is that you can
+safely push to these limits without checking whether the particular
+system you are using can go that far.
+
+`_POSIX_AIO_LISTIO_MAX'
+     The most restrictive limit permitted by POSIX for the maximum
+     number of I/O operations that can be specified in a list I/O call.
+     The value of this constant is `2'; thus you can add up to two new
+     entries of the list of outstanding operations.
+
+`_POSIX_AIO_MAX'
+     The most restrictive limit permitted by POSIX for the maximum
+     number of outstanding asynchronous I/O operations.  The value of
+     this constant is `1'.  So you cannot expect that you can issue
+     more than one operation and immediately continue with the normal
+     work, receiving the notifications asynchronously.
+
+`_POSIX_ARG_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum combined length of the ARGV and ENVIRON
+     arguments that can be passed to the `exec' functions.  Its value
+     is `4096'.
+
+`_POSIX_CHILD_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum number of simultaneous processes per real
+     user ID.  Its value is `6'.
+
+`_POSIX_NGROUPS_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum number of supplementary group IDs per
+     process.  Its value is `0'.
+
+`_POSIX_OPEN_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum number of files that a single process can
+     have open simultaneously.  Its value is `16'.
+
+`_POSIX_SSIZE_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum value that can be stored in an object of type
+     `ssize_t'.  Its value is `32767'.
+
+`_POSIX_STREAM_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum number of streams that a single process can
+     have open simultaneously.  Its value is `8'.
+
+`_POSIX_TZNAME_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the maximum length of a time zone name.  Its value is
+     `3'.
+
+`_POSIX2_RE_DUP_MAX'
+     The value of this macro is the most restrictive limit permitted by
+     POSIX for the numbers used in the `\{MIN,MAX\}' construct in a
+     regular expression.  Its value is `255'.
+
+
+File: libc.info,  Node: Limits for Files,  Next: Options for Files,  Prev: Minimums,  Up: System Configuration
+
+Limits on File System Capacity
+==============================
+
+   The POSIX.1 standard specifies a number of parameters that describe
+the limitations of the file system.  It's possible for the system to
+have a fixed, uniform limit for a parameter, but this isn't the usual
+case.  On most systems, it's possible for different file systems (and,
+for some parameters, even different files) to have different maximum
+limits.  For example, this is very likely if you use NFS to mount some
+of the file systems from other machines.
+
+   Each of the following macros is defined in `limits.h' only if the
+system has a fixed, uniform limit for the parameter in question.  If the
+system allows different file systems or files to have different limits,
+then the macro is undefined; use `pathconf' or `fpathconf' to find out
+the limit that applies to a particular file.  *Note Pathconf::.
+
+   Each parameter also has another macro, with a name starting with
+`_POSIX', which gives the lowest value that the limit is allowed to
+have on _any_ POSIX system.  *Note File Minimums::.
+
+ - Macro: int LINK_MAX
+     The uniform system limit (if any) for the number of names for a
+     given file.  *Note Hard Links::.
+
+ - Macro: int MAX_CANON
+     The uniform system limit (if any) for the amount of text in a line
+     of input when input editing is enabled.  *Note Canonical or Not::.
+
+ - Macro: int MAX_INPUT
+     The uniform system limit (if any) for the total number of
+     characters typed ahead as input.  *Note I/O Queues::.
+
+ - Macro: int NAME_MAX
+     The uniform system limit (if any) for the length of a file name
+     component.
+
+ - Macro: int PATH_MAX
+     The uniform system limit (if any) for the length of an entire file
+     name (that is, the argument given to system calls such as `open').
+
+ - Macro: int PIPE_BUF
+     The uniform system limit (if any) for the number of bytes that can
+     be written atomically to a pipe.  If multiple processes are
+     writing to the same pipe simultaneously, output from different
+     processes might be interleaved in chunks of this size.  *Note
+     Pipes and FIFOs::.
+
+   These are alternative macro names for some of the same information.
+
+ - Macro: int MAXNAMLEN
+     This is the BSD name for `NAME_MAX'.  It is defined in `dirent.h'.
+
+ - Macro: int FILENAME_MAX
+     The value of this macro is an integer constant expression that
+     represents the maximum length of a file name string.  It is
+     defined in `stdio.h'.
+
+     Unlike `PATH_MAX', this macro is defined even if there is no actual
+     limit imposed.  In such a case, its value is typically a very large
+     number.  *This is always the case on the GNU system.*
+
+     *Usage Note:* Don't use `FILENAME_MAX' as the size of an array in
+     which to store a file name!  You can't possibly make an array that
+     big!  Use dynamic allocation (*note Memory Allocation::) instead.
+
+
+File: libc.info,  Node: Options for Files,  Next: File Minimums,  Prev: Limits for Files,  Up: System Configuration
+
+Optional Features in File Support
+=================================
+
+   POSIX defines certain system-specific options in the system calls for
+operating on files.  Some systems support these options and others do
+not.  Since these options are provided in the kernel, not in the
+library, simply using the GNU C library does not guarantee that any of
+these features is supported; it depends on the system you are using.
+They can also vary between file systems on a single machine.
+
+   This section describes the macros you can test to determine whether a
+particular option is supported on your machine.  If a given macro is
+defined in `unistd.h', then its value says whether the corresponding
+feature is supported.  (A value of `-1' indicates no; any other value
+indicates yes.)  If the macro is undefined, it means particular files
+may or may not support the feature.
+
+   Since all the machines that support the GNU C library also support
+NFS, one can never make a general statement about whether all file
+systems support the `_POSIX_CHOWN_RESTRICTED' and `_POSIX_NO_TRUNC'
+features.  So these names are never defined as macros in the GNU C
+library.
+
+ - Macro: int _POSIX_CHOWN_RESTRICTED
+     If this option is in effect, the `chown' function is restricted so
+     that the only changes permitted to nonprivileged processes is to
+     change the group owner of a file to either be the effective group
+     ID of the process, or one of its supplementary group IDs.  *Note
+     File Owner::.
+
+ - Macro: int _POSIX_NO_TRUNC
+     If this option is in effect, file name components longer than
+     `NAME_MAX' generate an `ENAMETOOLONG' error.  Otherwise, file name
+     components that are too long are silently truncated.
+
+ - Macro: unsigned char _POSIX_VDISABLE
+     This option is only meaningful for files that are terminal devices.
+     If it is enabled, then handling for special control characters can
+     be disabled individually.  *Note Special Characters::.
+
+   If one of these macros is undefined, that means that the option
+might be in effect for some files and not for others.  To inquire about
+a particular file, call `pathconf' or `fpathconf'.  *Note Pathconf::.
+

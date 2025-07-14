@@ -1,0 +1,1334 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Creating a Socket,  Next: Closing a Socket,  Up: Open/Close Sockets
+
+Creating a Socket
+-----------------
+
+   The primitive for creating a socket is the `socket' function,
+declared in `sys/socket.h'.
+
+ - Function: int socket (int NAMESPACE, int STYLE, int PROTOCOL)
+     This function creates a socket and specifies communication style
+     STYLE, which should be one of the socket styles listed in *Note
+     Communication Styles::.  The NAMESPACE argument specifies the
+     namespace; it must be `PF_LOCAL' (*note Local Namespace::) or
+     `PF_INET' (*note Internet Namespace::).  PROTOCOL designates the
+     specific protocol (*note Socket Concepts::); zero is usually right
+     for PROTOCOL.
+
+     The return value from `socket' is the file descriptor for the new
+     socket, or `-1' in case of error.  The following `errno' error
+     conditions are defined for this function:
+
+    `EPROTONOSUPPORT'
+          The PROTOCOL or STYLE is not supported by the NAMESPACE
+          specified.
+
+    `EMFILE'
+          The process already has too many file descriptors open.
+
+    `ENFILE'
+          The system already has too many file descriptors open.
+
+    `EACCESS'
+          The process does not have the privilege to create a socket of
+          the specified STYLE or PROTOCOL.
+
+    `ENOBUFS'
+          The system ran out of internal buffer space.
+
+     The file descriptor returned by the `socket' function supports both
+     read and write operations.  However, like pipes, sockets do not
+     support file positioning operations.
+
+   For examples of how to call the `socket' function, see *Note Local
+Socket Example::, or *Note Inet Example::.
+
+
+File: libc.info,  Node: Closing a Socket,  Next: Socket Pairs,  Prev: Creating a Socket,  Up: Open/Close Sockets
+
+Closing a Socket
+----------------
+
+   When you have finished using a socket, you can simply close its file
+descriptor with `close'; see *Note Opening and Closing Files::.  If
+there is still data waiting to be transmitted over the connection,
+normally `close' tries to complete this transmission.  You can control
+this behavior using the `SO_LINGER' socket option to specify a timeout
+period; see *Note Socket Options::.
+
+   You can also shut down only reception or transmission on a
+connection by calling `shutdown', which is declared in `sys/socket.h'.
+
+ - Function: int shutdown (int SOCKET, int HOW)
+     The `shutdown' function shuts down the connection of socket
+     SOCKET.  The argument HOW specifies what action to perform:
+
+    `0'
+          Stop receiving data for this socket.  If further data arrives,
+          reject it.
+
+    `1'
+          Stop trying to transmit data from this socket.  Discard any
+          data waiting to be sent.  Stop looking for acknowledgement of
+          data already sent; don't retransmit it if it is lost.
+
+    `2'
+          Stop both reception and transmission.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EBADF'
+          SOCKET is not a valid file descriptor.
+
+    `ENOTSOCK'
+          SOCKET is not a socket.
+
+    `ENOTCONN'
+          SOCKET is not connected.
+
+
+File: libc.info,  Node: Socket Pairs,  Prev: Closing a Socket,  Up: Open/Close Sockets
+
+Socket Pairs
+------------
+
+   A "socket pair" consists of a pair of connected (but unnamed)
+sockets.  It is very similar to a pipe and is used in much the same
+way.  Socket pairs are created with the `socketpair' function, declared
+in `sys/socket.h'.  A socket pair is much like a pipe; the main
+difference is that the socket pair is bidirectional, whereas the pipe
+has one input-only end and one output-only end (*note Pipes and
+FIFOs::).
+
+ - Function: int socketpair (int NAMESPACE, int STYLE, int PROTOCOL,
+          int FILEDES[2])
+     This function creates a socket pair, returning the file
+     descriptors in `FILEDES[0]' and `FILEDES[1]'.  The socket pair is
+     a full-duplex communications channel, so that both reading and
+     writing may be performed at either end.
+
+     The NAMESPACE, STYLE and PROTOCOL arguments are interpreted as for
+     the `socket' function.  STYLE should be one of the communication
+     styles listed in *Note Communication Styles::.  The NAMESPACE
+     argument specifies the namespace, which must be `AF_LOCAL' (*note
+     Local Namespace::); PROTOCOL specifies the communications
+     protocol, but zero is the only meaningful value.
+
+     If STYLE specifies a connectionless communication style, then the
+     two sockets you get are not _connected_, strictly speaking, but
+     each of them knows the other as the default destination address,
+     so they can send packets to each other.
+
+     The `socketpair' function returns `0' on success and `-1' on
+     failure.  The following `errno' error conditions are defined for
+     this function:
+
+    `EMFILE'
+          The process has too many file descriptors open.
+
+    `EAFNOSUPPORT'
+          The specified namespace is not supported.
+
+    `EPROTONOSUPPORT'
+          The specified protocol is not supported.
+
+    `EOPNOTSUPP'
+          The specified protocol does not support the creation of
+          socket pairs.
+
+
+File: libc.info,  Node: Connections,  Next: Datagrams,  Prev: Open/Close Sockets,  Up: Sockets
+
+Using Sockets with Connections
+==============================
+
+   The most common communication styles involve making a connection to a
+particular other socket, and then exchanging data with that socket over
+and over.  Making a connection is asymmetric; one side (the "client")
+acts to request a connection, while the other side (the "server") makes
+a socket and waits for the connection request.
+
+* Menu:
+
+* Connecting::    	     What the client program must do.
+* Listening::		     How a server program waits for requests.
+* Accepting Connections::    What the server does when it gets a request.
+* Who is Connected::	     Getting the address of the
+				other side of a connection.
+* Transferring Data::        How to send and receive data.
+* Byte Stream Example::	     An example program: a client for communicating
+			      over a byte stream socket in the Internet namespace.
+* Server Example::	     A corresponding server program.
+* Out-of-Band Data::         This is an advanced feature.
+
+
+File: libc.info,  Node: Connecting,  Next: Listening,  Up: Connections
+
+Making a Connection
+-------------------
+
+   In making a connection, the client makes a connection while the
+server waits for and accepts the connection.  Here we discuss what the
+client program must do with the `connect' function, which is declared in
+`sys/socket.h'.
+
+ - Function: int connect (int SOCKET, struct sockaddr *ADDR, socklen_t
+          LENGTH)
+     The `connect' function initiates a connection from the socket with
+     file descriptor SOCKET to the socket whose address is specified by
+     the ADDR and LENGTH arguments.  (This socket is typically on
+     another machine, and it must be already set up as a server.)
+     *Note Socket Addresses::, for information about how these
+     arguments are interpreted.
+
+     Normally, `connect' waits until the server responds to the request
+     before it returns.  You can set nonblocking mode on the socket
+     SOCKET to make `connect' return immediately without waiting for
+     the response.  *Note File Status Flags::, for information about
+     nonblocking mode.
+
+     The normal return value from `connect' is `0'.  If an error
+     occurs, `connect' returns `-1'.  The following `errno' error
+     conditions are defined for this function:
+
+    `EBADF'
+          The socket SOCKET is not a valid file descriptor.
+
+    `ENOTSOCK'
+          File descriptor SOCKET is not a socket.
+
+    `EADDRNOTAVAIL'
+          The specified address is not available on the remote machine.
+
+    `EAFNOSUPPORT'
+          The namespace of the ADDR is not supported by this socket.
+
+    `EISCONN'
+          The socket SOCKET is already connected.
+
+    `ETIMEDOUT'
+          The attempt to establish the connection timed out.
+
+    `ECONNREFUSED'
+          The server has actively refused to establish the connection.
+
+    `ENETUNREACH'
+          The network of the given ADDR isn't reachable from this host.
+
+    `EADDRINUSE'
+          The socket address of the given ADDR is already in use.
+
+    `EINPROGRESS'
+          The socket SOCKET is non-blocking and the connection could
+          not be established immediately.  You can determine when the
+          connection is completely established with `select'; *note
+          Waiting for I/O::.  Another `connect' call on the same
+          socket, before the connection is completely established, will
+          fail with `EALREADY'.
+
+    `EALREADY'
+          The socket SOCKET is non-blocking and already has a pending
+          connection in progress (see `EINPROGRESS' above).
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+
+File: libc.info,  Node: Listening,  Next: Accepting Connections,  Prev: Connecting,  Up: Connections
+
+Listening for Connections
+-------------------------
+
+   Now let us consider what the server process must do to accept
+connections on a socket.  First it must use the `listen' function to
+enable connection requests on the socket, and then accept each incoming
+connection with a call to `accept' (*note Accepting Connections::).
+Once connection requests are enabled on a server socket, the `select'
+function reports when the socket has a connection ready to be accepted
+(*note Waiting for I/O::).
+
+   The `listen' function is not allowed for sockets using
+connectionless communication styles.
+
+   You can write a network server that does not even start running
+until a connection to it is requested.  *Note Inetd Servers::.
+
+   In the Internet namespace, there are no special protection mechanisms
+for controlling access to a port; any process on any machine can make a
+connection to your server.  If you want to restrict access to your
+server, make it examine the addresses associated with connection
+requests or implement some other handshaking or identification protocol.
+
+   In the local namespace, the ordinary file protection bits control
+who has access to connect to the socket.
+
+ - Function: int listen (int SOCKET, unsigned int N)
+     The `listen' function enables the socket SOCKET to accept
+     connections, thus making it a server socket.
+
+     The argument N specifies the length of the queue for pending
+     connections.  When the queue fills, new clients attempting to
+     connect fail with `ECONNREFUSED' until the server calls `accept' to
+     accept a connection from the queue.
+
+     The `listen' function returns `0' on success and `-1' on failure.
+     The following `errno' error conditions are defined for this
+     function:
+
+    `EBADF'
+          The argument SOCKET is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The argument SOCKET is not a socket.
+
+    `EOPNOTSUPP'
+          The socket SOCKET does not support this operation.
+
+
+File: libc.info,  Node: Accepting Connections,  Next: Who is Connected,  Prev: Listening,  Up: Connections
+
+Accepting Connections
+---------------------
+
+   When a server receives a connection request, it can complete the
+connection by accepting the request.  Use the function `accept' to do
+this.
+
+   A socket that has been established as a server can accept connection
+requests from multiple clients.  The server's original socket _does not
+become part of the connection_; instead, `accept' makes a new socket
+which participates in the connection.  `accept' returns the descriptor
+for this socket.  The server's original socket remains available for
+listening for further connection requests.
+
+   The number of pending connection requests on a server socket is
+finite.  If connection requests arrive from clients faster than the
+server can act upon them, the queue can fill up and additional requests
+are refused with an `ECONNREFUSED' error.  You can specify the maximum
+length of this queue as an argument to the `listen' function, although
+the system may also impose its own internal limit on the length of this
+queue.
+
+ - Function: int accept (int SOCKET, struct sockaddr *ADDR, socklen_t
+          *LENGTH_PTR)
+     This function is used to accept a connection request on the server
+     socket SOCKET.
+
+     The `accept' function waits if there are no connections pending,
+     unless the socket SOCKET has nonblocking mode set.  (You can use
+     `select' to wait for a pending connection, with a nonblocking
+     socket.)  *Note File Status Flags::, for information about
+     nonblocking mode.
+
+     The ADDR and LENGTH-PTR arguments are used to return information
+     about the name of the client socket that initiated the connection.
+     *Note Socket Addresses::, for information about the format of the
+     information.
+
+     Accepting a connection does not make SOCKET part of the
+     connection.  Instead, it creates a new socket which becomes
+     connected.  The normal return value of `accept' is the file
+     descriptor for the new socket.
+
+     After `accept', the original socket SOCKET remains open and
+     unconnected, and continues listening until you close it.  You can
+     accept further connections with SOCKET by calling `accept' again.
+
+     If an error occurs, `accept' returns `-1'.  The following `errno'
+     error conditions are defined for this function:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET argument is not a socket.
+
+    `EOPNOTSUPP'
+          The descriptor SOCKET does not support this operation.
+
+    `EWOULDBLOCK'
+          SOCKET has nonblocking mode set, and there are no pending
+          connections immediately available.
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+   The `accept' function is not allowed for sockets using
+connectionless communication styles.
+
+
+File: libc.info,  Node: Who is Connected,  Next: Transferring Data,  Prev: Accepting Connections,  Up: Connections
+
+Who is Connected to Me?
+-----------------------
+
+ - Function: int getpeername (int SOCKET, struct sockaddr *ADDR,
+          socklen_t *LENGTH-PTR)
+     The `getpeername' function returns the address of the socket that
+     SOCKET is connected to; it stores the address in the memory space
+     specified by ADDR and LENGTH-PTR.  It stores the length of the
+     address in `*LENGTH-PTR'.
+
+     *Note Socket Addresses::, for information about the format of the
+     address.  In some operating systems, `getpeername' works only for
+     sockets in the Internet domain.
+
+     The return value is `0' on success and `-1' on error.  The
+     following `errno' error conditions are defined for this function:
+
+    `EBADF'
+          The argument SOCKET is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `ENOTCONN'
+          The socket SOCKET is not connected.
+
+    `ENOBUFS'
+          There are not enough internal buffers available.
+
+
+File: libc.info,  Node: Transferring Data,  Next: Byte Stream Example,  Prev: Who is Connected,  Up: Connections
+
+Transferring Data
+-----------------
+
+   Once a socket has been connected to a peer, you can use the ordinary
+`read' and `write' operations (*note I/O Primitives::) to transfer
+data.  A socket is a two-way communications channel, so read and write
+operations can be performed at either end.
+
+   There are also some I/O modes that are specific to socket operations.
+In order to specify these modes, you must use the `recv' and `send'
+functions instead of the more generic `read' and `write' functions.
+The `recv' and `send' functions take an additional argument which you
+can use to specify various flags to control special I/O modes.  For
+example, you can specify the `MSG_OOB' flag to read or write
+out-of-band data, the `MSG_PEEK' flag to peek at input, or the
+`MSG_DONTROUTE' flag to control inclusion of routing information on
+output.
+
+* Menu:
+
+* Sending Data::		Sending data with `send'.
+* Receiving Data::		Reading data with `recv'.
+* Socket Data Options::		Using `send' and `recv'.
+
+
+File: libc.info,  Node: Sending Data,  Next: Receiving Data,  Up: Transferring Data
+
+Sending Data
+............
+
+   The `send' function is declared in the header file `sys/socket.h'.
+If your FLAGS argument is zero, you can just as well use `write'
+instead of `send'; see *Note I/O Primitives::.  If the socket was
+connected but the connection has broken, you get a `SIGPIPE' signal for
+any use of `send' or `write' (*note Miscellaneous Signals::).
+
+ - Function: int send (int SOCKET, void *BUFFER, size_t SIZE, int FLAGS)
+     The `send' function is like `write', but with the additional flags
+     FLAGS.  The possible values of FLAGS are described in *Note Socket
+     Data Options::.
+
+     This function returns the number of bytes transmitted, or `-1' on
+     failure.  If the socket is nonblocking, then `send' (like `write')
+     can return after sending just part of the data.  *Note File Status
+     Flags::, for information about nonblocking mode.
+
+     Note, however, that a successful return value merely indicates that
+     the message has been sent without error, not necessarily that it
+     has been received without error.
+
+     The following `errno' error conditions are defined for this
+     function:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `EINTR'
+          The operation was interrupted by a signal before any data was
+          sent.  *Note Interrupted Primitives::.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `EMSGSIZE'
+          The socket type requires that the message be sent atomically,
+          but the message is too large for this to be possible.
+
+    `EWOULDBLOCK'
+          Nonblocking mode has been set on the socket, and the write
+          operation would block.  (Normally `send' blocks until the
+          operation can be completed.)
+
+    `ENOBUFS'
+          There is not enough internal buffer space available.
+
+    `ENOTCONN'
+          You never connected this socket.
+
+    `EPIPE'
+          This socket was connected but the connection is now broken.
+          In this case, `send' generates a `SIGPIPE' signal first; if
+          that signal is ignored or blocked, or if its handler returns,
+          then `send' fails with `EPIPE'.
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+
+File: libc.info,  Node: Receiving Data,  Next: Socket Data Options,  Prev: Sending Data,  Up: Transferring Data
+
+Receiving Data
+..............
+
+   The `recv' function is declared in the header file `sys/socket.h'.
+If your FLAGS argument is zero, you can just as well use `read' instead
+of `recv'; see *Note I/O Primitives::.
+
+ - Function: int recv (int SOCKET, void *BUFFER, size_t SIZE, int FLAGS)
+     The `recv' function is like `read', but with the additional flags
+     FLAGS.  The possible values of FLAGS are described in *Note Socket
+     Data Options::.
+
+     If nonblocking mode is set for SOCKET, and no data are available to
+     be read, `recv' fails immediately rather than waiting.  *Note File
+     Status Flags::, for information about nonblocking mode.
+
+     This function returns the number of bytes received, or `-1' on
+     failure.  The following `errno' error conditions are defined for
+     this function:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `EWOULDBLOCK'
+          Nonblocking mode has been set on the socket, and the read
+          operation would block.  (Normally, `recv' blocks until there
+          is input available to be read.)
+
+    `EINTR'
+          The operation was interrupted by a signal before any data was
+          read.  *Note Interrupted Primitives::.
+
+    `ENOTCONN'
+          You never connected this socket.
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+
+File: libc.info,  Node: Socket Data Options,  Prev: Receiving Data,  Up: Transferring Data
+
+Socket Data Options
+...................
+
+   The FLAGS argument to `send' and `recv' is a bit mask.  You can
+bitwise-OR the values of the following macros together to obtain a
+value for this argument.  All are defined in the header file
+`sys/socket.h'.
+
+ - Macro: int MSG_OOB
+     Send or receive out-of-band data.  *Note Out-of-Band Data::.
+
+ - Macro: int MSG_PEEK
+     Look at the data but don't remove it from the input queue.  This is
+     only meaningful with input functions such as `recv', not with
+     `send'.
+
+ - Macro: int MSG_DONTROUTE
+     Don't include routing information in the message.  This is only
+     meaningful with output operations, and is usually only of interest
+     for diagnostic or routing programs.  We don't try to explain it
+     here.
+
+
+File: libc.info,  Node: Byte Stream Example,  Next: Server Example,  Prev: Transferring Data,  Up: Connections
+
+Byte Stream Socket Example
+--------------------------
+
+   Here is an example client program that makes a connection for a byte
+stream socket in the Internet namespace.  It doesn't do anything
+particularly interesting once it has connected to the server; it just
+sends a text string to the server and exits.
+
+   This program uses `init_sockaddr' to set up the socket address; see
+*Note Inet Example::.
+
+     #include <stdio.h>
+     #include <errno.h>
+     #include <stdlib.h>
+     #include <unistd.h>
+     #include <sys/types.h>
+     #include <sys/socket.h>
+     #include <netinet/in.h>
+     #include <netdb.h>
+     
+     #define PORT            5555
+     #define MESSAGE         "Yow!!! Are we having fun yet?!?"
+     #define SERVERHOST      "mescaline.gnu.org"
+     
+     void
+     write_to_server (int filedes)
+     {
+       int nbytes;
+     
+       nbytes = write (filedes, MESSAGE, strlen (MESSAGE) + 1);
+       if (nbytes < 0)
+         {
+           perror ("write");
+           exit (EXIT_FAILURE);
+         }
+     }
+     
+     
+     int
+     main (void)
+     {
+       extern void init_sockaddr (struct sockaddr_in *name,
+                                  const char *hostname,
+                                  uint16_t port);
+       int sock;
+       struct sockaddr_in servername;
+     
+       /* Create the socket. */
+       sock = socket (PF_INET, SOCK_STREAM, 0);
+       if (sock < 0)
+         {
+           perror ("socket (client)");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Connect to the server. */
+       init_sockaddr (&servername, SERVERHOST, PORT);
+       if (0 > connect (sock,
+                        (struct sockaddr *) &servername,
+                        sizeof (servername)))
+         {
+           perror ("connect (client)");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Send data to the server. */
+       write_to_server (sock);
+       close (sock);
+       exit (EXIT_SUCCESS);
+     }
+
+
+File: libc.info,  Node: Server Example,  Next: Out-of-Band Data,  Prev: Byte Stream Example,  Up: Connections
+
+Byte Stream Connection Server Example
+-------------------------------------
+
+   The server end is much more complicated.  Since we want to allow
+multiple clients to be connected to the server at the same time, it
+would be incorrect to wait for input from a single client by simply
+calling `read' or `recv'.  Instead, the right thing to do is to use
+`select' (*note Waiting for I/O::) to wait for input on all of the open
+sockets.  This also allows the server to deal with additional
+connection requests.
+
+   This particular server doesn't do anything interesting once it has
+gotten a message from a client.  It does close the socket for that
+client when it detects an end-of-file condition (resulting from the
+client shutting down its end of the connection).
+
+   This program uses `make_socket' to set up the socket address; see
+*Note Inet Example::.
+
+     #include <stdio.h>
+     #include <errno.h>
+     #include <stdlib.h>
+     #include <unistd.h>
+     #include <sys/types.h>
+     #include <sys/socket.h>
+     #include <netinet/in.h>
+     #include <netdb.h>
+     
+     #define PORT    5555
+     #define MAXMSG  512
+     
+     int
+     read_from_client (int filedes)
+     {
+       char buffer[MAXMSG];
+       int nbytes;
+     
+       nbytes = read (filedes, buffer, MAXMSG);
+       if (nbytes < 0)
+         {
+           /* Read error. */
+           perror ("read");
+           exit (EXIT_FAILURE);
+         }
+       else if (nbytes == 0)
+         /* End-of-file. */
+         return -1;
+       else
+         {
+           /* Data read. */
+           fprintf (stderr, "Server: got message: `%s'\n", buffer);
+           return 0;
+         }
+     }
+     
+     int
+     main (void)
+     {
+       extern int make_socket (uint16_t port);
+       int sock;
+       fd_set active_fd_set, read_fd_set;
+       int i;
+       struct sockaddr_in clientname;
+       size_t size;
+     
+       /* Create the socket and set it up to accept connections. */
+       sock = make_socket (PORT);
+       if (listen (sock, 1) < 0)
+         {
+           perror ("listen");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Initialize the set of active sockets. */
+       FD_ZERO (&active_fd_set);
+       FD_SET (sock, &active_fd_set);
+     
+       while (1)
+         {
+           /* Block until input arrives on one or more active sockets. */
+           read_fd_set = active_fd_set;
+           if (select (FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0)
+             {
+               perror ("select");
+               exit (EXIT_FAILURE);
+             }
+     
+           /* Service all the sockets with input pending. */
+           for (i = 0; i < FD_SETSIZE; ++i)
+             if (FD_ISSET (i, &read_fd_set))
+               {
+                 if (i == sock)
+                   {
+                     /* Connection request on original socket. */
+                     int new;
+                     size = sizeof (clientname);
+                     new = accept (sock,
+                                   (struct sockaddr *) &clientname,
+                                   &size);
+                     if (new < 0)
+                       {
+                         perror ("accept");
+                         exit (EXIT_FAILURE);
+                       }
+                     fprintf (stderr,
+                              "Server: connect from host %s, port %hd.\n",
+                              inet_ntoa (clientname.sin_addr),
+                              ntohs (clientname.sin_port));
+                     FD_SET (new, &active_fd_set);
+                   }
+                 else
+                   {
+                     /* Data arriving on an already-connected socket. */
+                     if (read_from_client (i) < 0)
+                       {
+                         close (i);
+                         FD_CLR (i, &active_fd_set);
+                       }
+                   }
+               }
+         }
+     }
+
+
+File: libc.info,  Node: Out-of-Band Data,  Prev: Server Example,  Up: Connections
+
+Out-of-Band Data
+----------------
+
+   Streams with connections permit "out-of-band" data that is delivered
+with higher priority than ordinary data.  Typically the reason for
+sending out-of-band data is to send notice of an exceptional condition.
+To send out-of-band data use `send', specifying the flag `MSG_OOB'
+(*note Sending Data::).
+
+   Out-of-band data are received with higher priority because the
+receiving process need not read it in sequence; to read the next
+available out-of-band data, use `recv' with the `MSG_OOB' flag (*note
+Receiving Data::).  Ordinary read operations do not read out-of-band
+data; they read only ordinary data.
+
+   When a socket finds that out-of-band data are on their way, it sends
+a `SIGURG' signal to the owner process or process group of the socket.
+You can specify the owner using the `F_SETOWN' command to the `fcntl'
+function; see *Note Interrupt Input::.  You must also establish a
+handler for this signal, as described in *Note Signal Handling::, in
+order to take appropriate action such as reading the out-of-band data.
+
+   Alternatively, you can test for pending out-of-band data, or wait
+until there is out-of-band data, using the `select' function; it can
+wait for an exceptional condition on the socket.  *Note Waiting for
+I/O::, for more information about `select'.
+
+   Notification of out-of-band data (whether with `SIGURG' or with
+`select') indicates that out-of-band data are on the way; the data may
+not actually arrive until later.  If you try to read the out-of-band
+data before it arrives, `recv' fails with an `EWOULDBLOCK' error.
+
+   Sending out-of-band data automatically places a "mark" in the stream
+of ordinary data, showing where in the sequence the out-of-band data
+"would have been".  This is useful when the meaning of out-of-band data
+is "cancel everything sent so far".  Here is how you can test, in the
+receiving process, whether any ordinary data was sent before the mark:
+
+     success = ioctl (socket, SIOCATMARK, &atmark);
+
+   The `integer' variable ATMARK is set to a nonzero value if the
+socket's read pointer has reached the "mark".
+
+   Here's a function to discard any ordinary data preceding the
+out-of-band mark:
+
+     int
+     discard_until_mark (int socket)
+     {
+       while (1)
+         {
+           /* This is not an arbitrary limit; any size will do.  */
+           char buffer[1024];
+           int atmark, success;
+     
+           /* If we have reached the mark, return.  */
+           success = ioctl (socket, SIOCATMARK, &atmark);
+           if (success < 0)
+             perror ("ioctl");
+           if (result)
+             return;
+     
+           /* Otherwise, read a bunch of ordinary data and discard it.
+              This is guaranteed not to read past the mark
+              if it starts before the mark.  */
+           success = read (socket, buffer, sizeof buffer);
+           if (success < 0)
+             perror ("read");
+         }
+     }
+
+   If you don't want to discard the ordinary data preceding the mark,
+you may need to read some of it anyway, to make room in internal system
+buffers for the out-of-band data.  If you try to read out-of-band data
+and get an `EWOULDBLOCK' error, try reading some ordinary data (saving
+it so that you can use it when you want it) and see if that makes room.
+Here is an example:
+
+     struct buffer
+     {
+       char *buf;
+       int size;
+       struct buffer *next;
+     };
+     
+     /* Read the out-of-band data from SOCKET and return it
+        as a `struct buffer', which records the address of the data
+        and its size.
+     
+        It may be necessary to read some ordinary data
+        in order to make room for the out-of-band data.
+        If so, the ordinary data are saved as a chain of buffers
+        found in the `next' field of the value.  */
+     
+     struct buffer *
+     read_oob (int socket)
+     {
+       struct buffer *tail = 0;
+       struct buffer *list = 0;
+     
+       while (1)
+         {
+           /* This is an arbitrary limit.
+              Does anyone know how to do this without a limit?  */
+     #define BUF_SZ 1024
+           char *buf = (char *) xmalloc (BUF_SZ);
+           int success;
+           int atmark;
+     
+           /* Try again to read the out-of-band data.  */
+           success = recv (socket, buf, BUF_SZ, MSG_OOB);
+           if (success >= 0)
+             {
+               /* We got it, so return it.  */
+               struct buffer *link
+                 = (struct buffer *) xmalloc (sizeof (struct buffer));
+               link->buf = buf;
+               link->size = success;
+               link->next = list;
+               return link;
+             }
+     
+           /* If we fail, see if we are at the mark.  */
+           success = ioctl (socket, SIOCATMARK, &atmark);
+           if (success < 0)
+             perror ("ioctl");
+           if (atmark)
+             {
+               /* At the mark; skipping past more ordinary data cannot help.
+                  So just wait a while.  */
+               sleep (1);
+               continue;
+             }
+     
+           /* Otherwise, read a bunch of ordinary data and save it.
+              This is guaranteed not to read past the mark
+              if it starts before the mark.  */
+           success = read (socket, buf, BUF_SZ);
+           if (success < 0)
+             perror ("read");
+     
+           /* Save this data in the buffer list.  */
+           {
+             struct buffer *link
+               = (struct buffer *) xmalloc (sizeof (struct buffer));
+             link->buf = buf;
+             link->size = success;
+     
+             /* Add the new link to the end of the list.  */
+             if (tail)
+               tail->next = link;
+             else
+               list = link;
+             tail = link;
+           }
+         }
+     }
+
+
+File: libc.info,  Node: Datagrams,  Next: Inetd,  Prev: Connections,  Up: Sockets
+
+Datagram Socket Operations
+==========================
+
+   This section describes how to use communication styles that don't use
+connections (styles `SOCK_DGRAM' and `SOCK_RDM').  Using these styles,
+you group data into packets and each packet is an independent
+communication.  You specify the destination for each packet
+individually.
+
+   Datagram packets are like letters: you send each one independently
+with its own destination address, and they may arrive in the wrong
+order or not at all.
+
+   The `listen' and `accept' functions are not allowed for sockets
+using connectionless communication styles.
+
+* Menu:
+
+* Sending Datagrams::    Sending packets on a datagram socket.
+* Receiving Datagrams::  Receiving packets on a datagram socket.
+* Datagram Example::     An example program: packets sent over a
+                           datagram socket in the local namespace.
+* Example Receiver::	 Another program, that receives those packets.
+
+
+File: libc.info,  Node: Sending Datagrams,  Next: Receiving Datagrams,  Up: Datagrams
+
+Sending Datagrams
+-----------------
+
+   The normal way of sending data on a datagram socket is by using the
+`sendto' function, declared in `sys/socket.h'.
+
+   You can call `connect' on a datagram socket, but this only specifies
+a default destination for further data transmission on the socket.
+When a socket has a default destination you can use `send' (*note
+Sending Data::) or even `write' (*note I/O Primitives::) to send a
+packet there.  You can cancel the default destination by calling
+`connect' using an address format of `AF_UNSPEC' in the ADDR argument.
+*Note Connecting::, for more information about the `connect' function.
+
+ - Function: int sendto (int SOCKET, void *BUFFER. size_t SIZE, int
+          FLAGS, struct sockaddr *ADDR, socklen_t LENGTH)
+     The `sendto' function transmits the data in the BUFFER through the
+     socket SOCKET to the destination address specified by the ADDR and
+     LENGTH arguments.  The SIZE argument specifies the number of bytes
+     to be transmitted.
+
+     The FLAGS are interpreted the same way as for `send'; see *Note
+     Socket Data Options::.
+
+     The return value and error conditions are also the same as for
+     `send', but you cannot rely on the system to detect errors and
+     report them; the most common error is that the packet is lost or
+     there is no-one at the specified address to receive it, and the
+     operating system on your machine usually does not know this.
+
+     It is also possible for one call to `sendto' to report an error
+     owing to a problem related to a previous call.
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+
+File: libc.info,  Node: Receiving Datagrams,  Next: Datagram Example,  Prev: Sending Datagrams,  Up: Datagrams
+
+Receiving Datagrams
+-------------------
+
+   The `recvfrom' function reads a packet from a datagram socket and
+also tells you where it was sent from.  This function is declared in
+`sys/socket.h'.
+
+ - Function: int recvfrom (int SOCKET, void *BUFFER, size_t SIZE, int
+          FLAGS, struct sockaddr *ADDR, socklen_t *LENGTH-PTR)
+     The `recvfrom' function reads one packet from the socket SOCKET
+     into the buffer BUFFER.  The SIZE argument specifies the maximum
+     number of bytes to be read.
+
+     If the packet is longer than SIZE bytes, then you get the first
+     SIZE bytes of the packet and the rest of the packet is lost.
+     There's no way to read the rest of the packet.  Thus, when you use
+     a packet protocol, you must always know how long a packet to
+     expect.
+
+     The ADDR and LENGTH-PTR arguments are used to return the address
+     where the packet came from.  *Note Socket Addresses::.  For a
+     socket in the local domain the address information won't be
+     meaningful, since you can't read the address of such a socket
+     (*note Local Namespace::).  You can specify a null pointer as the
+     ADDR argument if you are not interested in this information.
+
+     The FLAGS are interpreted the same way as for `recv' (*note Socket
+     Data Options::).  The return value and error conditions are also
+     the same as for `recv'.
+
+     This function is defined as a cancellation point in multi-threaded
+     programs, so one has to be prepared for this and make sure that
+     allocated resources (like memory, files descriptors, semaphores or
+     whatever) are freed even if the thread is canceled.
+
+   You can use plain `recv' (*note Receiving Data::) instead of
+`recvfrom' if you don't need to find out who sent the packet (either
+because you know where it should come from or because you treat all
+possible senders alike).  Even `read' can be used if you don't want to
+specify FLAGS (*note I/O Primitives::).
+
+
+File: libc.info,  Node: Datagram Example,  Next: Example Receiver,  Prev: Receiving Datagrams,  Up: Datagrams
+
+Datagram Socket Example
+-----------------------
+
+   Here is a set of example programs that send messages over a datagram
+stream in the local namespace.  Both the client and server programs use
+the `make_named_socket' function that was presented in *Note Local
+Socket Example::, to create and name their sockets.
+
+   First, here is the server program.  It sits in a loop waiting for
+messages to arrive, bouncing each message back to the sender.
+Obviously this isn't a particularly useful program, but it does show
+the general ideas involved.
+
+     #include <stdio.h>
+     #include <errno.h>
+     #include <stdlib.h>
+     #include <sys/socket.h>
+     #include <sys/un.h>
+     
+     #define SERVER  "/tmp/serversocket"
+     #define MAXMSG  512
+     
+     int
+     main (void)
+     {
+       int sock;
+       char message[MAXMSG];
+       struct sockaddr_un name;
+       size_t size;
+       int nbytes;
+     
+       /* Remove the filename first, it's ok if the call fails */
+       unlink (SERVER);
+     
+       /* Make the socket, then loop endlessly. */
+       sock = make_named_socket (SERVER);
+       while (1)
+         {
+           /* Wait for a datagram. */
+           size = sizeof (name);
+           nbytes = recvfrom (sock, message, MAXMSG, 0,
+                              (struct sockaddr *) & name, &size);
+           if (nbytes < 0)
+             {
+               perror ("recfrom (server)");
+               exit (EXIT_FAILURE);
+             }
+     
+           /* Give a diagnostic message. */
+           fprintf (stderr, "Server: got message: %s\n", message);
+     
+           /* Bounce the message back to the sender. */
+           nbytes = sendto (sock, message, nbytes, 0,
+                            (struct sockaddr *) & name, size);
+           if (nbytes < 0)
+             {
+               perror ("sendto (server)");
+               exit (EXIT_FAILURE);
+             }
+         }
+     }
+
+
+File: libc.info,  Node: Example Receiver,  Prev: Datagram Example,  Up: Datagrams
+
+Example of Reading Datagrams
+----------------------------
+
+   Here is the client program corresponding to the server above.
+
+   It sends a datagram to the server and then waits for a reply.  Notice
+that the socket for the client (as well as for the server) in this
+example has to be given a name.  This is so that the server can direct
+a message back to the client.  Since the socket has no associated
+connection state, the only way the server can do this is by referencing
+the name of the client.
+
+     #include <stdio.h>
+     #include <errno.h>
+     #include <unistd.h>
+     #include <stdlib.h>
+     #include <sys/socket.h>
+     #include <sys/un.h>
+     
+     #define SERVER  "/tmp/serversocket"
+     #define CLIENT  "/tmp/mysocket"
+     #define MAXMSG  512
+     #define MESSAGE "Yow!!! Are we having fun yet?!?"
+     
+     int
+     main (void)
+     {
+       extern int make_named_socket (const char *name);
+       int sock;
+       char message[MAXMSG];
+       struct sockaddr_un name;
+       size_t size;
+       int nbytes;
+     
+       /* Make the socket. */
+       sock = make_named_socket (CLIENT);
+     
+       /* Initialize the server socket address. */
+       name.sun_family = AF_LOCAL;
+       strcpy (name.sun_path, SERVER);
+       size = strlen (name.sun_path) + sizeof (name.sun_family);
+     
+       /* Send the datagram. */
+       nbytes = sendto (sock, MESSAGE, strlen (MESSAGE) + 1, 0,
+                        (struct sockaddr *) & name, size);
+       if (nbytes < 0)
+         {
+           perror ("sendto (client)");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Wait for a reply. */
+       nbytes = recvfrom (sock, message, MAXMSG, 0, NULL, 0);
+       if (nbytes < 0)
+         {
+           perror ("recfrom (client)");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Print a diagnostic message. */
+       fprintf (stderr, "Client: got message: %s\n", message);
+     
+       /* Clean up. */
+       remove (CLIENT);
+       close (sock);
+     }
+
+   Keep in mind that datagram socket communications are unreliable.  In
+this example, the client program waits indefinitely if the message
+never reaches the server or if the server's response never comes back.
+It's up to the user running the program to kill and restart it if
+desired.  A more automatic solution could be to use `select' (*note
+Waiting for I/O::) to establish a timeout period for the reply, and in
+case of timeout either re-send the message or shut down the socket and
+exit.
+
+
+File: libc.info,  Node: Inetd,  Next: Socket Options,  Prev: Datagrams,  Up: Sockets
+
+The `inetd' Daemon
+==================
+
+   We've explained above how to write a server program that does its own
+listening.  Such a server must already be running in order for anyone
+to connect to it.
+
+   Another way to provide a service on an Internet port is to let the
+daemon program `inetd' do the listening.  `inetd' is a program that
+runs all the time and waits (using `select') for messages on a
+specified set of ports.  When it receives a message, it accepts the
+connection (if the socket style calls for connections) and then forks a
+child process to run the corresponding server program.  You specify the
+ports and their programs in the file `/etc/inetd.conf'.
+
+* Menu:
+
+* Inetd Servers::
+* Configuring Inetd::
+
+
+File: libc.info,  Node: Inetd Servers,  Next: Configuring Inetd,  Up: Inetd
+
+`inetd' Servers
+---------------
+
+   Writing a server program to be run by `inetd' is very simple.  Each
+time someone requests a connection to the appropriate port, a new server
+process starts.  The connection already exists at this time; the socket
+is available as the standard input descriptor and as the standard
+output descriptor (descriptors 0 and 1) in the server process.  Thus
+the server program can begin reading and writing data right away.
+Often the program needs only the ordinary I/O facilities; in fact, a
+general-purpose filter program that knows nothing about sockets can
+work as a byte stream server run by `inetd'.
+
+   You can also use `inetd' for servers that use connectionless
+communication styles.  For these servers, `inetd' does not try to accept
+a connection since no connection is possible.  It just starts the
+server program, which can read the incoming datagram packet from
+descriptor 0.  The server program can handle one request and then exit,
+or you can choose to write it to keep reading more requests until no
+more arrive, and then exit.  You must specify which of these two
+techniques the server uses when you configure `inetd'.
+
+
+File: libc.info,  Node: Configuring Inetd,  Prev: Inetd Servers,  Up: Inetd
+
+Configuring `inetd'
+-------------------
+
+   The file `/etc/inetd.conf' tells `inetd' which ports to listen to
+and what server programs to run for them.  Normally each entry in the
+file is one line, but you can split it onto multiple lines provided all
+but the first line of the entry start with whitespace.  Lines that
+start with `#' are comments.
+
+   Here are two standard entries in `/etc/inetd.conf':
+
+     ftp	stream	tcp	nowait	root	/libexec/ftpd	ftpd
+     talk	dgram	udp	wait	root	/libexec/talkd	talkd
+
+   An entry has this format:
+
+     SERVICE STYLE PROTOCOL WAIT USERNAME PROGRAM ARGUMENTS
+
+   The SERVICE field says which service this program provides.  It
+should be the name of a service defined in `/etc/services'.  `inetd'
+uses SERVICE to decide which port to listen on for this entry.
+
+   The fields STYLE and PROTOCOL specify the communication style and
+the protocol to use for the listening socket.  The style should be the
+name of a communication style, converted to lower case and with `SOCK_'
+deleted--for example, `stream' or `dgram'.  PROTOCOL should be one of
+the protocols listed in `/etc/protocols'.  The typical protocol names
+are `tcp' for byte stream connections and `udp' for unreliable
+datagrams.
+
+   The WAIT field should be either `wait' or `nowait'.  Use `wait' if
+STYLE is a connectionless style and the server, once started, handles
+multiple requests as they come in.  Use `nowait' if `inetd' should
+start a new process for each message or request that comes in.  If
+STYLE uses connections, then WAIT *must* be `nowait'.
+
+   USER is the user name that the server should run as.  `inetd' runs
+as root, so it can set the user ID of its children arbitrarily.  It's
+best to avoid using `root' for USER if you can; but some servers, such
+as Telnet and FTP, read a username and password themselves.  These
+servers need to be root initially so they can log in as commanded by
+the data coming over the network.
+
+   PROGRAM together with ARGUMENTS specifies the command to run to
+start the server.  PROGRAM should be an absolute file name specifying
+the executable file to run.  ARGUMENTS consists of any number of
+whitespace-separated words, which become the command-line arguments of
+PROGRAM.  The first word in ARGUMENTS is argument zero, which should by
+convention be the program name itself (sans directories).
+
+   If you edit `/etc/inetd.conf', you can tell `inetd' to reread the
+file and obey its new contents by sending the `inetd' process the
+`SIGHUP' signal.  You'll have to use `ps' to determine the process ID
+of the `inetd' process as it is not fixed.
+
+
+File: libc.info,  Node: Socket Options,  Next: Networks Database,  Prev: Inetd,  Up: Sockets
+
+Socket Options
+==============
+
+   This section describes how to read or set various options that modify
+the behavior of sockets and their underlying communications protocols.
+
+   When you are manipulating a socket option, you must specify which
+"level" the option pertains to.  This describes whether the option
+applies to the socket interface, or to a lower-level communications
+protocol interface.
+
+* Menu:
+
+* Socket Option Functions::     The basic functions for setting and getting
+                                 socket options.
+* Socket-Level Options::        Details of the options at the socket level.
+

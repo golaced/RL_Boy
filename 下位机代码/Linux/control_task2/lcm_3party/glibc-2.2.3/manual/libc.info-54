@@ -1,0 +1,1081 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Concept Index,  Next: Type Index,  Prev: Copying,  Up: Top
+
+Concept Index
+*************
+
+* Menu:
+
+* /etc/hostname:                         Host Identification.
+* /etc/nsswitch.conf:                    NSS Configuration File.
+* 4.N BSD Unix:                          Berkeley Unix.
+* __va_copy:                             Copying and Concatenation.
+* _POSIX_OPTION_ORDER environment variable.: Standard Environment.
+* _POSIX_SAVED_IDS:                      How Change Persona.
+* abort signal:                          Program Error Signals.
+* aborting a program:                    Aborting a Program.
+* absolute file name:                    File Name Resolution.
+* absolute priority:                     Absolute Priority.
+* absolute value functions:              Absolute Value.
+* accepting connections:                 Accepting Connections.
+* access permission for a file:          Access Permission.
+* access, testing for:                   Testing File Access.
+* accessing directories:                 Accessing Directories.
+* address of socket:                     Socket Addresses.
+* address space <1>:                     Program Basics.
+* address space:                         Memory Subsystem.
+* alarm signal:                          Alarm Signals.
+* alarms, setting:                       Setting an Alarm.
+* alignment (in obstacks):               Obstacks Data Alignment.
+* alignment (with malloc):               Aligned Memory Blocks.
+* alloca disadvantages:                  Disadvantages of Alloca.
+* alloca function:                       Variable Size Automatic.
+* allocating pseudo-terminals:           Allocation.
+* allocation (obstacks):                 Allocation in an Obstack.
+* allocation debugging:                  Allocation Debugging.
+* allocation hooks, for malloc:          Hooks for Malloc.
+* allocation of memory with malloc:      Basic Allocation.
+* allocation size of string:             Representation of Strings.
+* allocation statistics:                 Statistics of Malloc.
+* alphabetic character <1>:              Classification of Wide Characters.
+* alphabetic character:                  Classification of Characters.
+* alphanumeric character <1>:            Classification of Wide Characters.
+* alphanumeric character:                Classification of Characters.
+* append-access files:                   File Position.
+* argc (program argument count):         Program Arguments.
+* argp (program argument parser):        Argp.
+* argp parser functions:                 Argp Parser Functions.
+* ARGP_HELP_FMT environment variable:    Argp User Customization.
+* argument parsing with argp:            Argp.
+* argument promotion:                    Calling Variadics.
+* argument vectors, null-character separated: Argz and Envz Vectors.
+* arguments (variadic functions):        Receiving Arguments.
+* arguments, how many:                   How Many Arguments.
+* arguments, to program:                 Program Arguments.
+* argv (program argument vector):        Program Arguments.
+* argz vectors (string vectors):         Argz and Envz Vectors.
+* arithmetic expansion:                  Expansion Stages.
+* array comparison functions:            String/Array Comparison.
+* array copy functions:                  Copying and Concatenation.
+* array search function:                 Array Search Function.
+* array sort function:                   Array Sort Function.
+* ASCII character:                       Classification of Characters.
+* assertions:                            Consistency Checking.
+* attributes of a file:                  Attribute Meanings.
+* automatic freeing:                     Variable Size Automatic.
+* automatic memory allocation:           Memory Allocation and C.
+* automatic storage class:               Memory Allocation and C.
+* automatic storage with variable size:  Variable Size Automatic.
+* background job:                        Concepts of Job Control.
+* background job, launching:             Foreground and Background.
+* backtrace:                             Backtraces.
+* backtrace_fd:                          Backtraces.
+* backtrace_symbols:                     Backtraces.
+* base (of floating point number):       Floating Point Concepts.
+* baud rate:                             Line Speed.
+* Berkeley Unix:                         Berkeley Unix.
+* Bessel functions:                      Special Functions.
+* bias (of floating point number exponent): Floating Point Concepts.
+* big-endian:                            Byte Order.
+* binary I/O to a stream:                Block Input/Output.
+* binary search function (for arrays):   Array Search Function.
+* binary stream:                         Binary Streams.
+* binding a socket address:              Socket Addresses.
+* blank character <1>:                   Classification of Wide Characters.
+* blank character:                       Classification of Characters.
+* block I/O to a stream:                 Block Input/Output.
+* blocked signals:                       Delivery of Signal.
+* blocked signals, checking for:         Checking for Pending Signals.
+* blocking signals:                      Blocking Signals.
+* blocking signals, in a handler:        Blocking for Handler.
+* bootstrapping, and services:           Actions in the NSS configuration.
+* break condition, detecting:            Input Modes.
+* break condition, generating:           Line Control.
+* breaking a string into tokens:         Finding Tokens in a String.
+* broken pipe signal:                    Operation Error Signals.
+* broken-down time <1>:                  Broken-down Time.
+* broken-down time:                      Calendar Time.
+* BSD compatibility library:             Process Group Functions.
+* BSD compatibility library.:            Feature Test Macros.
+* BSD Unix:                              Berkeley Unix.
+* buffering of streams:                  Stream Buffering.
+* buffering, controlling:                Controlling Buffering.
+* bugs, reporting:                       Reporting Bugs.
+* bus error:                             Program Error Signals.
+* butterfly:                             Misc FP Arithmetic.
+* byte order conversion, for socket:     Byte Order.
+* byte stream:                           Socket Concepts.
+* C++ streams:                           Streams and I18N.
+* calendar time:                         Time Basics.
+* calendar time and broken-down time:    Broken-down Time.
+* calendar, Gregorian:                   Calendar Time.
+* calling variadic functions:            Calling Variadics.
+* canonical input processing:            Canonical or Not.
+* capacity limits, POSIX:                General Limits.
+* carrier detect:                        Control Modes.
+* case conversion of characters:         Case Conversion.
+* catching signals:                      Delivery of Signal.
+* categories for locales:                Locale Categories.
+* change working directory:              Working Directory.
+* changing the locale:                   Setting the Locale.
+* changing the size of a block (malloc): Changing Block Size.
+* changing the size of a block (obstacks): Growing Objects.
+* channels:                              Stream/Descriptor Precautions.
+* character case conversion:             Case Conversion.
+* character predicates:                  Classification of Characters.
+* character testing:                     Classification of Characters.
+* checking for pending signals:          Checking for Pending Signals.
+* child process <1>:                     Process Creation Concepts.
+* child process <2>:                     Processes.
+* child process:                         Processor Time.
+* child process signal:                  Job Control Signals.
+* chunks:                                Obstack Chunks.
+* classes, floating-point:               Floating Point Classes.
+* classification of characters:          Classification of Characters.
+* cleaning up a stream:                  Linked Channels.
+* clearing terminal input queue:         Line Control.
+* client:                                Connections.
+* clock ticks:                           Processor And CPU Time.
+* clock, high accuracy:                  High Accuracy Clock.
+* close-on-exec (file descriptor flag):  Descriptor Flags.
+* closing a file descriptor:             Opening and Closing Files.
+* closing a socket:                      Closing a Socket.
+* closing a stream:                      Closing Streams.
+* collating strings:                     Collation Functions.
+* combining locales:                     Choosing Locale.
+* command argument syntax:               Argument Syntax.
+* command arguments, parsing:            Parsing Program Arguments.
+* command line arguments:                Program Arguments.
+* command substitution:                  Expansion Stages.
+* communication style (of a socket):     Socket Concepts.
+* comparing strings and arrays:          String/Array Comparison.
+* Comparison Function:                   Comparison Functions.
+* compiling:                             Configuring and compiling.
+* complex exponentiation functions:      Exponents and Logarithms.
+* complex logarithm functions:           Exponents and Logarithms.
+* complex numbers:                       Complex Numbers.
+* complex trigonometric functions:       Trig Functions.
+* concatenating strings:                 Copying and Concatenation.
+* configurations, all supported:         Supported Configurations.
+* configuring:                           Configuring and compiling.
+* conjugate complex numbers:             Operations on Complex.
+* connecting a socket:                   Connecting.
+* connection:                            Connections.
+* consistency checking:                  Consistency Checking.
+* consistency checking, of heap:         Heap Consistency Checking.
+* constants <1>:                         Mathematical Constants.
+* constants:                             Memory Concepts.
+* continue signal:                       Job Control Signals.
+* control character <1>:                 Classification of Wide Characters.
+* control character:                     Classification of Characters.
+* control operations on files:           Control Operations.
+* controlling process:                   Controlling Terminal.
+* controlling terminal:                  Concepts of Job Control.
+* controlling terminal, access to:       Access to the Terminal.
+* controlling terminal, determining:     Identifying the Terminal.
+* controlling terminal, setting:         Open-time Flags.
+* conversion specifications (printf):    Formatted Output Basics.
+* conversion specifications (scanf):     Formatted Input Basics.
+* converting byte order:                 Byte Order.
+* converting case of characters:         Case Conversion.
+* converting file descriptor to stream:  Descriptors and Streams.
+* converting floats to integers:         Rounding Functions.
+* converting group ID to group name:     Lookup Group.
+* converting group name to group ID:     Lookup Group.
+* converting host address to name:       Host Names.
+* converting host name to address:       Host Names.
+* converting network name to network number: Networks Database.
+* converting network number to network name: Networks Database.
+* converting port number to service name: Services Database.
+* converting service name to port number: Services Database.
+* converting string to collation order:  Collation Functions.
+* converting strings to numbers:         Parsing of Numbers.
+* converting user ID to user name:       Lookup User.
+* converting user name to user ID:       Lookup User.
+* cookie, for custom stream:             Streams and Cookies.
+* copy-on-write page fault:              Locked Memory Details.
+* copying strings and arrays:            Copying and Concatenation.
+* cpu priority:                          Priority.
+* CPU time <1>:                          Processor Time.
+* CPU time <2>:                          Processor And CPU Time.
+* CPU time:                              Time Basics.
+* create on open (file status flag):     Open-time Flags.
+* creating a directory:                  Creating Directories.
+* creating a FIFO special file:          FIFO Special Files.
+* creating a pipe:                       Creating a Pipe.
+* creating a pipe to a subprocess:       Pipe to a Subprocess.
+* creating a process:                    Process Creation Concepts.
+* creating a socket:                     Creating a Socket.
+* creating a socket pair:                Socket Pairs.
+* creating special files:                Making Special Files.
+* cube root function:                    Exponents and Logarithms.
+* currency symbols:                      Currency Symbol.
+* current limit:                         Limits on Resources.
+* current working directory:             Working Directory.
+* custom streams:                        Custom Streams.
+* customizing printf:                    Customizing Printf.
+* data loss on sockets:                  Socket Concepts.
+* databases:                             Name Service Switch.
+* datagram socket:                       Datagrams.
+* datagrams, transmitting:               Sending Datagrams.
+* date:                                  Time Basics.
+* Daylight Saving Time:                  Broken-down Time.
+* decimal digit character:               Classification of Characters.
+* decimal-point separator:               General Numeric.
+* declaration (compared to definition):  Header Files.
+* declaring variadic functions:          Calling Variadics.
+* decompose complex numbers:             Operations on Complex.
+* default action (for a signal):         Delivery of Signal.
+* default action for a signal:           Basic Signal Handling.
+* default argument promotions:           Calling Variadics.
+* default value, and NSS:                Notes on NSS Configuration File.
+* defining new printf conversions:       Customizing Printf.
+* definition (compared to declaration):  Header Files.
+* delayed suspend character:             Signal Characters.
+* deleting a directory:                  Deleting Files.
+* deleting a file:                       Deleting Files.
+* delivery of signals:                   Delivery of Signal.
+* descriptors and streams:               Stream/Descriptor Precautions.
+* digit character <1>:                   Classification of Wide Characters.
+* digit character:                       Classification of Characters.
+* directories, accessing:                Accessing Directories.
+* directories, creating:                 Creating Directories.
+* directories, deleting:                 Deleting Files.
+* directory:                             Directories.
+* directory entry:                       Directories.
+* directory hierarchy:                   Working with Directory Trees.
+* directory stream:                      Accessing Directories.
+* disadvantages of alloca:               Disadvantages of Alloca.
+* DISCARD character:                     Other Special.
+* division by zero:                      FP Exceptions.
+* DNS:                                   Host Identification.
+* DNS server unavailable:                Actions in the NSS configuration.
+* domain (of socket):                    Socket Concepts.
+* domain error:                          Math Error Reporting.
+* domain name:                           Host Identification.
+* Domain Name System:                    Host Identification.
+* dot notation, for Internet addresses:  Abstract Host Addresses.
+* DSUSP character:                       Signal Characters.
+* duplicating file descriptors:          Duplicating Descriptors.
+* dynamic memory allocation:             Memory Allocation and C.
+* EBCDIC:                                Extended Char Intro.
+* echo of terminal input:                Local Modes.
+* effective group ID:                    Process Persona.
+* effective user ID:                     Process Persona.
+* efficiency and malloc:                 Efficiency and Malloc.
+* efficiency and obstacks:               Extra Fast Growing.
+* efficiency of chunks:                  Obstack Chunks.
+* EINTR, and restarting interrupted primitives: Interrupted Primitives.
+* elapsed time <1>:                      Elapsed Time.
+* elapsed time:                          Time Basics.
+* encryption:                            Trivial Encryption.
+* end of file, on a stream:              EOF and Errors.
+* end-of-file, on a file descriptor:     I/O Primitives.
+* environment:                           Environment Variables.
+* environment access:                    Environment Access.
+* environment representation:            Environment Access.
+* environment variable:                  Environment Variables.
+* environment vectors, null-character separated: Argz and Envz Vectors.
+* envz vectors (environment vectors):    Argz and Envz Vectors.
+* EOF character:                         Editing Characters.
+* EOL character:                         Editing Characters.
+* EOL2 character:                        Editing Characters.
+* epoch:                                 Simple Calendar Time.
+* ERASE character:                       Editing Characters.
+* errno:                                 System Calls.
+* error codes:                           Error Reporting.
+* error messages, in argp:               Argp Helper Functions.
+* error reporting:                       Error Reporting.
+* errors, mathematical:                  Math Error Reporting.
+* establishing a handler:                Signal Actions.
+* ethers:                                NSS Basics.
+* EUC:                                   Extended Char Intro.
+* EUC-JP:                                glibc iconv Implementation.
+* exception <1>:                         Program Error Signals.
+* exception:                             FP Exceptions.
+* exclusive lock:                        File Locks.
+* exec functions:                        Executing a File.
+* execing a program:                     Memory Concepts.
+* executable:                            Memory Concepts.
+* executing a file:                      Executing a File.
+* exit status:                           Exit Status.
+* exit status value:                     Program Termination.
+* exiting a program:                     Memory Concepts.
+* expansion of shell words:              Word Expansion.
+* exponent (of floating point number):   Floating Point Concepts.
+* exponentiation functions:              Exponents and Logarithms.
+* extending printf:                      Customizing Printf.
+* extracting file descriptor from stream: Descriptors and Streams.
+* fcntl function:                        Control Operations.
+* feature test macros:                   Feature Test Macros.
+* field splitting:                       Expansion Stages.
+* FIFO special file:                     Pipes and FIFOs.
+* file access permission:                Access Permission.
+* file access time:                      File Times.
+* file attribute modification time:      File Times.
+* file attributes:                       Attribute Meanings.
+* file creation mask:                    Setting Permissions.
+* file descriptor flags:                 Descriptor Flags.
+* file descriptor sets, for select:      Waiting for I/O.
+* file descriptors, standard:            Descriptors and Streams.
+* file locks:                            File Locks.
+* file modification time:                File Times.
+* file name:                             File Names.
+* file name component:                   Directories.
+* file name errors:                      File Name Errors.
+* file name resolution:                  File Name Resolution.
+* file name translation flags:           Open-time Flags.
+* file names, multiple:                  Hard Links.
+* file owner:                            File Owner.
+* file permission bits:                  Permission Bits.
+* file pointer:                          Streams.
+* file position:                         File Position.
+* file positioning on a file descriptor: File Position Primitive.
+* file positioning on a stream:          File Positioning.
+* file status flags:                     File Status Flags.
+* files, accessing:                      Memory Concepts.
+* filtering i/o through subprocess:      Pipe to a Subprocess.
+* flag character (printf):               Output Conversion Syntax.
+* flag character (scanf):                Input Conversion Syntax.
+* flags for sigaction:                   Flags for Sigaction.
+* flags, file name translation:          Open-time Flags.
+* flags, open-time action:               Open-time Flags.
+* floating point:                        Floating Point Numbers.
+* floating point, IEEE:                  IEEE Floating Point.
+* floating type measurements:            Floating Type Macros.
+* floating-point classes:                Floating Point Classes.
+* floating-point exception:              Program Error Signals.
+* flow control, terminal:                Line Control.
+* flushing a stream:                     Flushing Buffers.
+* flushing terminal output queue:        Line Control.
+* foreground job:                        Concepts of Job Control.
+* foreground job, launching:             Foreground and Background.
+* forking a process:                     Process Creation Concepts.
+* format string, for printf:             Formatted Output.
+* format string, for scanf:              Formatted Input.
+* formatted input from a stream:         Formatted Input.
+* formatted messages:                    Formatted Messages.
+* formatted output to a stream:          Formatted Output.
+* FP arithmetic:                         FP Bit Twiddling.
+* FQDN:                                  Host Identification.
+* frame, real memory:                    Memory Concepts.
+* freeing (obstacks):                    Freeing Obstack Objects.
+* freeing memory:                        Memory Concepts.
+* freeing memory allocated with malloc:  Freeing after Malloc.
+* fully buffered stream:                 Buffering Concepts.
+* function prototypes (variadic):        Variadic Prototypes.
+* gamma function:                        Special Functions.
+* gcvt_r:                                System V Number Conversion.
+* gencat:                                The gencat program.
+* generation of signals:                 Signal Generation.
+* generic i/o control operations:        IOCTLs.
+* globbing:                              Globbing.
+* graphic character <1>:                 Classification of Wide Characters.
+* graphic character:                     Classification of Characters.
+* Gregorian calendar:                    Calendar Time.
+* group:                                 NSS Basics.
+* group database:                        Group Database.
+* group ID:                              User and Group IDs.
+* group name:                            User and Group IDs.
+* group owner of a file:                 File Owner.
+* grouping of digits:                    General Numeric.
+* growing objects (in obstacks):         Growing Objects.
+* handling multiple signals:             Merged Signals.
+* hangup signal:                         Termination Signals.
+* hard limit:                            Limits on Resources.
+* hard link:                             Hard Links.
+* header files:                          Header Files.
+* heap consistency checking:             Heap Consistency Checking.
+* heap, dynamic allocation from:         Unconstrained Allocation.
+* heap, freeing memory from:             Freeing after Malloc.
+* hexadecimal digit character <1>:       Classification of Wide Characters.
+* hexadecimal digit character:           Classification of Characters.
+* hidden bit (of floating point number mantissa): Floating Point Concepts.
+* hierarchy, directory:                  Working with Directory Trees.
+* high-priority data:                    Out-of-Band Data.
+* high-resolution time:                  Calendar Time.
+* holes in files:                        File Position Primitive.
+* home directory:                        Standard Environment.
+* HOME environment variable:             Standard Environment.
+* hook functions (of custom streams):    Hook Functions.
+* host address, Internet:                Abstract Host Addresses.
+* host name:                             Host Identification.
+* hostname:                              Host Identification.
+* hosts:                                 NSS Basics.
+* hosts database:                        Host Names.
+* how many arguments:                    How Many Arguments.
+* hyperbolic functions:                  Hyperbolic Functions.
+* identifying terminals:                 Is It a Terminal.
+* IEEE 754:                              Floating Point Numbers.
+* IEEE floating point:                   Floating Point Numbers.
+* IEEE floating point representation:    IEEE Floating Point.
+* IEEE Std 1003.1:                       POSIX.
+* IEEE Std 1003.2:                       POSIX.
+* ignore action for a signal:            Basic Signal Handling.
+* illegal instruction:                   Program Error Signals.
+* impossible events:                     Consistency Checking.
+* independent channels:                  Independent Channels.
+* inexact exception:                     FP Exceptions.
+* infinity:                              Infinity and NaN.
+* initial signal actions:                Initial Signal Actions.
+* inode number:                          Attribute Meanings.
+* input available signal:                Asynchronous I/O Signals.
+* input conversions, for scanf:          Table of Input Conversions.
+* input from multiple files:             Waiting for I/O.
+* installation tools:                    Tools for Compilation.
+* installing:                            Running make install.
+* integer:                               Integers.
+* integer division functions:            Integer Division.
+* integer type range:                    Range of Type.
+* integer type width:                    Width of Type.
+* interactive signals, from terminal:    Local Modes.
+* interactive stop signal:               Job Control Signals.
+* internal representation:               Extended Char Intro.
+* internationalization:                  Locales.
+* Internet host address:                 Abstract Host Addresses.
+* Internet namespace, for sockets:       Internet Namespace.
+* interprocess communication, with FIFO: FIFO Special Files.
+* interprocess communication, with pipes: Creating a Pipe.
+* interprocess communication, with signals: Kill Example.
+* interprocess communication, with sockets: Sockets.
+* interrupt character:                   Signal Characters.
+* interrupt signal:                      Termination Signals.
+* interrupt-driven input:                Interrupt Input.
+* interrupting primitives:               Interrupted Primitives.
+* interval:                              Time Basics.
+* interval timer, setting:               Setting an Alarm.
+* INTR character:                        Signal Characters.
+* invalid exception:                     FP Exceptions.
+* inverse complex hyperbolic functions:  Hyperbolic Functions.
+* inverse complex trigonometric functions: Inverse Trig Functions.
+* inverse hyperbolic functions:          Hyperbolic Functions.
+* inverse trigonometric functions:       Inverse Trig Functions.
+* invocation of program:                 Program Arguments.
+* IOCTLs:                                IOCTLs.
+* ISO 10646:                             Extended Char Intro.
+* ISO 2022:                              Extended Char Intro.
+* ISO 6937:                              Extended Char Intro.
+* ISO C:                                 ISO C.
+* ISO-2022-JP:                           glibc iconv Implementation.
+* ISO/IEC 9945-1:                        POSIX.
+* ISO/IEC 9945-2:                        POSIX.
+* job:                                   Job Control.
+* job control:                           Job Control.
+* job control functions:                 Functions for Job Control.
+* job control is optional:               Job Control is Optional.
+* job control signals:                   Job Control Signals.
+* job control, enabling:                 Initializing the Shell.
+* Kermit the frog:                       Search/Sort Example.
+* kernel call:                           System Calls.
+* kernel header files:                   Linux.
+* KILL character:                        Editing Characters.
+* kill signal:                           Termination Signals.
+* killing a process:                     Signaling Another Process.
+* Korn Shell:                            Wildcard Matching.
+* LANG environment variable <1>:         Standard Environment.
+* LANG environment variable:             The catgets Functions.
+* launching jobs:                        Launching Jobs.
+* LC_ALL environment variable <1>:       Standard Environment.
+* LC_ALL environment variable:           The catgets Functions.
+* LC_COLLATE environment variable:       Standard Environment.
+* LC_CTYPE environment variable:         Standard Environment.
+* LC_MESSAGES environment variable <1>:  Standard Environment.
+* LC_MESSAGES environment variable:      The catgets Functions.
+* LC_MONETARY environment variable:      Standard Environment.
+* LC_NUMERIC environment variable:       Standard Environment.
+* LC_TIME environment variable:          Standard Environment.
+* leap second:                           Broken-down Time.
+* length of string:                      Representation of Strings.
+* level, for socket options:             Socket Options.
+* library:                               Introduction.
+* limit:                                 Limits on Resources.
+* limits on resource usage:              Limits on Resources.
+* limits, file name length:              Limits for Files.
+* limits, floating types:                Floating Type Macros.
+* limits, integer types:                 Range of Type.
+* limits, link count of files:           Limits for Files.
+* limits, number of open files:          General Limits.
+* limits, number of processes:           General Limits.
+* limits, number of supplementary group IDs: General Limits.
+* limits, pipe buffer size:              Limits for Files.
+* limits, POSIX:                         General Limits.
+* limits, program argument size:         General Limits.
+* limits, terminal input queue:          Limits for Files.
+* limits, time zone name length:         General Limits.
+* line buffered stream:                  Buffering Concepts.
+* line speed:                            Line Speed.
+* lines (in a text file):                Binary Streams.
+* link:                                  Directories.
+* link, hard:                            Hard Links.
+* link, soft:                            Symbolic Links.
+* link, symbolic:                        Symbolic Links.
+* linked channels:                       Linked Channels.
+* listening (sockets):                   Listening.
+* literals:                              Memory Concepts.
+* little-endian:                         Byte Order.
+* LNEXT character:                       Other Special.
+* load average:                          Processor Resources.
+* local namespace, for sockets:          Local Namespace.
+* local network address number:          Abstract Host Addresses.
+* local time:                            Calendar Time.
+* locale categories:                     Locale Categories.
+* locale, changing:                      Setting the Locale.
+* locales:                               Locales.
+* locking pages:                         Locking Pages.
+* logarithm functions:                   Exponents and Logarithms.
+* login name:                            User and Group IDs.
+* login name, determining:               Who Logged In.
+* LOGNAME environment variable:          Standard Environment.
+* long jumps:                            Non-Local Exits.
+* long-named options:                    Argument Syntax.
+* longjmp:                               Advantages of Alloca.
+* loss of data on sockets:               Socket Concepts.
+* lost resource signal:                  Operation Error Signals.
+* lower-case character <1>:              Classification of Wide Characters.
+* lower-case character:                  Classification of Characters.
+* macros:                                Obstack Functions.
+* main function:                         Program Arguments.
+* malloc debugger:                       Allocation Debugging.
+* malloc function:                       Unconstrained Allocation.
+* mantissa (of floating point number):   Floating Point Concepts.
+* matching failure, in scanf:            Formatted Input Basics.
+* math errors:                           Errors in Math Functions.
+* mathematical constants:                Mathematical Constants.
+* maximum:                               Misc FP Arithmetic.
+* maximum field width (scanf):           Input Conversion Syntax.
+* maximum limit:                         Limits on Resources.
+* maximum possible integer:              Integers.
+* measurements of floating types:        Floating Type Macros.
+* memory allocation:                     Memory.
+* memory lock:                           Locking Pages.
+* memory mapped file:                    Memory Concepts.
+* memory mapped I/O:                     Memory Concepts.
+* memory page:                           Memory Subsystem.
+* merging of signals:                    Merged Signals.
+* MIN termios slot:                      Noncanonical Input.
+* minimum:                               Misc FP Arithmetic.
+* minimum field width (printf):          Output Conversion Syntax.
+* mininum possible integer:              Integers.
+* mixing descriptors and streams:        Stream/Descriptor Precautions.
+* modem disconnect:                      Control Modes.
+* modem status lines:                    Control Modes.
+* monetary value formatting:             The Lame Way to Locale Data.
+* multi-threaded application:            Streams and Threads.
+* multibyte character:                   Extended Char Intro.
+* multibyte character string:            Representation of Strings.
+* multibyte string:                      Representation of Strings.
+* multiple names for one file:           Hard Links.
+* multiplexing input:                    Waiting for I/O.
+* multiply-add:                          Misc FP Arithmetic.
+* name of running program:               Error Messages.
+* name of socket:                        Socket Addresses.
+* Name Service Switch:                   Name Service Switch.
+* name space:                            Reserved Names.
+* names of signals:                      Standard Signals.
+* namespace (of socket):                 Socket Concepts.
+* NaN <1>:                               FP Bit Twiddling.
+* NaN:                                   Infinity and NaN.
+* Netgroup:                              Netgroup Data.
+* netgroup:                              NSS Basics.
+* network byte order:                    Byte Order.
+* network number:                        Abstract Host Addresses.
+* network protocol:                      Socket Concepts.
+* networks:                              NSS Basics.
+* networks database:                     Networks Database.
+* NIS:                                   Host Identification.
+* NIS domain name:                       Host Identification.
+* nisplus, and booting:                  Actions in the NSS configuration.
+* nisplus, and completeness:             Actions in the NSS configuration.
+* NLSPATH environment variable <1>:      Standard Environment.
+* NLSPATH environment variable:          The catgets Functions.
+* non-blocking open:                     Open-time Flags.
+* non-local exit, from signal handler:   Longjmp in Handler.
+* non-local exits:                       Non-Local Exits.
+* noncanonical input processing:         Canonical or Not.
+* normalization functions (floating-point): Normalization Functions.
+* normalized floating point number:      Floating Point Concepts.
+* not a number:                          Infinity and NaN.
+* NSS:                                   Name Service Switch.
+* nsswitch.conf:                         NSS Configuration File.
+* null character:                        Representation of Strings.
+* null pointer constant:                 Null Pointer Constant.
+* null wide character:                   Representation of Strings.
+* number of arguments passed:            How Many Arguments.
+* number syntax, parsing:                Parsing of Numbers.
+* numeric value formatting:              The Lame Way to Locale Data.
+* obstack status:                        Status of an Obstack.
+* obstacks:                              Obstacks.
+* open-time action flags:                Open-time Flags.
+* opening a file:                        I/O Concepts.
+* opening a file descriptor:             Opening and Closing Files.
+* opening a pipe:                        Creating a Pipe.
+* opening a pseudo-terminal pair:        Pseudo-Terminal Pairs.
+* opening a socket:                      Creating a Socket.
+* opening a socket pair:                 Socket Pairs.
+* opening a stream:                      Opening Streams.
+* Optimization:                          FP Function Optimizations.
+* optimizing NSS:                        Notes on NSS Configuration File.
+* option parsing with argp:              Argp.
+* optional arguments:                    Variadic Functions.
+* optional POSIX features:               System Options.
+* orientation, stream <1>:               Streams and I18N.
+* orientation, stream:                   Opening Streams.
+* orphaned process group:                Orphaned Process Groups.
+* out-of-band data:                      Out-of-Band Data.
+* output conversions, for printf:        Table of Output Conversions.
+* output possible signal:                Asynchronous I/O Signals.
+* overflow exception:                    FP Exceptions.
+* owner of a file:                       File Owner.
+* packet:                                Socket Concepts.
+* page boundary:                         Aligned Memory Blocks.
+* page fault:                            Memory Concepts.
+* page fault, copy-on-write:             Locked Memory Details.
+* page frame:                            Memory Concepts.
+* page, memory:                          Memory Subsystem.
+* page, virtual memory:                  Memory Concepts.
+* paging <1>:                            Locking Pages.
+* paging:                                Memory Concepts.
+* parameter promotion:                   String/Array Conventions.
+* parent directory:                      File Name Resolution.
+* parent process <1>:                    Process Creation Concepts.
+* parent process:                        Processes.
+* parity checking:                       Input Modes.
+* parsing a template string:             Parsing a Template String.
+* parsing numbers (in formatted input):  Parsing of Numbers.
+* parsing program arguments:             Parsing Program Arguments.
+* parsing tokens from a string:          Finding Tokens in a String.
+* passwd:                                NSS Basics.
+* password database:                     User Database.
+* PATH environment variable:             Standard Environment.
+* pause function:                        Waiting for a Signal.
+* peeking at input:                      Unreading.
+* pending signals:                       Delivery of Signal.
+* pending signals, checking for:         Checking for Pending Signals.
+* period of time:                        Time Basics.
+* permission to access a file:           Access Permission.
+* persona:                               Process Persona.
+* physical address:                      Memory Subsystem.
+* physical memory:                       Memory Subsystem.
+* pi (trigonometric constant):           Trig Functions.
+* pipe:                                  Pipes and FIFOs.
+* pipe signal:                           Operation Error Signals.
+* pipe to a subprocess:                  Pipe to a Subprocess.
+* port number:                           Ports.
+* positioning a file descriptor:         File Position Primitive.
+* positioning a stream:                  File Positioning.
+* positive difference:                   Misc FP Arithmetic.
+* POSIX:                                 POSIX.
+* POSIX capacity limits:                 General Limits.
+* POSIX optional features:               System Options.
+* POSIX.1:                               POSIX.
+* POSIX.2:                               POSIX.
+* power functions:                       Exponents and Logarithms.
+* precision (of floating point number):  Floating Point Concepts.
+* precision (printf):                    Output Conversion Syntax.
+* predicates on arrays:                  String/Array Comparison.
+* predicates on characters:              Classification of Characters.
+* predicates on strings:                 String/Array Comparison.
+* preemptive scheduling:                 Absolute Priority.
+* primitives, interrupting:              Interrupted Primitives.
+* printing character <1>:                Classification of Wide Characters.
+* printing character:                    Classification of Characters.
+* priority of a process:                 Priority.
+* priority, absolute:                    Absolute Priority.
+* process <1>:                           Processes.
+* process:                               Program Basics.
+* process completion:                    Process Completion.
+* process group functions:               Functions for Job Control.
+* process group ID:                      Launching Jobs.
+* process group leader:                  Launching Jobs.
+* process groups:                        Job Control.
+* process ID:                            Process Creation Concepts.
+* process image:                         Process Creation Concepts.
+* process lifetime:                      Process Creation Concepts.
+* process priority:                      Priority.
+* process signal mask:                   Process Signal Mask.
+* process termination:                   Program Termination.
+* processor time <1>:                    Processor Time.
+* processor time:                        Time Basics.
+* profiling alarm signal:                Alarm Signals.
+* profiling timer:                       Setting an Alarm.
+* program:                               Program Basics.
+* program argument syntax:               Argument Syntax.
+* program arguments:                     Program Arguments.
+* program arguments, parsing:            Parsing Program Arguments.
+* program error signals:                 Program Error Signals.
+* program name:                          Error Messages.
+* program startup:                       Program Arguments.
+* program termination:                   Program Termination.
+* program termination signals:           Termination Signals.
+* programming your own streams:          Custom Streams.
+* project complex numbers:               Operations on Complex.
+* protocol (of socket):                  Socket Concepts.
+* protocol family:                       Socket Concepts.
+* protocols:                             NSS Basics.
+* protocols database:                    Protocols Database.
+* prototypes for variadic functions:     Variadic Prototypes.
+* pseudo-random numbers:                 Pseudo-Random Numbers.
+* pseudo-terminals:                      Pseudo-Terminals.
+* punctuation character <1>:             Classification of Wide Characters.
+* punctuation character:                 Classification of Characters.
+* pushing input back:                    Unreading.
+* quick sort function (for arrays):      Array Sort Function.
+* QUIT character:                        Signal Characters.
+* quit signal:                           Termination Signals.
+* quote removal:                         Expansion Stages.
+* race conditions, relating to job control: Launching Jobs.
+* race conditions, relating to signals:  Signals in Handler.
+* radix (of floating point number):      Floating Point Concepts.
+* raising signals:                       Generating Signals.
+* random numbers:                        Pseudo-Random Numbers.
+* random-access files:                   File Position.
+* range error:                           Math Error Reporting.
+* range of integer type:                 Range of Type.
+* read lock:                             File Locks.
+* reading from a directory:              Accessing Directories.
+* reading from a file descriptor:        I/O Primitives.
+* reading from a socket:                 Transferring Data.
+* reading from a stream, by blocks:      Block Input/Output.
+* reading from a stream, by characters:  Character Input.
+* reading from a stream, formatted:      Formatted Input.
+* ready to run:                          Absolute Priority.
+* real group ID:                         Process Persona.
+* real user ID:                          Process Persona.
+* real-time timer:                       Setting an Alarm.
+* realtime CPU scheduling:               Absolute Priority.
+* realtime processing:                   Why Lock Pages.
+* realtime scheduling:                   Realtime Scheduling.
+* receiving datagrams:                   Receiving Datagrams.
+* record locking:                        File Locks.
+* redirecting input and output:          Duplicating Descriptors.
+* reentrant functions:                   Nonreentrancy.
+* reentrant NSS functions:               NSS Module Names.
+* relative file name:                    File Name Resolution.
+* removal of quotes:                     Expansion Stages.
+* removing a file:                       Deleting Files.
+* removing macros that shadow functions: Macro Definitions.
+* renaming a file:                       Renaming Files.
+* reporting bugs:                        Reporting Bugs.
+* reporting errors:                      Error Reporting.
+* REPRINT character:                     Editing Characters.
+* reserved names:                        Reserved Names.
+* resource limits:                       Limits on Resources.
+* restarting interrupted primitives:     Interrupted Primitives.
+* restrictions on signal handler functions: Nonreentrancy.
+* root directory:                        File Name Resolution.
+* Rot13:                                 Trivial Encryption.
+* rpc:                                   NSS Basics.
+* runnable process:                      Absolute Priority.
+* running a command:                     Running a Command.
+* saved set-group-ID:                    How Change Persona.
+* saved set-user-ID:                     How Change Persona.
+* scanning the group list:               Scanning All Groups.
+* scanning the user list:                Scanning All Users.
+* scatter-gather:                        Scatter-Gather.
+* scheduling, traditional:               Traditional Scheduling.
+* search function (for arrays):          Array Search Function.
+* search functions (for strings):        Search Functions.
+* seed (for random numbers):             Pseudo-Random Numbers.
+* seeking on a file descriptor:          File Position Primitive.
+* seeking on a stream:                   File Positioning.
+* segmentation violation:                Program Error Signals.
+* sending a datagram:                    Sending Datagrams.
+* sending signals:                       Generating Signals.
+* sequential-access files:               File Position.
+* server:                                Connections.
+* services:                              NSS Basics.
+* services database:                     Services Database.
+* session <1>:                           Concepts of Job Control.
+* session:                               Job Control.
+* session leader:                        Concepts of Job Control.
+* setting an alarm:                      Setting an Alarm.
+* setuid programs:                       How Change Persona.
+* setuid programs and file access:       Testing File Access.
+* severity class <1>:                    Adding Severity Classes.
+* severity class:                        Printing Formatted Messages.
+* sgettext:                              GUI program problems.
+* shadow:                                NSS Basics.
+* shadowing functions with macros:       Macro Definitions.
+* shared lock:                           File Locks.
+* shared memory:                         Memory Subsystem.
+* shell:                                 Concepts of Job Control.
+* shift state:                           Keeping the state.
+* shrinking objects:                     Growing Objects.
+* shutting down a socket:                Closing a Socket.
+* sigaction flags:                       Flags for Sigaction.
+* sigaction function:                    Advanced Signal Handling.
+* SIGCHLD, handling of:                  Stopped and Terminated Jobs.
+* sign (of floating point number):       Floating Point Concepts.
+* signal <1>:                            Signal Handling.
+* signal:                                FP Exceptions.
+* signal action:                         Delivery of Signal.
+* signal actions:                        Signal Actions.
+* signal flags:                          Flags for Sigaction.
+* signal function:                       Basic Signal Handling.
+* signal handler function:               Defining Handlers.
+* signal mask:                           Process Signal Mask.
+* signal messages:                       Signal Messages.
+* signal names:                          Standard Signals.
+* signal number:                         Standard Signals.
+* signal set:                            Signal Sets.
+* signals, generating:                   Generating Signals.
+* signedness:                            Integers.
+* significand (of floating point number): Floating Point Concepts.
+* SIGTTIN, from background job:          Access to the Terminal.
+* SIGTTOU, from background job:          Access to the Terminal.
+* simple time:                           Calendar Time.
+* single-byte string:                    Representation of Strings.
+* size of string:                        Representation of Strings.
+* SJIS:                                  Extended Char Intro.
+* socket:                                Sockets.
+* socket address (name) binding:         Socket Addresses.
+* socket domain:                         Socket Concepts.
+* socket namespace:                      Socket Concepts.
+* socket option level:                   Socket Options.
+* socket options:                        Socket Options.
+* socket pair:                           Socket Pairs.
+* socket protocol:                       Socket Concepts.
+* socket shutdown:                       Closing a Socket.
+* socket, client actions:                Connecting.
+* socket, closing:                       Closing a Socket.
+* socket, connecting:                    Connecting.
+* socket, creating:                      Creating a Socket.
+* socket, initiating a connection:       Connecting.
+* sockets, accepting connections:        Accepting Connections.
+* sockets, listening:                    Listening.
+* sockets, server actions:               Listening.
+* soft limit:                            Limits on Resources.
+* soft link:                             Symbolic Links.
+* sort function (for arrays):            Array Sort Function.
+* sparse files:                          File Position Primitive.
+* special files:                         Making Special Files.
+* special functions:                     Special Functions.
+* specified action (for a signal):       Delivery of Signal.
+* speed of execution:                    Why Lock Pages.
+* square root function:                  Exponents and Logarithms.
+* stable sorting:                        Array Sort Function.
+* standard dot notation, for Internet addresses: Abstract Host Addresses.
+* standard environment variables:        Standard Environment.
+* standard error file descriptor:        Descriptors and Streams.
+* standard error stream:                 Standard Streams.
+* standard file descriptors:             Descriptors and Streams.
+* standard input file descriptor:        Descriptors and Streams.
+* standard input stream:                 Standard Streams.
+* standard output file descriptor:       Descriptors and Streams.
+* standard output stream:                Standard Streams.
+* standard streams:                      Standard Streams.
+* standards:                             Standards and Portability.
+* START character:                       Start/Stop Characters.
+* startup of program:                    Program Arguments.
+* stateful <1>:                          glibc iconv Implementation.
+* stateful <2>:                          iconv Examples.
+* stateful <3>:                          Generic Conversion Interface.
+* stateful <4>:                          Converting Strings.
+* stateful <5>:                          Converting a Character.
+* stateful:                              Keeping the state.
+* static memory allocation:              Memory Allocation and C.
+* static storage class:                  Memory Allocation and C.
+* STATUS character:                      Other Special.
+* status codes:                          Error Reporting.
+* status of a file:                      Attribute Meanings.
+* status of obstack:                     Status of an Obstack.
+* sticky bit:                            Permission Bits.
+* STOP character:                        Start/Stop Characters.
+* stop signal:                           Job Control Signals.
+* stopped job:                           Concepts of Job Control.
+* stopped jobs, continuing:              Continuing Stopped Jobs.
+* stopped jobs, detecting:               Stopped and Terminated Jobs.
+* storage allocation:                    Memory.
+* stream (sockets):                      Socket Concepts.
+* stream orientation <1>:                Streams and I18N.
+* stream orientation:                    Opening Streams.
+* stream, for I/O to a string:           String Streams.
+* streams and descriptors:               Stream/Descriptor Precautions.
+* streams, and file descriptors:         Descriptors and Streams.
+* streams, C++:                          Streams and I18N.
+* streams, standard:                     Standard Streams.
+* string:                                Representation of Strings.
+* string allocation:                     Representation of Strings.
+* string collation functions:            Collation Functions.
+* string comparison functions:           String/Array Comparison.
+* string concatenation functions:        Copying and Concatenation.
+* string copy functions:                 Copying and Concatenation.
+* string length:                         Representation of Strings.
+* string literal:                        Representation of Strings.
+* string search functions:               Search Functions.
+* string stream:                         String Streams.
+* string vectors, null-character separated: Argz and Envz Vectors.
+* string, representation of:             Representation of Strings.
+* style of communication (of a socket):  Socket Concepts.
+* subshell:                              Initializing the Shell.
+* substitution of variables and commands: Expansion Stages.
+* successive signals:                    Merged Signals.
+* summer time:                           Broken-down Time.
+* SunOS:                                 Berkeley Unix.
+* supplementary group IDs:               Process Persona.
+* SUSP character:                        Signal Characters.
+* suspend character:                     Signal Characters.
+* SVID:                                  SVID.
+* swap space:                            Memory Concepts.
+* symbolic link:                         Symbolic Links.
+* symbolic link, opening:                Open-time Flags.
+* synchronizing <1>:                     Synchronizing AIO Operations.
+* synchronizing:                         Synchronizing I/O.
+* syntax error messages, in argp:        Argp Helper Functions.
+* syntax, for program arguments:         Argument Syntax.
+* syntax, for reading numbers:           Parsing of Numbers.
+* sysconf <1>:                           Processor Resources.
+* sysconf:                               Query Memory Parameters.
+* system call:                           System Calls.
+* system call number:                    System Calls.
+* System V Unix:                         SVID.
+* TCP (Internet protocol):               Protocols Database.
+* template, for printf:                  Formatted Output.
+* template, for scanf:                   Formatted Input.
+* TERM environment variable:             Standard Environment.
+* terminal flow control:                 Line Control.
+* terminal identification:               Is It a Terminal.
+* terminal input queue:                  I/O Queues.
+* terminal input queue, clearing:        Line Control.
+* terminal input signal:                 Job Control Signals.
+* terminal line control functions:       Line Control.
+* terminal line speed:                   Line Speed.
+* terminal mode data types:              Mode Data Types.
+* terminal mode functions:               Mode Functions.
+* terminal modes, BSD:                   BSD Terminal Modes.
+* terminal output queue:                 I/O Queues.
+* terminal output queue, flushing:       Line Control.
+* terminal output signal:                Job Control Signals.
+* terminated jobs, detecting:            Stopped and Terminated Jobs.
+* termination signal:                    Termination Signals.
+* testing access permission:             Testing File Access.
+* testing exit status of child process:  Process Completion.
+* text stream:                           Binary Streams.
+* thrashing:                             Memory Subsystem.
+* thread of control:                     Program Basics.
+* threads:                               Streams and Threads.
+* ticks, clock:                          Processor And CPU Time.
+* tilde expansion:                       Expansion Stages.
+* time:                                  Time Basics.
+* TIME termios slot:                     Noncanonical Input.
+* time zone:                             TZ Variable.
+* time zone database:                    TZ Variable.
+* time, elapsed:                         Time Basics.
+* time, high precision:                  High Accuracy Clock.
+* timer, profiling:                      Setting an Alarm.
+* timer, real-time:                      Setting an Alarm.
+* timer, virtual:                        Setting an Alarm.
+* timers, setting:                       Setting an Alarm.
+* timespec:                              Elapsed Time.
+* timeval:                               Elapsed Time.
+* timing error in signal handling:       Remembering a Signal.
+* TMPDIR environment variable:           Temporary Files.
+* tokenizing strings:                    Finding Tokens in a String.
+* tools, for installing library:         Tools for Compilation.
+* transmitting datagrams:                Sending Datagrams.
+* tree, directory:                       Working with Directory Trees.
+* triangulation:                         glibc iconv Implementation.
+* trigonometric functions:               Trig Functions.
+* type measurements, floating:           Floating Type Macros.
+* type measurements, integer:            Width of Type.
+* type modifier character (printf):      Output Conversion Syntax.
+* type modifier character (scanf):       Input Conversion Syntax.
+* typeahead buffer:                      I/O Queues.
+* TZ environment variable:               Standard Environment.
+* UCS-2:                                 Extended Char Intro.
+* UCS-4:                                 Extended Char Intro.
+* ulps:                                  Errors in Math Functions.
+* umask:                                 Setting Permissions.
+* unbuffered stream:                     Buffering Concepts.
+* unconstrained memory allocation:       Unconstrained Allocation.
+* undefining macros that shadow functions: Macro Definitions.
+* underflow exception:                   FP Exceptions.
+* Unicode:                               Extended Char Intro.
+* Unix, Berkeley:                        Berkeley Unix.
+* Unix, System V:                        SVID.
+* unlinking a file:                      Deleting Files.
+* unordered comparison:                  FP Comparison Functions.
+* unreading characters:                  Unreading.
+* upgrading from libc5:                  Linux.
+* upper-case character <1>:              Classification of Wide Characters.
+* upper-case character:                  Classification of Characters.
+* urgent data signal:                    Asynchronous I/O Signals.
+* urgent socket condition:               Out-of-Band Data.
+* usage limits:                          Limits on Resources.
+* usage messages, in argp:               Argp Helper Functions.
+* user accounting database:              User Accounting Database.
+* user database:                         User Database.
+* user ID:                               User and Group IDs.
+* user ID, determining:                  Who Logged In.
+* user name:                             User and Group IDs.
+* user signals:                          Miscellaneous Signals.
+* usual file name errors:                File Name Errors.
+* UTF-16:                                Extended Char Intro.
+* UTF-7:                                 Extended Char Intro.
+* UTF-8:                                 Extended Char Intro.
+* va_copy:                               Copying and Concatenation.
+* variable number of arguments:          Variadic Functions.
+* variable substitution:                 Expansion Stages.
+* variable-sized arrays:                 GNU C Variable-Size Arrays.
+* variadic function argument access:     Receiving Arguments.
+* variadic function prototypes:          Variadic Prototypes.
+* variadic functions:                    Variadic Functions.
+* variadic functions, calling:           Calling Variadics.
+* virtual time alarm signal:             Alarm Signals.
+* virtual timer:                         Setting an Alarm.
+* volatile declarations:                 Nonreentrancy.
+* waiting for a signal:                  Waiting for a Signal.
+* waiting for completion of child process: Process Completion.
+* waiting for input or output:           Waiting for I/O.
+* WERASE character:                      Editing Characters.
+* whitespace character <1>:              Classification of Wide Characters.
+* whitespace character:                  Classification of Characters.
+* wide character:                        Extended Char Intro.
+* wide character string:                 Representation of Strings.
+* width of integer type:                 Width of Type.
+* wildcard expansion:                    Expansion Stages.
+* wint_t:                                String/Array Conventions.
+* word expansion:                        Word Expansion.
+* working directory:                     Working Directory.
+* write lock:                            File Locks.
+* writing to a file descriptor:          I/O Primitives.
+* writing to a socket:                   Transferring Data.
+* writing to a stream, by blocks:        Block Input/Output.
+* writing to a stream, by characters:    Simple Output.
+* writing to a stream, formatted:        Formatted Output.
+* YP:                                    Host Identification.
+* YP domain name:                        Host Identification.
+* zero divide:                           FP Exceptions.
+

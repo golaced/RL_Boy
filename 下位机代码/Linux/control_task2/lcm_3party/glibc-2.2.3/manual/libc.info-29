@@ -1,0 +1,1331 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Editing Characters,  Next: Signal Characters,  Up: Special Characters
+
+Characters for Input Editing
+............................
+
+   These special characters are active only in canonical input mode.
+*Note Canonical or Not::.
+
+ - Macro: int VEOF
+     This is the subscript for the EOF character in the special control
+     character array.  `TERMIOS.c_cc[VEOF]' holds the character itself.
+
+     The EOF character is recognized only in canonical input mode.  It
+     acts as a line terminator in the same way as a newline character,
+     but if the EOF character is typed at the beginning of a line it
+     causes `read' to return a byte count of zero, indicating
+     end-of-file.  The EOF character itself is discarded.
+
+     Usually, the EOF character is `C-d'.
+
+ - Macro: int VEOL
+     This is the subscript for the EOL character in the special control
+     character array.  `TERMIOS.c_cc[VEOL]' holds the character itself.
+
+     The EOL character is recognized only in canonical input mode.  It
+     acts as a line terminator, just like a newline character.  The EOL
+     character is not discarded; it is read as the last character in
+     the input line.
+
+     You don't need to use the EOL character to make <RET> end a line.
+     Just set the ICRNL flag.  In fact, this is the default state of
+     affairs.
+
+ - Macro: int VEOL2
+     This is the subscript for the EOL2 character in the special control
+     character array.  `TERMIOS.c_cc[VEOL2]' holds the character itself.
+
+     The EOL2 character works just like the EOL character (see above),
+     but it can be a different character.  Thus, you can specify two
+     characters to terminate an input line, by setting EOL to one of
+     them and EOL2 to the other.
+
+     The EOL2 character is a BSD extension; it exists only on BSD
+     systems and the GNU system.
+
+ - Macro: int VERASE
+     This is the subscript for the ERASE character in the special
+     control character array.  `TERMIOS.c_cc[VERASE]' holds the
+     character itself.
+
+     The ERASE character is recognized only in canonical input mode.
+     When the user types the erase character, the previous character
+     typed is discarded.  (If the terminal generates multibyte
+     character sequences, this may cause more than one byte of input to
+     be discarded.)  This cannot be used to erase past the beginning of
+     the current line of text.  The ERASE character itself is discarded.
+
+     Usually, the ERASE character is <DEL>.
+
+ - Macro: int VWERASE
+     This is the subscript for the WERASE character in the special
+     control character array.  `TERMIOS.c_cc[VWERASE]' holds the
+     character itself.
+
+     The WERASE character is recognized only in canonical mode.  It
+     erases an entire word of prior input, and any whitespace after it;
+     whitespace characters before the word are not erased.
+
+     The definition of a "word" depends on the setting of the
+     `ALTWERASE' mode; *note Local Modes::.
+
+     If the `ALTWERASE' mode is not set, a word is defined as a sequence
+     of any characters except space or tab.
+
+     If the `ALTWERASE' mode is set, a word is defined as a sequence of
+     characters containing only letters, numbers, and underscores,
+     optionally followed by one character that is not a letter, number,
+     or underscore.
+
+     The WERASE character is usually `C-w'.
+
+     This is a BSD extension.
+
+ - Macro: int VKILL
+     This is the subscript for the KILL character in the special control
+     character array.  `TERMIOS.c_cc[VKILL]' holds the character itself.
+
+     The KILL character is recognized only in canonical input mode.
+     When the user types the kill character, the entire contents of the
+     current line of input are discarded.  The kill character itself is
+     discarded too.
+
+     The KILL character is usually `C-u'.
+
+ - Macro: int VREPRINT
+     This is the subscript for the REPRINT character in the special
+     control character array.  `TERMIOS.c_cc[VREPRINT]' holds the
+     character itself.
+
+     The REPRINT character is recognized only in canonical mode.  It
+     reprints the current input line.  If some asynchronous output has
+     come while you are typing, this lets you see the line you are
+     typing clearly again.
+
+     The REPRINT character is usually `C-r'.
+
+     This is a BSD extension.
+
+
+File: libc.info,  Node: Signal Characters,  Next: Start/Stop Characters,  Prev: Editing Characters,  Up: Special Characters
+
+Characters that Cause Signals
+.............................
+
+   These special characters may be active in either canonical or
+noncanonical input mode, but only when the `ISIG' flag is set (*note
+Local Modes::).
+
+ - Macro: int VINTR
+     This is the subscript for the INTR character in the special control
+     character array.  `TERMIOS.c_cc[VINTR]' holds the character itself.
+
+     The INTR (interrupt) character raises a `SIGINT' signal for all
+     processes in the foreground job associated with the terminal.  The
+     INTR character itself is then discarded.  *Note Signal Handling::,
+     for more information about signals.
+
+     Typically, the INTR character is `C-c'.
+
+ - Macro: int VQUIT
+     This is the subscript for the QUIT character in the special control
+     character array.  `TERMIOS.c_cc[VQUIT]' holds the character itself.
+
+     The QUIT character raises a `SIGQUIT' signal for all processes in
+     the foreground job associated with the terminal.  The QUIT
+     character itself is then discarded.  *Note Signal Handling::, for
+     more information about signals.
+
+     Typically, the QUIT character is `C-\'.
+
+ - Macro: int VSUSP
+     This is the subscript for the SUSP character in the special control
+     character array.  `TERMIOS.c_cc[VSUSP]' holds the character itself.
+
+     The SUSP (suspend) character is recognized only if the
+     implementation supports job control (*note Job Control::).  It
+     causes a `SIGTSTP' signal to be sent to all processes in the
+     foreground job associated with the terminal.  The SUSP character
+     itself is then discarded.  *Note Signal Handling::, for more
+     information about signals.
+
+     Typically, the SUSP character is `C-z'.
+
+   Few applications disable the normal interpretation of the SUSP
+character.  If your program does this, it should provide some other
+mechanism for the user to stop the job.  When the user invokes this
+mechanism, the program should send a `SIGTSTP' signal to the process
+group of the process, not just to the process itself.  *Note Signaling
+Another Process::.
+
+ - Macro: int VDSUSP
+     This is the subscript for the DSUSP character in the special
+     control character array.  `TERMIOS.c_cc[VDSUSP]' holds the
+     character itself.
+
+     The DSUSP (suspend) character is recognized only if the
+     implementation supports job control (*note Job Control::).  It
+     sends a `SIGTSTP' signal, like the SUSP character, but not right
+     away--only when the program tries to read it as input.  Not all
+     systems with job control support DSUSP; only BSD-compatible
+     systems (including the GNU system).
+
+     *Note Signal Handling::, for more information about signals.
+
+     Typically, the DSUSP character is `C-y'.
+
+
+File: libc.info,  Node: Start/Stop Characters,  Next: Other Special,  Prev: Signal Characters,  Up: Special Characters
+
+Special Characters for Flow Control
+...................................
+
+   These special characters may be active in either canonical or
+noncanonical input mode, but their use is controlled by the flags
+`IXON' and `IXOFF' (*note Input Modes::).
+
+ - Macro: int VSTART
+     This is the subscript for the START character in the special
+     control character array.  `TERMIOS.c_cc[VSTART]' holds the
+     character itself.
+
+     The START character is used to support the `IXON' and `IXOFF'
+     input modes.  If `IXON' is set, receiving a START character resumes
+     suspended output; the START character itself is discarded.  If
+     `IXANY' is set, receiving any character at all resumes suspended
+     output; the resuming character is not discarded unless it is the
+     START character.  `IXOFF' is set, the system may also transmit
+     START characters to the terminal.
+
+     The usual value for the START character is `C-q'.  You may not be
+     able to change this value--the hardware may insist on using `C-q'
+     regardless of what you specify.
+
+ - Macro: int VSTOP
+     This is the subscript for the STOP character in the special control
+     character array.  `TERMIOS.c_cc[VSTOP]' holds the character itself.
+
+     The STOP character is used to support the `IXON' and `IXOFF' input
+     modes.  If `IXON' is set, receiving a STOP character causes output
+     to be suspended; the STOP character itself is discarded.  If
+     `IXOFF' is set, the system may also transmit STOP characters to the
+     terminal, to prevent the input queue from overflowing.
+
+     The usual value for the STOP character is `C-s'.  You may not be
+     able to change this value--the hardware may insist on using `C-s'
+     regardless of what you specify.
+
+
+File: libc.info,  Node: Other Special,  Prev: Start/Stop Characters,  Up: Special Characters
+
+Other Special Characters
+........................
+
+   These special characters exist only in BSD systems and the GNU
+system.
+
+ - Macro: int VLNEXT
+     This is the subscript for the LNEXT character in the special
+     control character array.  `TERMIOS.c_cc[VLNEXT]' holds the
+     character itself.
+
+     The LNEXT character is recognized only when `IEXTEN' is set, but in
+     both canonical and noncanonical mode.  It disables any special
+     significance of the next character the user types.  Even if the
+     character would normally perform some editing function or generate
+     a signal, it is read as a plain character.  This is the analogue
+     of the `C-q' command in Emacs.  "LNEXT" stands for "literal next."
+
+     The LNEXT character is usually `C-v'.
+
+ - Macro: int VDISCARD
+     This is the subscript for the DISCARD character in the special
+     control character array.  `TERMIOS.c_cc[VDISCARD]' holds the
+     character itself.
+
+     The DISCARD character is recognized only when `IEXTEN' is set, but
+     in both canonical and noncanonical mode.  Its effect is to toggle
+     the discard-output flag.  When this flag is set, all program
+     output is discarded.  Setting the flag also discards all output
+     currently in the output buffer.  Typing any other character resets
+     the flag.
+
+ - Macro: int VSTATUS
+     This is the subscript for the STATUS character in the special
+     control character array.  `TERMIOS.c_cc[VSTATUS]' holds the
+     character itself.
+
+     The STATUS character's effect is to print out a status message
+     about how the current process is running.
+
+     The STATUS character is recognized only in canonical mode, and
+     only if `NOKERNINFO' is not set.
+
+
+File: libc.info,  Node: Noncanonical Input,  Prev: Special Characters,  Up: Terminal Modes
+
+Noncanonical Input
+------------------
+
+   In noncanonical input mode, the special editing characters such as
+ERASE and KILL are ignored.  The system facilities for the user to edit
+input are disabled in noncanonical mode, so that all input characters
+(unless they are special for signal or flow-control purposes) are passed
+to the application program exactly as typed.  It is up to the
+application program to give the user ways to edit the input, if
+appropriate.
+
+   Noncanonical mode offers special parameters called MIN and TIME for
+controlling whether and how long to wait for input to be available.  You
+can even use them to avoid ever waiting--to return immediately with
+whatever input is available, or with no input.
+
+   The MIN and TIME are stored in elements of the `c_cc' array, which
+is a member of the `struct termios' structure.  Each element of this
+array has a particular role, and each element has a symbolic constant
+that stands for the index of that element.  `VMIN' and `VMAX' are the
+names for the indices in the array of the MIN and TIME slots.
+
+ - Macro: int VMIN
+     This is the subscript for the MIN slot in the `c_cc' array.  Thus,
+     `TERMIOS.c_cc[VMIN]' is the value itself.
+
+     The MIN slot is only meaningful in noncanonical input mode; it
+     specifies the minimum number of bytes that must be available in the
+     input queue in order for `read' to return.
+
+ - Macro: int VTIME
+     This is the subscript for the TIME slot in the `c_cc' array.  Thus,
+     `TERMIOS.c_cc[VTIME]' is the value itself.
+
+     The TIME slot is only meaningful in noncanonical input mode; it
+     specifies how long to wait for input before returning, in units of
+     0.1 seconds.
+
+   The MIN and TIME values interact to determine the criterion for when
+`read' should return; their precise meanings depend on which of them
+are nonzero.  There are four possible cases:
+
+   * Both TIME and MIN are nonzero.
+
+     In this case, TIME specifies how long to wait after each input
+     character to see if more input arrives.  After the first character
+     received, `read' keeps waiting until either MIN bytes have arrived
+     in all, or TIME elapses with no further input.
+
+     `read' always blocks until the first character arrives, even if
+     TIME elapses first.  `read' can return more than MIN characters if
+     more than MIN happen to be in the queue.
+
+   * Both MIN and TIME are zero.
+
+     In this case, `read' always returns immediately with as many
+     characters as are available in the queue, up to the number
+     requested.  If no input is immediately available, `read' returns a
+     value of zero.
+
+   * MIN is zero but TIME has a nonzero value.
+
+     In this case, `read' waits for time TIME for input to become
+     available; the availability of a single byte is enough to satisfy
+     the read request and cause `read' to return.  When it returns, it
+     returns as many characters as are available, up to the number
+     requested.  If no input is available before the timer expires,
+     `read' returns a value of zero.
+
+   * TIME is zero but MIN has a nonzero value.
+
+     In this case, `read' waits until at least MIN bytes are available
+     in the queue.  At that time, `read' returns as many characters as
+     are available, up to the number requested.  `read' can return more
+     than MIN characters if more than MIN happen to be in the queue.
+
+   What happens if MIN is 50 and you ask to read just 10 bytes?
+Normally, `read' waits until there are 50 bytes in the buffer (or, more
+generally, the wait condition described above is satisfied), and then
+reads 10 of them, leaving the other 40 buffered in the operating system
+for a subsequent call to `read'.
+
+   *Portability note:* On some systems, the MIN and TIME slots are
+actually the same as the EOF and EOL slots.  This causes no serious
+problem because the MIN and TIME slots are used only in noncanonical
+input and the EOF and EOL slots are used only in canonical input, but it
+isn't very clean.  The GNU library allocates separate slots for these
+uses.
+
+ - Function: int cfmakeraw (struct termios *TERMIOS-P)
+     This function provides an easy way to set up `*TERMIOS-P' for what
+     has traditionally been called "raw mode" in BSD.  This uses
+     noncanonical input, and turns off most processing to give an
+     unmodified channel to the terminal.
+
+     It does exactly this:
+            TERMIOS-P->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP
+                                          |INLCR|IGNCR|ICRNL|IXON);
+            TERMIOS-P->c_oflag &= ~OPOST;
+            TERMIOS-P->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+            TERMIOS-P->c_cflag &= ~(CSIZE|PARENB);
+            TERMIOS-P->c_cflag |= CS8;
+
+
+File: libc.info,  Node: BSD Terminal Modes,  Next: Line Control,  Prev: Terminal Modes,  Up: Low-Level Terminal Interface
+
+BSD Terminal Modes
+==================
+
+   The usual way to get and set terminal modes is with the functions
+described in *Note Terminal Modes::.  However, on some systems you can
+use the BSD-derived functions in this section to do some of the same
+thing.  On many systems, these functions do not exist.  Even with the
+GNU C library, the functions simply fail with `errno' = `ENOSYS' with
+many kernels, including Linux.
+
+   The symbols used in this section are declared in `sgtty.h'.
+
+ - Data Type: struct sgttyb
+     This structure is an input or output parameter list for `gtty' and
+     `stty'.
+
+    `char sg_ispeed'
+          Line speed for input
+
+    `char sg_ospeed'
+          Line speed for output
+
+    `char sg_erase'
+          Erase character
+
+    `char sg_kill'
+          Kill character
+
+    `int sg_flags'
+          Various flags
+
+ - Function: int gtty (int FILEDES, struct sgttyb *ATTRIBUTES)
+     This function gets the attributes of a terminal.
+
+     `gtty' sets *ATTRIBUTES to describe the terminal attributes of the
+     terminal which is open with file descriptor FILEDES.
+
+ - Function: int stty (int FILEDES, struct sgttyb * attributes)
+     This function sets the attributes of a terminal.
+
+     `stty' sets the terminal attributes of the terminal which is open
+     with file descriptor FILEDES to those described by *FILEDES.
+
+
+File: libc.info,  Node: Line Control,  Next: Noncanon Example,  Prev: BSD Terminal Modes,  Up: Low-Level Terminal Interface
+
+Line Control Functions
+======================
+
+   These functions perform miscellaneous control actions on terminal
+devices.  As regards terminal access, they are treated like doing
+output: if any of these functions is used by a background process on its
+controlling terminal, normally all processes in the process group are
+sent a `SIGTTOU' signal.  The exception is if the calling process
+itself is ignoring or blocking `SIGTTOU' signals, in which case the
+operation is performed and no signal is sent.  *Note Job Control::.
+
+ - Function: int tcsendbreak (int FILEDES, int DURATION)
+     This function generates a break condition by transmitting a stream
+     of zero bits on the terminal associated with the file descriptor
+     FILEDES.  The duration of the break is controlled by the DURATION
+     argument.  If zero, the duration is between 0.25 and 0.5 seconds.
+     The meaning of a nonzero value depends on the operating system.
+
+     This function does nothing if the terminal is not an asynchronous
+     serial data port.
+
+     The return value is normally zero.  In the event of an error, a
+     value of -1 is returned.  The following `errno' error conditions
+     are defined for this function:
+
+    `EBADF'
+          The FILEDES is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal device.
+
+ - Function: int tcdrain (int FILEDES)
+     The `tcdrain' function waits until all queued output to the
+     terminal FILEDES has been transmitted.
+
+     This function is a cancelation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `tcdrain' is called.  If the thread gets canceled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `tcdrain' should be protected using cancelation handlers.
+
+     The return value is normally zero.  In the event of an error, a
+     value of -1 is returned.  The following `errno' error conditions
+     are defined for this function:
+
+    `EBADF'
+          The FILEDES is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal device.
+
+    `EINTR'
+          The operation was interrupted by delivery of a signal.  *Note
+          Interrupted Primitives::.
+
+ - Function: int tcflush (int FILEDES, int QUEUE)
+     The `tcflush' function is used to clear the input and/or output
+     queues associated with the terminal file FILEDES.  The QUEUE
+     argument specifies which queue(s) to clear, and can be one of the
+     following values:
+
+    `TCIFLUSH'
+          Clear any input data received, but not yet read.
+
+    `TCOFLUSH'
+          Clear any output data written, but not yet transmitted.
+
+    `TCIOFLUSH'
+          Clear both queued input and output.
+
+     The return value is normally zero.  In the event of an error, a
+     value of -1 is returned.  The following `errno' error conditions
+     are defined for this function:
+
+    `EBADF'
+          The FILEDES is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal device.
+
+    `EINVAL'
+          A bad value was supplied as the QUEUE argument.
+
+     It is unfortunate that this function is named `tcflush', because
+     the term "flush" is normally used for quite another
+     operation--waiting until all output is transmitted--and using it
+     for discarding input or output would be confusing.  Unfortunately,
+     the name `tcflush' comes from POSIX and we cannot change it.
+
+ - Function: int tcflow (int FILEDES, int ACTION)
+     The `tcflow' function is used to perform operations relating to
+     XON/XOFF flow control on the terminal file specified by FILEDES.
+
+     The ACTION argument specifies what operation to perform, and can
+     be one of the following values:
+
+    `TCOOFF'
+          Suspend transmission of output.
+
+    `TCOON'
+          Restart transmission of output.
+
+    `TCIOFF'
+          Transmit a STOP character.
+
+    `TCION'
+          Transmit a START character.
+
+     For more information about the STOP and START characters, see
+     *Note Special Characters::.
+
+     The return value is normally zero.  In the event of an error, a
+     value of -1 is returned.  The following `errno' error conditions
+     are defined for this function:
+
+    `EBADF'
+          The FILEDES is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal device.
+
+    `EINVAL'
+          A bad value was supplied as the ACTION argument.
+
+
+File: libc.info,  Node: Noncanon Example,  Next: Pseudo-Terminals,  Prev: Line Control,  Up: Low-Level Terminal Interface
+
+Noncanonical Mode Example
+=========================
+
+   Here is an example program that shows how you can set up a terminal
+device to read single characters in noncanonical input mode, without
+echo.
+
+     #include <unistd.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <termios.h>
+     
+     /* Use this variable to remember original terminal attributes. */
+     
+     struct termios saved_attributes;
+     
+     void
+     reset_input_mode (void)
+     {
+       tcsetattr (STDIN_FILENO, TCSANOW, &saved_attributes);
+     }
+     
+     void
+     set_input_mode (void)
+     {
+       struct termios tattr;
+       char *name;
+     
+       /* Make sure stdin is a terminal. */
+       if (!isatty (STDIN_FILENO))
+         {
+           fprintf (stderr, "Not a terminal.\n");
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Save the terminal attributes so we can restore them later. */
+       tcgetattr (STDIN_FILENO, &saved_attributes);
+       atexit (reset_input_mode);
+     
+       /* Set the funny terminal modes. */
+       tcgetattr (STDIN_FILENO, &tattr);
+       tattr.c_lflag &= ~(ICANON|ECHO); /* Clear ICANON and ECHO. */
+       tattr.c_cc[VMIN] = 1;
+       tattr.c_cc[VTIME] = 0;
+       tcsetattr (STDIN_FILENO, TCSAFLUSH, &tattr);
+     }
+     
+     int
+     main (void)
+     {
+       char c;
+     
+       set_input_mode ();
+     
+       while (1)
+         {
+           read (STDIN_FILENO, &c, 1);
+           if (c == '\004')          /* `C-d' */
+             break;
+           else
+             putchar (c);
+         }
+     
+       return EXIT_SUCCESS;
+     }
+
+   This program is careful to restore the original terminal modes before
+exiting or terminating with a signal.  It uses the `atexit' function
+(*note Cleanups on Exit::) to make sure this is done by `exit'.
+
+   The shell is supposed to take care of resetting the terminal modes
+when a process is stopped or continued; see *Note Job Control::.  But
+some existing shells do not actually do this, so you may wish to
+establish handlers for job control signals that reset terminal modes.
+The above example does so.
+
+
+File: libc.info,  Node: Pseudo-Terminals,  Prev: Noncanon Example,  Up: Low-Level Terminal Interface
+
+Pseudo-Terminals
+================
+
+   A "pseudo-terminal" is a special interprocess communication channel
+that acts like a terminal.  One end of the channel is called the
+"master" side or "master pseudo-terminal device", the other side is
+called the "slave" side.  Data written to the master side is received
+by the slave side as if it was the result of a user typing at an
+ordinary terminal, and data written to the slave side is sent to the
+master side as if it was written on an ordinary terminal.
+
+   Pseudo terminals are the way programs like `xterm' and `emacs'
+implement their terminal emulation functionality.
+
+* Menu:
+
+* Allocation::             Allocating a pseudo terminal.
+* Pseudo-Terminal Pairs::  How to open both sides of a
+                            pseudo-terminal in a single operation.
+
+
+File: libc.info,  Node: Allocation,  Next: Pseudo-Terminal Pairs,  Up: Pseudo-Terminals
+
+Allocating Pseudo-Terminals
+---------------------------
+
+   This subsection describes functions for allocating a pseudo-terminal,
+and for making this pseudo-terminal available for actual use.  These
+functions are declared in the header file `stdlib.h'.
+
+ - Function: int getpt (void)
+     The `getpt' function returns a new file descriptor for the next
+     available master pseudo-terminal.  The normal return value from
+     `getpt' is a non-negative integer file descriptor.  In the case of
+     an error, a value of -1 is returned instead.  The following
+     `errno' conditions are defined for this function:
+
+    `ENOENT'
+          There are no free master pseudo-terminals available.
+
+     This function is a GNU extension.
+
+ - Function: int grantpt (int FILEDES)
+     The `grantpt' function changes the ownership and access permission
+     of the slave pseudo-terminal device corresponding to the master
+     pseudo-terminal device associated with the file descriptor
+     FILEDES.  The owner is set from the real user ID of the calling
+     process (*note Process Persona::), and the group is set to a
+     special group (typically "tty") or from the real group ID of the
+     calling process.  The access permission is set such that the file
+     is both readable and writable by the owner and only writable by
+     the group.
+
+     On some systems this function is implemented by invoking a special
+     `setuid' root program (*note How Change Persona::).  As a
+     consequence, installing a signal handler for the `SIGCHLD' signal
+     (*note Job Control Signals::) may interfere with a call to
+     `grantpt'.
+
+     The normal return value from `grantpt' is 0; a value of -1 is
+     returned in case of failure.  The following `errno' error
+     conditions are defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `ENINVAL'
+          The FILEDES argument is not associated with a master
+          pseudo-terminal device.
+
+    `EACCESS'
+          The slave pseudo-terminal device corresponding to the master
+          associated with FILEDES could not be accessed.
+
+
+ - Function: int unlockpt (int FILEDES)
+     The `unlockpt' function unlocks the slave pseudo-terminal device
+     corresponding to the master pseudo-terminal device associated with
+     the file descriptor FILEDES.  On many systems, the slave can only
+     be opened after unlocking, so portable applications should always
+     call `unlockpt' before trying to open the slave.
+
+     The normal return value from `unlockpt' is 0; a value of -1 is
+     returned in case of failure.  The following `errno' error
+     conditions are defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `EINVAL'
+          The FILEDES argument is not associated with a master
+          pseudo-terminal device.
+
+ - Function: char * ptsname (int FILEDES)
+     If the file descriptor FILEDES is associated with a master
+     pseudo-terminal device, the `ptsname' function returns a pointer
+     to a statically-allocated, null-terminated string containing the
+     file name of the associated slave pseudo-terminal file.  This
+     string might be overwritten by subsequent calls to `ptsname'.
+
+ - Function: int ptsname_r (int FILEDES, char *BUF, size_t LEN)
+     The `ptsname_r' function is similar to the `ptsname' function
+     except that it places its result into the user-specified buffer
+     starting at BUF with length LEN.
+
+     This function is a GNU extension.
+
+   *Portability Note:* On System V derived systems, the file returned
+by the `ptsname' and `ptsname_r' functions may be STREAMS-based, and
+therefore require additional processing after opening before it
+actually behaves as a pseudo terminal.
+
+   Typical usage of these functions is illustrated by the following
+example:
+     int
+     open_pty_pair (int *amaster, int *aslave)
+     {
+       int master, slave;
+       char *name;
+     
+       master = getpt ();
+       if (master < 0)
+         return 0;
+     
+       if (grantpt (master) < 0 || unlockpt (master) < 0)
+         goto close_master;
+       name = ptsname (master);
+       if (name == NULL)
+         goto close_master;
+     
+       slave = open (name, O_RDWR);
+       if (slave == -1)
+         goto close_master;
+     
+       if (isastream (slave))
+         {
+           if (ioctl (slave, I_PUSH, "ptem") < 0
+               || ioctl (slave, I_PUSH, "ldterm") < 0)
+             goto close_slave;
+         }
+     
+       *amaster = master;
+       *aslave = slave;
+       return 1;
+     
+     close_slave:
+       close (slave);
+     
+     close_master:
+       close (master);
+       return 0;
+     }
+
+
+File: libc.info,  Node: Pseudo-Terminal Pairs,  Prev: Allocation,  Up: Pseudo-Terminals
+
+Opening a Pseudo-Terminal Pair
+------------------------------
+
+   These functions, derived from BSD, are available in the separate
+`libutil' library, and declared in `pty.h'.
+
+ - Function: int openpty (int *AMASTER, int *ASLAVE, char *NAME, struct
+          termios *TERMP, struct winsize *WINP)
+     This function allocates and opens a pseudo-terminal pair,
+     returning the file descriptor for the master in *AMASTER, and the
+     file descriptor for the slave in *ASLAVE.  If the argument NAME is
+     not a null pointer, the file name of the slave pseudo-terminal
+     device is stored in `*name'.  If TERMP is not a null pointer, the
+     terminal attributes of the slave are set to the ones specified in
+     the structure that TERMP points to (*note Terminal Modes::).
+     Likewise, if the WINP is not a null pointer, the screen size of
+     the slave is set to the values specified in the structure that
+     WINP points to.
+
+     The normal return value from `openpty' is 0; a value of -1 is
+     returned in case of failure.  The following `errno' conditions are
+     defined for this function:
+
+    `ENOENT'
+          There are no free pseudo-terminal pairs available.
+
+     *Warning:* Using the `openpty' function with NAME not set to
+     `NULL' is *very dangerous* because it provides no protection
+     against overflowing the string NAME.  You should use the `ttyname'
+     function on the file descriptor returned in *SLAVE to find out the
+     file name of the slave pseudo-terminal device instead.
+
+ - Function: int forkpty (int *AMASTER, char *NAME, struct termios
+          *TERMP, struct winsize *WINP)
+     This function is similar to the `openpty' function, but in
+     addition, forks a new process (*note Creating a Process::) and
+     makes the newly opened slave pseudo-terminal device the
+     controlling terminal (*note Controlling Terminal::) for the child
+     process.
+
+     If the operation is successful, there are then both parent and
+     child processes and both see `forkpty' return, but with different
+     values: it returns a value of 0 in the child process and returns
+     the child's process ID in the parent process.
+
+     If the allocation of a pseudo-terminal pair or the process creation
+     failed, `forkpty' returns a value of -1 in the parent process.
+
+     *Warning:* The `forkpty' function has the same problems with
+     respect to the NAME argument as `openpty'.
+
+
+File: libc.info,  Node: Syslog,  Next: Mathematics,  Prev: Low-Level Terminal Interface,  Up: Top
+
+Syslog
+******
+
+   This chapter describes facilities for issuing and logging messages of
+system administration interest.  This chapter has nothing to do with
+programs issuing messages to their own users or keeping private logs
+(One would typically do that with the facilities described in *Note I/O
+on Streams::).
+
+   Most systems have a facility called "Syslog" that allows programs to
+submit messages of interest to system administrators and can be
+configured to pass these messages on in various ways, such as printing
+on the console, mailing to a particular person, or recording in a log
+file for future reference.
+
+   A program uses the facilities in this chapter to submit such
+messages.
+
+* Menu:
+
+* Overview of Syslog::           Overview of a system's Syslog facility
+* Submitting Syslog Messages::   Functions to submit messages to Syslog
+
+
+File: libc.info,  Node: Overview of Syslog,  Next: Submitting Syslog Messages,  Up: Syslog
+
+Overview of Syslog
+==================
+
+   System administrators have to deal with lots of different kinds of
+messages from a plethora of subsystems within each system, and usually
+lots of systems as well.  For example, an FTP server might report every
+connection it gets.  The kernel might report hardware failures on a disk
+drive.  A DNS server might report usage statistics at regular intervals.
+
+   Some of these messages need to be brought to a system administrator's
+attention immediately.  And it may not be just any system administrator
+- there may be a particular system administrator who deals with a
+particular kind of message.  Other messages just need to be recorded for
+future reference if there is a problem.  Still others may need to have
+information extracted from them by an automated process that generates
+monthly reports.
+
+   To deal with these messages, most Unix systems have a facility called
+"Syslog."  It is generally based on a daemon called "Syslogd" Syslogd
+listens for messages on a Unix domain socket named `/dev/log'.  Based
+on classification information in the messages and its configuration
+file (usually `/etc/syslog.conf'), Syslogd routes them in various ways.
+Some of the popular routings are:
+
+   * Write to the system console
+
+   * Mail to a specific user
+
+   * Write to a log file
+
+   * Pass to another daemon
+
+   * Discard
+
+   Syslogd can also handle messages from other systems.  It listens on
+the `syslog' UDP port as well as the local socket for messages.
+
+   Syslog can handle messages from the kernel itself.  But the kernel
+doesn't write to `/dev/log'; rather, another daemon (sometimes called
+"Klogd") extracts messages from the kernel and passes them on to Syslog
+as any other process would (and it properly identifies them as messages
+from the kernel).
+
+   Syslog can even handle messages that the kernel issued before
+Syslogd or Klogd was running.  A Linux kernel, for example, stores
+startup messages in a kernel message ring and they are normally still
+there when Klogd later starts up.  Assuming Syslogd is running by the
+time Klogd starts, Klogd then passes everything in the message ring to
+it.
+
+   In order to classify messages for disposition, Syslog requires any
+process that submits a message to it to provide two pieces of
+classification information with it:
+
+facility
+     This identifies who submitted the message.  There are a small
+     number of facilities defined.  The kernel, the mail subsystem, and
+     an FTP server are examples of recognized facilities.  For the
+     complete list, *Note syslog; vsyslog::.  Keep in mind that these
+     are essentially arbitrary classifications.  "Mail subsystem"
+     doesn't have any more meaning than the system administrator gives
+     to it.
+
+priority
+     This tells how important the content of the message is.  Examples
+     of defined priority values are: debug, informational, warning,
+     critical.  For the complete list, *Note syslog; vsyslog::.  Except
+     for the fact that the priorities have a defined order, the meaning
+     of each of these priorities is entirely determined by the system
+     administrator.
+
+   A "facility/priority" is a number that indicates both the facility
+and the priority.
+
+   *Warning:* This terminology is not universal.  Some people use
+"level" to refer to the priority and "priority" to refer to the
+combination of facility and priority.  A Linux kernel has a concept of a
+message "level," which corresponds both to a Syslog priority and to a
+Syslog facility/priority (It can be both because the facility code for
+the kernel is zero, and that makes priority and facility/priority the
+same value).
+
+   The GNU C library provides functions to submit messages to Syslog.
+They do it by writing to the `/dev/log' socket.  *Note Submitting
+Syslog Messages::.
+
+   The GNU C library functions only work to submit messages to the
+Syslog facility on the same system.  To submit a message to the Syslog
+facility on another system, use the socket I/O functions to write a UDP
+datagram to the `syslog' UDP port on that system.  *Note Sockets::.
+
+
+File: libc.info,  Node: Submitting Syslog Messages,  Prev: Overview of Syslog,  Up: Syslog
+
+Submitting Syslog Messages
+==========================
+
+   The GNU C library provides functions to submit messages to the Syslog
+facility:
+
+* Menu:
+
+* openlog::                      Open connection to Syslog
+* syslog; vsyslog::              Submit message to Syslog
+* closelog::                     Close connection to Syslog
+* setlogmask::                   Cause certain messages to be ignored
+* Syslog Example::               Example of all of the above
+
+   These functions only work to submit messages to the Syslog facility
+on the same system.  To submit a message to the Syslog facility on
+another system, use the socket I/O functions to write a UDP datagram to
+the `syslog' UDP port on that system.  *Note Sockets::.
+
+
+File: libc.info,  Node: openlog,  Next: syslog; vsyslog,  Up: Submitting Syslog Messages
+
+openlog
+-------
+
+   The symbols referred to in this section are declared in the file
+`syslog.h'.
+
+ - Function: void openlog (char *IDENT, int OPTION,
+     int FACILITY)
+
+     `openlog' opens or reopens a connection to Syslog in preparation
+     for submitting messages.
+
+     IDENT is an arbitrary identification string which future `syslog'
+     invocations will prefix to each message.  This is intended to
+     identify the source of the message, and people conventionally set
+     it to the name of the program that will submit the messages.
+
+     `openlog' may or may not open the `/dev/log' socket, depending on
+     OPTION.  If it does, it tries to open it and connect it as a
+     stream socket.  If that doesn't work, it tries to open it and
+     connect it as a datagram socket.  The socket has the "Close on
+     Exec" attribute, so the kernel will close it if the process
+     performs an exec.
+
+     You don't have to use `openlog'.  If you call `syslog' without
+     having called `openlog', `syslog' just opens the connection
+     implicitly and uses defaults for the information in IDENT and
+     OPTIONS.
+
+     OPTIONS is a bit string, with the bits as defined by the following
+     single bit masks:
+
+    `LOG_PERROR'
+          If on, `openlog' sets up the connection so that any `syslog'
+          on this connection writes its message to the calling process'
+          Standard Error stream in addition to submitting it to Syslog.
+          If off, `syslog' does not write the message to Standard
+          Error.
+
+    `LOG_CONS'
+          If on, `openlog' sets up the connection so that a `syslog' on
+          this connection that fails to submit a message to Syslog
+          writes the message instead to system console.  If off,
+          `syslog' does not write to the system console (but of course
+          Syslog may write messages it receives to the console).
+
+    `LOG_PID'
+          When on, `openlog' sets up the connection so that a `syslog'
+          on this connection inserts the calling process' Process ID
+          (PID) into the message.  When off, `openlog' does not insert
+          the PID.
+
+    `LOG_NDELAY'
+          When on, `openlog' opens and connects the `/dev/log' socket.
+          When off, a future `syslog' call must open and connect the
+          socket.
+
+          *Portability note:*  In early systems, the sense of this bit
+          was exactly the opposite.
+
+    `LOG_ODELAY'
+          This bit does nothing.  It exists for backward compatibility.
+
+     If any other bit in OPTIONS is on, the result is undefined.
+
+     FACILITY is the default facility code for this connection.  A
+     `syslog' on this connection that specifies default facility causes
+     this facility to be associated with the message.  See `syslog' for
+     possible values.  A value of zero means the default default, which
+     is `LOG_USER'.
+
+     If a Syslog connection is already open when you call `openlog',
+     `openlog' "reopens" the connection.  Reopening is like opening
+     except that if you specify zero for the default facility code, the
+     default facility code simply remains unchanged and if you specify
+     LOG_NDELAY and the socket is already open and connected, `openlog'
+     just leaves it that way.
+
+
+
+File: libc.info,  Node: syslog; vsyslog,  Next: closelog,  Prev: openlog,  Up: Submitting Syslog Messages
+
+syslog, vsyslog
+---------------
+
+   The symbols referred to in this section are declared in the file
+`syslog.h'.
+
+ - Function: void syslog (int FACILITY_PRIORITY, char *FORMAT, ...)
+     `syslog' submits a message to the Syslog facility.  It does this by
+     writing to the Unix domain socket `/dev/log'.
+
+     `syslog' submits the message with the facility and priority
+     indicated by FACILITY_PRIORITY.  The macro `LOG_MAKEPRI' generates
+     a facility/priority from a facility and a priority, as in the
+     following example:
+
+          LOG_MAKEPRI(LOG_USER, LOG_WARNING)
+
+     The possible values for the facility code are (macros):
+
+    `LOG_USER'
+          A miscellaneous user process
+
+    `LOG_MAIL'
+          Mail
+
+    `LOG_DAEMON'
+          A miscellaneous system daemon
+
+    `LOG_AUTH'
+          Security (authorization)
+
+    `LOG_SYSLOG'
+          Syslog
+
+    `LOG_LPR'
+          Central printer
+
+    `LOG_NEWS'
+          Network news (e.g. Usenet)
+
+    `LOG_UUCP'
+          UUCP
+
+    `LOG_CRON'
+          Cron and At
+
+    `LOG_AUTHPRIV'
+          Private security (authorization)
+
+    `LOG_FTP'
+          Ftp server
+
+    `LOG_LOCAL0'
+          Locally defined
+
+    `LOG_LOCAL1'
+          Locally defined
+
+    `LOG_LOCAL2'
+          Locally defined
+
+    `LOG_LOCAL3'
+          Locally defined
+
+    `LOG_LOCAL4'
+          Locally defined
+
+    `LOG_LOCAL5'
+          Locally defined
+
+    `LOG_LOCAL6'
+          Locally defined
+
+    `LOG_LOCAL7'
+          Locally defined
+
+     Results are undefined if the facility code is anything else.
+
+     *note:* `syslog' recognizes one other facility code: that of the
+     kernel.  But you can't specify that facility code with these
+     functions.  If you try, it looks the same to `syslog' as if you are
+     requesting the default facility.  But you wouldn't want to anyway,
+     because any program that uses the GNU C library is not the kernel.
+
+     You can use just a priority code as FACILITY_PRIORITY.  In that
+     case, `syslog' assumes the default facility established when the
+     Syslog connection was opened.  *Note Syslog Example::.
+
+     The possible values for the priority code are (macros):
+
+    `LOG_EMERG'
+          The message says the system is unusable.
+
+    `LOG_ALERT'
+          Action on the message must be taken immediately.
+
+    `LOG_CRIT'
+          The message states a critical condition.
+
+    `LOG_ERR'
+          The message describes an error.
+
+    `LOG_WARNING'
+          The message is a warning.
+
+    `LOG_NOTICE'
+          The message describes a normal but important event.
+
+    `LOG_INFO'
+          The message is purely informational.
+
+    `LOG_DEBUG'
+          The message is only for debugging purposes.
+
+     Results are undefined if the priority code is anything else.
+
+     If the process does not presently have a Syslog connection open
+     (i.e.  it did not call `openlog'), `syslog' implicitly opens the
+     connection the same as `openlog' would, with the following defaults
+     for information that would otherwise be included in an `openlog'
+     call: The default identification string is the program name.  The
+     default default facility is `LOG_USER'.  The default for all the
+     connection options in OPTIONS is as if those bits were off.
+     `syslog' leaves the Syslog connection open.
+
+     If the `dev/log' socket is not open and connected, `syslog' opens
+     and connects it, the same as `openlog' with the `LOG_NDELAY'
+     option would.
+
+     `syslog' leaves `/dev/log' open and connected unless its attempt
+     to send the message failed, in which case `syslog' closes it (with
+     the hope that a future implicit open will restore the Syslog
+     connection to a usable state).
+
+     Example:
+
+
+          #include <syslog.h>
+          syslog (LOG_MAKEPRI(LOG_LOCAL1, LOG_ERROR),
+                  "Unable to make network connection to %s.  Error=%m", host);
+
+
+ - Function: void vsyslog (int FACILITY_PRIORITY, char *FORMAT, va_list
+          arglist)
+     This is functionally identical to `syslog', with the BSD style
+     variable length argument.
+
+
+
+File: libc.info,  Node: closelog,  Next: setlogmask,  Prev: syslog; vsyslog,  Up: Submitting Syslog Messages
+
+closelog
+--------
+
+   The symbols referred to in this section are declared in the file
+`syslog.h'.
+
+ - Function: void closelog (void)
+     `closelog' closes the current Syslog connection, if there is one.
+     This include closing the `dev/log' socket, if it is open.
+
+     There is very little reason to use this function.  It does not
+     flush any buffers; you can reopen a Syslog connection without
+     closing it first; The connection gets closed automatically on exec
+     or exit.  `closelog' has primarily aesthetic value.
+
+
+
+File: libc.info,  Node: setlogmask,  Next: Syslog Example,  Prev: closelog,  Up: Submitting Syslog Messages
+
+setlogmask
+----------
+
+   The symbols referred to in this section are declared in the file
+`syslog.h'.
+
+ - Function: int setlogmask (int MASK)
+     `setlogmask' sets a mask (the "logmask") that determines which
+     future `syslog' calls shall be ignored.  If a program has not
+     called `setlogmask', `syslog' doesn't ignore any calls.  You can
+     use `setlogmask' to specify that messages of particular priorities
+     shall be ignored in the future.
+
+     A `setlogmask' call overrides any previous `setlogmask' call.
+
+     Note that the logmask exists entirely independently of opening and
+     closing of Syslog connections.
+
+     Setting the logmask has a similar effect to, but is not the same
+     as, configuring Syslog.  The Syslog configuration may cause Syslog
+     to discard certain messages it receives, but the logmask causes
+     certain messages never to get submitted to Syslog in the first
+     place.
+
+     MASK is a bit string with one bit corresponding to each of the
+     possible message priorities.  If the bit is on, `syslog' handles
+     messages of that priority normally.  If it is off, `syslog'
+     discards messages of that priority.  Use the message priority
+     macros described in *Note syslog; vsyslog:: and the `LOG_MASK' to
+     construct an appropriate MASK value, as in this example:
+
+          LOG_MASK(LOG_EMERG) | LOG_MASK(LOG_ERROR)
+
+     or
+
+          ~(LOG_MASK(LOG_INFO))
+
+     There is also a `LOG_UPTO' macro, which generates a mask with the
+     bits on for a certain priority and all priorities above it:
+
+          LOG_UPTO(LOG_ERROR)
+
+     The unfortunate naming of the macro is due to the fact that
+     internally, higher numbers are used for lower message priorities.
+
+
+
+File: libc.info,  Node: Syslog Example,  Prev: setlogmask,  Up: Submitting Syslog Messages
+
+Syslog Example
+--------------
+
+   Here is an example of `openlog', `syslog', and `closelog':
+
+   This example sets the logmask so that debug and informational
+messages get discarded without ever reaching Syslog.  So the second
+`syslog' in the example does nothing.
+
+     #include <syslog.h>
+     
+     setlogmask (LOG_UPTO (LOG_NOTICE));
+     
+     openlog ("exampleprog", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
+     
+     syslog (LOG_NOTICE, "Program started by User %d", getuid ());
+     syslog (LOG_INFO, "A tree falls in a forest");
+     
+     closelog ();
+

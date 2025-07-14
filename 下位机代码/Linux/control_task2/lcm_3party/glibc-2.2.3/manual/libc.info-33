@@ -1,0 +1,1166 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Parsing of Floats,  Prev: Parsing of Integers,  Up: Parsing of Numbers
+
+Parsing of Floats
+-----------------
+
+   The `str' functions are declared in `stdlib.h' and those beginning
+with `wcs' are declared in `wchar.h'.  One might wonder about the use
+of `restrict' in the prototypes of the functions in this section.  It
+is seemingly useless but the ISO C standard uses it (for the functions
+defined there) so we have to do it as well.
+
+ - Function: double strtod (const char *restrict STRING, char
+          **restrict TAILPTR)
+     The `strtod' ("string-to-double") function converts the initial
+     part of STRING to a floating-point number, which is returned as a
+     value of type `double'.
+
+     This function attempts to decompose STRING as follows:
+
+        * A (possibly empty) sequence of whitespace characters.  Which
+          characters are whitespace is determined by the `isspace'
+          function (*note Classification of Characters::).  These are
+          discarded.
+
+        * An optional plus or minus sign (`+' or `-').
+
+        * A floating point number in decimal or hexadecimal format.  The
+          decimal format is:
+             - A nonempty sequence of digits optionally containing a
+               decimal-point character--normally `.', but it depends on
+               the locale (*note General Numeric::).
+
+             - An optional exponent part, consisting of a character `e'
+               or `E', an optional sign, and a sequence of digits.
+
+
+          The hexadecimal format is as follows:
+             - A 0x or 0X followed by a nonempty sequence of
+               hexadecimal digits optionally containing a decimal-point
+               character--normally `.', but it depends on the locale
+               (*note General Numeric::).
+
+             - An optional binary-exponent part, consisting of a
+               character `p' or `P', an optional sign, and a sequence
+               of digits.
+
+
+        * Any remaining characters in the string.  If TAILPTR is not a
+          null pointer, a pointer to this tail of the string is stored
+          in `*TAILPTR'.
+
+     If the string is empty, contains only whitespace, or does not
+     contain an initial substring that has the expected syntax for a
+     floating-point number, no conversion is performed.  In this case,
+     `strtod' returns a value of zero and the value returned in
+     `*TAILPTR' is the value of STRING.
+
+     In a locale other than the standard `"C"' or `"POSIX"' locales,
+     this function may recognize additional locale-dependent syntax.
+
+     If the string has valid syntax for a floating-point number but the
+     value is outside the range of a `double', `strtod' will signal
+     overflow or underflow as described in *Note Math Error Reporting::.
+
+     `strtod' recognizes four special input strings.  The strings
+     `"inf"' and `"infinity"' are converted to oo, or to the largest
+     representable value if the floating-point format doesn't support
+     infinities.  You can prepend a `"+"' or `"-"' to specify the sign.
+     Case is ignored when scanning these strings.
+
+     The strings `"nan"' and `"nan(CHARS...)"' are converted to NaN.
+     Again, case is ignored.  If CHARS... are provided, they are used
+     in some unspecified fashion to select a particular representation
+     of NaN (there can be several).
+
+     Since zero is a valid result as well as the value returned on
+     error, you should check for errors in the same way as for
+     `strtol', by examining ERRNO and TAILPTR.
+
+ - Function: float strtof (const char *STRING, char **TAILPTR)
+ - Function: long double strtold (const char *STRING, char **TAILPTR)
+     These functions are analogous to `strtod', but return `float' and
+     `long double' values respectively.  They report errors in the same
+     way as `strtod'.  `strtof' can be substantially faster than
+     `strtod', but has less precision; conversely, `strtold' can be
+     much slower but has more precision (on systems where `long double'
+     is a separate type).
+
+     These functions have been GNU extensions and are new to ISO C99.
+
+ - Function: double wcstod (const wchar_t *restrict STRING, wchar_t
+          **restrict TAILPTR)
+ - Function: float wcstof (const wchar_t *STRING, wchar_t **TAILPTR)
+ - Function: long double wcstold (const wchar_t *STRING, wchar_t
+          **TAILPTR)
+     The `wcstod', `wcstof', and `wcstol' functions are equivalent in
+     nearly all aspect to the `strtod', `strtof', and `strtold'
+     functions but it handles wide character string.
+
+     The `wcstod' function was introduced in Amendment 1 of ISO C90.
+     The `wcstof' and `wcstold' functions were introduced in ISO C99.
+
+ - Function: double atof (const char *STRING)
+     This function is similar to the `strtod' function, except that it
+     need not detect overflow and underflow errors.  The `atof' function
+     is provided mostly for compatibility with existing code; using
+     `strtod' is more robust.
+
+   The GNU C library also provides `_l' versions of these functions,
+which take an additional argument, the locale to use in conversion.
+*Note Parsing of Integers::.
+
+
+File: libc.info,  Node: System V Number Conversion,  Prev: Parsing of Numbers,  Up: Arithmetic
+
+Old-fashioned System V number-to-string functions
+=================================================
+
+   The old System V C library provided three functions to convert
+numbers to strings, with unusual and hard-to-use semantics.  The GNU C
+library also provides these functions and some natural extensions.
+
+   These functions are only available in glibc and on systems descended
+from AT&T Unix.  Therefore, unless these functions do precisely what you
+need, it is better to use `sprintf', which is standard.
+
+   All these functions are defined in `stdlib.h'.
+
+ - Function: char * ecvt (double VALUE, int NDIGIT, int *DECPT, int
+          *NEG)
+     The function `ecvt' converts the floating-point number VALUE to a
+     string with at most NDIGIT decimal digits.  The returned string
+     contains no decimal point or sign. The first digit of the string
+     is non-zero (unless VALUE is actually zero) and the last digit is
+     rounded to nearest.  `*DECPT' is set to the index in the string of
+     the first digit after the decimal point.  `*NEG' is set to a
+     nonzero value if VALUE is negative, zero otherwise.
+
+     If NDIGIT decimal digits would exceed the precision of a `double'
+     it is reduced to a system-specific value.
+
+     The returned string is statically allocated and overwritten by
+     each call to `ecvt'.
+
+     If VALUE is zero, it is implementation defined whether `*DECPT' is
+     `0' or `1'.
+
+     For example: `ecvt (12.3, 5, &d, &n)' returns `"12300"' and sets D
+     to `2' and N to `0'.
+
+ - Function: char * fcvt (double VALUE, int NDIGIT, int *DECPT, int
+          *NEG)
+     The function `fcvt' is like `ecvt', but NDIGIT specifies the
+     number of digits after the decimal point.  If NDIGIT is less than
+     zero, VALUE is rounded to the NDIGIT+1'th place to the left of the
+     decimal point.  For example, if NDIGIT is `-1', VALUE will be
+     rounded to the nearest 10.  If NDIGIT is negative and larger than
+     the number of digits to the left of the decimal point in VALUE,
+     VALUE will be rounded to one significant digit.
+
+     If NDIGIT decimal digits would exceed the precision of a `double'
+     it is reduced to a system-specific value.
+
+     The returned string is statically allocated and overwritten by
+     each call to `fcvt'.
+
+ - Function: char * gcvt (double VALUE, int NDIGIT, char *BUF)
+     `gcvt' is functionally equivalent to `sprintf(buf, "%*g", ndigit,
+     value'.  It is provided only for compatibility's sake.  It returns
+     BUF.
+
+     If NDIGIT decimal digits would exceed the precision of a `double'
+     it is reduced to a system-specific value.
+
+   As extensions, the GNU C library provides versions of these three
+functions that take `long double' arguments.
+
+ - Function: char * qecvt (long double VALUE, int NDIGIT, int *DECPT,
+          int *NEG)
+     This function is equivalent to `ecvt' except that it takes a `long
+     double' for the first parameter and that NDIGIT is restricted by
+     the precision of a `long double'.
+
+ - Function: char * qfcvt (long double VALUE, int NDIGIT, int *DECPT,
+          int *NEG)
+     This function is equivalent to `fcvt' except that it takes a `long
+     double' for the first parameter and that NDIGIT is restricted by
+     the precision of a `long double'.
+
+ - Function: char * qgcvt (long double VALUE, int NDIGIT, char *BUF)
+     This function is equivalent to `gcvt' except that it takes a `long
+     double' for the first parameter and that NDIGIT is restricted by
+     the precision of a `long double'.
+
+   The `ecvt' and `fcvt' functions, and their `long double'
+equivalents, all return a string located in a static buffer which is
+overwritten by the next call to the function.  The GNU C library
+provides another set of extended functions which write the converted
+string into a user-supplied buffer.  These have the conventional `_r'
+suffix.
+
+   `gcvt_r' is not necessary, because `gcvt' already uses a
+user-supplied buffer.
+
+ - Function: char * ecvt_r (double VALUE, int NDIGIT, int *DECPT, int
+          *NEG, char *BUF, size_t LEN)
+     The `ecvt_r' function is the same as `ecvt', except that it places
+     its result into the user-specified buffer pointed to by BUF, with
+     length LEN.
+
+     This function is a GNU extension.
+
+ - Function: char * fcvt_r (double VALUE, int NDIGIT, int *DECPT, int
+          *NEG, char *BUF, size_t LEN)
+     The `fcvt_r' function is the same as `fcvt', except that it places
+     its result into the user-specified buffer pointed to by BUF, with
+     length LEN.
+
+     This function is a GNU extension.
+
+ - Function: char * qecvt_r (long double VALUE, int NDIGIT, int *DECPT,
+          int *NEG, char *BUF, size_t LEN)
+     The `qecvt_r' function is the same as `qecvt', except that it
+     places its result into the user-specified buffer pointed to by
+     BUF, with length LEN.
+
+     This function is a GNU extension.
+
+ - Function: char * qfcvt_r (long double VALUE, int NDIGIT, int *DECPT,
+          int *NEG, char *BUF, size_t LEN)
+     The `qfcvt_r' function is the same as `qfcvt', except that it
+     places its result into the user-specified buffer pointed to by
+     BUF, with length LEN.
+
+     This function is a GNU extension.
+
+
+File: libc.info,  Node: Date and Time,  Next: Resource Usage And Limitation,  Prev: Arithmetic,  Up: Top
+
+Date and Time
+*************
+
+   This chapter describes functions for manipulating dates and times,
+including functions for determining what time it is and conversion
+between different time representations.
+
+* Menu:
+
+* Time Basics::                 Concepts and definitions.
+* Elapsed Time::                Data types to represent elapsed times
+* Processor And CPU Time::      Time a program has spent executing.
+* Calendar Time::               Manipulation of ``real'' dates and times.
+* Setting an Alarm::            Sending a signal after a specified time.
+* Sleeping::                    Waiting for a period of time.
+
+
+File: libc.info,  Node: Time Basics,  Next: Elapsed Time,  Up: Date and Time
+
+Time Basics
+===========
+
+   Discussing time in a technical manual can be difficult because the
+word "time" in English refers to lots of different things.  In this
+manual, we use a rigorous terminology to avoid confusion, and the only
+thing we use the simple word "time" for is to talk about the abstract
+concept.
+
+   A "calendar time" is a point in the time continuum, for example
+November 4, 1990 at 18:02.5 UTC.  Sometimes this is called "absolute
+time".
+
+   We don't speak of a "date", because that is inherent in a calendar
+time.
+
+   An "interval" is a contiguous part of the time continuum between two
+calendar times, for example the hour between 9:00 and 10:00 on July 4,
+1980.
+
+   An "elapsed time" is the length of an interval, for example, 35
+minutes.  People sometimes sloppily use the word "interval" to refer to
+the elapsed time of some interval.
+
+   An "amount of time" is a sum of elapsed times, which need not be of
+any specific intervals.  For example, the amount of time it takes to
+read a book might be 9 hours, independently of when and in how many
+sittings it is read.
+
+   A "period" is the elapsed time of an interval between two events,
+especially when they are part of a sequence of regularly repeating
+events.
+
+   "CPU time" is like calendar time, except that it is based on the
+subset of the time continuum when a particular process is actively
+using a CPU.  CPU time is, therefore, relative to a process.
+
+   "Processor time" is an amount of time that a CPU is in use.  In
+fact, it's a basic system resource, since there's a limit to how much
+can exist in any given interval (that limit is the elapsed time of the
+interval times the number of CPUs in the processor).  People often call
+this CPU time, but we reserve the latter term in this manual for the
+definition above.
+
+
+File: libc.info,  Node: Elapsed Time,  Next: Processor And CPU Time,  Prev: Time Basics,  Up: Date and Time
+
+Elapsed Time
+============
+
+   One way to represent an elapsed time is with a simple arithmetic data
+type, as with the following function to compute the elapsed time between
+two calendar times.  This function is declared in `time.h'.
+
+ - Function: double difftime (time_t TIME1, time_t TIME0)
+     The `difftime' function returns the number of seconds of elapsed
+     time between calendar time TIME1 and calendar time TIME0, as a
+     value of type `double'.  The difference ignores leap seconds
+     unless leap second support is enabled.
+
+     In the GNU system, you can simply subtract `time_t' values.  But on
+     other systems, the `time_t' data type might use some other encoding
+     where subtraction doesn't work directly.
+
+   The GNU C library provides two data types specifically for
+representing an elapsed time.  They are used by various GNU C library
+functions, and you can use them for your own purposes too.  They're
+exactly the same except that one has a resolution in microseconds, and
+the other, newer one, is in nanoseconds.
+
+ - Data Type: struct timeval
+     The `struct timeval' structure represents an elapsed time.  It is
+     declared in `sys/time.h' and has the following members:
+
+    `long int tv_sec'
+          This represents the number of whole seconds of elapsed time.
+
+    `long int tv_usec'
+          This is the rest of the elapsed time (a fraction of a second),
+          represented as the number of microseconds.  It is always less
+          than one million.
+
+
+ - Data Type: struct timespec
+     The `struct timespec' structure represents an elapsed time.  It is
+     declared in `time.h' and has the following members:
+
+    `long int tv_sec'
+          This represents the number of whole seconds of elapsed time.
+
+    `long int tv_nsec'
+          This is the rest of the elapsed time (a fraction of a second),
+          represented as the number of nanoseconds.  It is always less
+          than one billion.
+
+
+   It is often necessary to subtract two values of type
+`struct timeval' or `struct timespec'.  Here is the best way to do
+this.  It works even on some peculiar operating systems where the
+`tv_sec' member has an unsigned type.
+
+     /* Subtract the `struct timeval' values X and Y,
+        storing the result in RESULT.
+        Return 1 if the difference is negative, otherwise 0.  */
+     
+     int
+     timeval_subtract (result, x, y)
+          struct timeval *result, *x, *y;
+     {
+       /* Perform the carry for the later subtraction by updating Y. */
+       if (x->tv_usec < y->tv_usec) {
+         int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
+         y->tv_usec -= 1000000 * nsec;
+         y->tv_sec += nsec;
+       }
+       if (x->tv_usec - y->tv_usec > 1000000) {
+         int nsec = (x->tv_usec - y->tv_usec) / 1000000;
+         y->tv_usec += 1000000 * nsec;
+         y->tv_sec -= nsec;
+       }
+     
+       /* Compute the time remaining to wait.
+          `tv_usec' is certainly positive. */
+       result->tv_sec = x->tv_sec - y->tv_sec;
+       result->tv_usec = x->tv_usec - y->tv_usec;
+     
+       /* Return 1 if result is negative. */
+       return x->tv_sec < y->tv_sec;
+     }
+
+   Common functions that use `struct timeval' are `gettimeofday' and
+`settimeofday'.
+
+   There are no GNU C library functions specifically oriented toward
+dealing with elapsed times, but the calendar time, processor time, and
+alarm and sleeping functions have a lot to do with them.
+
+
+File: libc.info,  Node: Processor And CPU Time,  Next: Calendar Time,  Prev: Elapsed Time,  Up: Date and Time
+
+Processor And CPU Time
+======================
+
+   If you're trying to optimize your program or measure its efficiency,
+it's very useful to know how much processor time it uses.  For that,
+calendar time and elapsed times are useless because a process may spend
+time waiting for I/O or for other processes to use the CPU.  However,
+you can get the information with the functions in this section.
+
+   CPU time (*note Time Basics::) is represented by the data type
+`clock_t', which is a number of "clock ticks".  It gives the total
+amount of time a process has actively used a CPU since some arbitrary
+event.  On the GNU system, that event is the creation of the process.
+While arbitrary in general, the event is always the same event for any
+particular process, so you can always measure how much time on the CPU
+a particular computation takes by examinining the process' CPU time
+before and after the computation.
+
+   In the GNU system, `clock_t' is equivalent to `long int' and
+`CLOCKS_PER_SEC' is an integer value.  But in other systems, both
+`clock_t' and the macro `CLOCKS_PER_SEC' can be either integer or
+floating-point types.  Casting CPU time values to `double', as in the
+example above, makes sure that operations such as arithmetic and
+printing work properly and consistently no matter what the underlying
+representation is.
+
+   Note that the clock can wrap around.  On a 32bit system with
+`CLOCKS_PER_SEC' set to one million this function will return the same
+value approximately every 72 minutes.
+
+   For additional functions to examine a process' use of processor time,
+and to control it, *Note Resource Usage And Limitation::.
+
+* Menu:
+
+* CPU Time::                    The `clock' function.
+* Processor Time::              The `times' function.
+
+
+File: libc.info,  Node: CPU Time,  Next: Processor Time,  Up: Processor And CPU Time
+
+CPU Time Inquiry
+----------------
+
+   To get a process' CPU time, you can use the `clock' function.  This
+facility is declared in the header file `time.h'.
+
+   In typical usage, you call the `clock' function at the beginning and
+end of the interval you want to time, subtract the values, and then
+divide by `CLOCKS_PER_SEC' (the number of clock ticks per second) to
+get processor time, like this:
+
+     #include <time.h>
+     
+     clock_t start, end;
+     double cpu_time_used;
+     
+     start = clock();
+     ... /* Do the work. */
+     end = clock();
+     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+   Do not use a single CPU time as an amount of time; it doesn't work
+that way.  Either do a subtraction as shown above or query processor
+time directly.  *Note Processor Time::.
+
+   Different computers and operating systems vary wildly in how they
+keep track of CPU time.  It's common for the internal processor clock
+to have a resolution somewhere between a hundredth and millionth of a
+second.
+
+ - Macro: int CLOCKS_PER_SEC
+     The value of this macro is the number of clock ticks per second
+     measured by the `clock' function.  POSIX requires that this value
+     be one million independent of the actual resolution.
+
+ - Macro: int CLK_TCK
+     This is an obsolete name for `CLOCKS_PER_SEC'.
+
+ - Data Type: clock_t
+     This is the type of the value returned by the `clock' function.
+     Values of type `clock_t' are numbers of clock ticks.
+
+ - Function: clock_t clock (void)
+     This function returns the calling process' current CPU time.  If
+     the CPU time is not available or cannot be represented, `clock'
+     returns the value `(clock_t)(-1)'.
+
+
+File: libc.info,  Node: Processor Time,  Prev: CPU Time,  Up: Processor And CPU Time
+
+Processor Time Inquiry
+----------------------
+
+   The `times' function returns information about a process'
+consumption of processor time in a `struct tms' object, in addition to
+the process' CPU time.  *Note Time Basics::.  You should include the
+header file `sys/times.h' to use this facility.
+
+ - Data Type: struct tms
+     The `tms' structure is used to return information about process
+     times.  It contains at least the following members:
+
+    `clock_t tms_utime'
+          This is the total processor time the calling process has used
+          in executing the instructions of its program.
+
+    `clock_t tms_stime'
+          This is the processor time the system has used on behalf of
+          the calling process.
+
+    `clock_t tms_cutime'
+          This is the sum of the `tms_utime' values and the `tms_cutime'
+          values of all terminated child processes of the calling
+          process, whose status has been reported to the parent process
+          by `wait' or `waitpid'; see *Note Process Completion::.  In
+          other words, it represents the total processor time used in
+          executing the instructions of all the terminated child
+          processes of the calling process, excluding child processes
+          which have not yet been reported by `wait' or `waitpid'.
+
+    `clock_t tms_cstime'
+          This is similar to `tms_cutime', but represents the total
+          processor time system has used on behalf of all the
+          terminated child processes of the calling process.
+
+     All of the times are given in numbers of clock ticks.  Unlike CPU
+     time, these are the actual amounts of time; not relative to any
+     event.  *Note Creating a Process::.
+
+ - Function: clock_t times (struct tms *BUFFER)
+     The `times' function stores the processor time information for the
+     calling process in BUFFER.
+
+     The return value is the calling process' CPU time (the same value
+     you get from `clock()'.  `times' returns `(clock_t)(-1)' to
+     indicate failure.
+
+   *Portability Note:* The `clock' function described in *Note CPU
+Time:: is specified by the ISO C standard.  The `times' function is a
+feature of POSIX.1.  In the GNU system, the CPU time is defined to be
+equivalent to the sum of the `tms_utime' and `tms_stime' fields
+returned by `times'.
+
+
+File: libc.info,  Node: Calendar Time,  Next: Setting an Alarm,  Prev: Processor And CPU Time,  Up: Date and Time
+
+Calendar Time
+=============
+
+   This section describes facilities for keeping track of calendar time.
+*Note Time Basics::.
+
+   The GNU C library represents calendar time three ways:
+
+   * "Simple time" (the `time_t' data type) is a compact
+     representation, typically giving the number of seconds of elapsed
+     time since some implementation-specific base time.
+
+   * There is also a "high-resolution time" representation.  Like simple
+     time, this represents a calendar time as an elapsed time since a
+     base time, but instead of measuring in whole seconds, it uses a
+     `struct timeval' data type, which includes fractions of a second.
+     Use this time representation instead of simple time when you need
+     greater precision.
+
+   * "Local time" or "broken-down time" (the `struct tm' data type)
+     represents a calendar time as a set of components specifying the
+     year, month, and so on in the Gregorian calendar, for a specific
+     time zone.  This calendar time representation is usually used only
+     to communicate with people.
+
+* Menu:
+
+* Simple Calendar Time::        Facilities for manipulating calendar time.
+* High-Resolution Calendar::    A time representation with greater precision.
+* Broken-down Time::            Facilities for manipulating local time.
+* High Accuracy Clock::         Maintaining a high accuracy system clock.
+* Formatting Calendar Time::    Converting times to strings.
+* Parsing Date and Time::       Convert textual time and date information back
+                                 into broken-down time values.
+* TZ Variable::                 How users specify the time zone.
+* Time Zone Functions::         Functions to examine or specify the time zone.
+* Time Functions Example::      An example program showing use of some of
+				 the time functions.
+
+
+File: libc.info,  Node: Simple Calendar Time,  Next: High-Resolution Calendar,  Up: Calendar Time
+
+Simple Calendar Time
+--------------------
+
+   This section describes the `time_t' data type for representing
+calendar time as simple time, and the functions which operate on simple
+time objects.  These facilities are declared in the header file
+`time.h'.
+
+ - Data Type: time_t
+     This is the data type used to represent simple time.  Sometimes,
+     it also represents an elapsed time.  When interpreted as a
+     calendar time value, it represents the number of seconds elapsed
+     since 00:00:00 on January 1, 1970, Coordinated Universal Time.
+     (This calendar time is sometimes referred to as the "epoch".)
+     POSIX requires that this count not include leap seconds, but on
+     some systems this count includes leap seconds if you set `TZ' to
+     certain values (*note TZ Variable::).
+
+     Note that a simple time has no concept of local time zone.
+     Calendar Time T is the same instant in time regardless of where on
+     the globe the computer is.
+
+     In the GNU C library, `time_t' is equivalent to `long int'.  In
+     other systems, `time_t' might be either an integer or
+     floating-point type.
+
+   The function `difftime' tells you the elapsed time between two
+simple calendar times, which is not always as easy to compute as just
+subtracting.  *Note Elapsed Time::.
+
+ - Function: time_t time (time_t *RESULT)
+     The `time' function returns the current calendar time as a value of
+     type `time_t'.  If the argument RESULT is not a null pointer, the
+     calendar time value is also stored in `*RESULT'.  If the current
+     calendar time is not available, the value `(time_t)(-1)' is
+     returned.
+
+ - Function: int stime (time_t *NEWTIME)
+     `stime' sets the system clock, i.e.  it tells the system that the
+     current calendar time is NEWTIME, where `newtime' is interpreted
+     as described in the above definition of `time_t'.
+
+     `settimeofday' is a newer function which sets the system clock to
+     better than one second precision.  `settimeofday' is generally a
+     better choice than `stime'.  *Note High-Resolution Calendar::.
+
+     Only the superuser can set the system clock.
+
+     If the function succeeds, the return value is zero.  Otherwise, it
+     is `-1' and `errno' is set accordingly:
+
+    `EPERM'
+          The process is not superuser.
+
+
+File: libc.info,  Node: High-Resolution Calendar,  Next: Broken-down Time,  Prev: Simple Calendar Time,  Up: Calendar Time
+
+High-Resolution Calendar
+------------------------
+
+   The `time_t' data type used to represent simple times has a
+resolution of only one second.  Some applications need more precision.
+
+   So, the GNU C library also contains functions which are capable of
+representing calendar times to a higher resolution than one second.  The
+functions and the associated data types described in this section are
+declared in `sys/time.h'.
+
+ - Data Type: struct timezone
+     The `struct timezone' structure is used to hold minimal information
+     about the local time zone.  It has the following members:
+
+    `int tz_minuteswest'
+          This is the number of minutes west of UTC.
+
+    `int tz_dsttime'
+          If nonzero, Daylight Saving Time applies during some part of
+          the year.
+
+     The `struct timezone' type is obsolete and should never be used.
+     Instead, use the facilities described in *Note Time Zone
+     Functions::.
+
+ - Function: int gettimeofday (struct timeval *TP, struct timezone *TZP)
+     The `gettimeofday' function returns the current calendar time as
+     the elapsed time since the epoch in the `struct timeval' structure
+     indicated by TP.  (*note Elapsed Time:: for a description of
+     `struct timespec').  Information about the time zone is returned in
+     the structure pointed at TZP.  If the TZP argument is a null
+     pointer, time zone information is ignored.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error condition is defined for this function:
+
+    `ENOSYS'
+          The operating system does not support getting time zone
+          information, and TZP is not a null pointer.  The GNU
+          operating system does not support using `struct timezone' to
+          represent time zone information; that is an obsolete feature
+          of 4.3 BSD.  Instead, use the facilities described in *Note
+          Time Zone Functions::.
+
+ - Function: int settimeofday (const struct timeval *TP, const struct
+          timezone *TZP)
+     The `settimeofday' function sets the current calendar time in the
+     system clock according to the arguments.  As for `gettimeofday',
+     the calendar time is represented as the elapsed time since the
+     epoch.  As for `gettimeofday', time zone information is ignored if
+     TZP is a null pointer.
+
+     You must be a privileged user in order to use `settimeofday'.
+
+     Some kernels automatically set the system clock from some source
+     such as a hardware clock when they start up.  Others, including
+     Linux, place the system clock in an "invalid" state (in which
+     attempts to read the clock fail).  A call of `stime' removes the
+     system clock from an invalid state, and system startup scripts
+     typically run a program that calls `stime'.
+
+     `settimeofday' causes a sudden jump forwards or backwards, which
+     can cause a variety of problems in a system.  Use `adjtime' (below)
+     to make a smooth transition from one time to another by temporarily
+     speeding up or slowing down the clock.
+
+     With a Linux kernel, `adjtimex' does the same thing and can also
+     make permanent changes to the speed of the system clock so it
+     doesn't need to be corrected as often.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EPERM'
+          This process cannot set the clock because it is not
+          privileged.
+
+    `ENOSYS'
+          The operating system does not support setting time zone
+          information, and TZP is not a null pointer.
+
+ - Function: int adjtime (const struct timeval *DELTA, struct timeval
+          *OLDDELTA)
+     This function speeds up or slows down the system clock in order to
+     make a gradual adjustment.  This ensures that the calendar time
+     reported by the system clock is always monotonically increasing,
+     which might not happen if you simply set the clock.
+
+     The DELTA argument specifies a relative adjustment to be made to
+     the clock time.  If negative, the system clock is slowed down for a
+     while until it has lost this much elapsed time.  If positive, the
+     system clock is speeded up for a while.
+
+     If the OLDDELTA argument is not a null pointer, the `adjtime'
+     function returns information about any previous time adjustment
+     that has not yet completed.
+
+     This function is typically used to synchronize the clocks of
+     computers in a local network.  You must be a privileged user to
+     use it.
+
+     With a Linux kernel, you can use the `adjtimex' function to
+     permanently change the clock speed.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error condition is defined for this function:
+
+    `EPERM'
+          You do not have privilege to set the time.
+
+   *Portability Note:*  The `gettimeofday', `settimeofday', and
+`adjtime' functions are derived from BSD.
+
+   Symbols for the following function are declared in `sys/timex.h'.
+
+ - Function: int adjtimex (struct timex *TIMEX)
+     `adjtimex' is functionally identical to `ntp_adjtime'.  *Note High
+     Accuracy Clock::.
+
+     This function is present only with a Linux kernel.
+
+
+
+File: libc.info,  Node: Broken-down Time,  Next: High Accuracy Clock,  Prev: High-Resolution Calendar,  Up: Calendar Time
+
+Broken-down Time
+----------------
+
+   Calendar time is represented by the usual GNU C library functions as
+an elapsed time since a fixed base calendar time.  This is convenient
+for computation, but has no relation to the way people normally think of
+calendar time.  By contrast, "broken-down time" is a binary
+representation of calendar time separated into year, month, day, and so
+on.  Broken-down time values are not useful for calculations, but they
+are useful for printing human readable time information.
+
+   A broken-down time value is always relative to a choice of time
+zone, and it also indicates which time zone that is.
+
+   The symbols in this section are declared in the header file `time.h'.
+
+ - Data Type: struct tm
+     This is the data type used to represent a broken-down time.  The
+     structure contains at least the following members, which can
+     appear in any order.
+
+    `int tm_sec'
+          This is the number of full seconds since the top of the
+          minute (normally in the range `0' through `59', but the
+          actual upper limit is `60', to allow for leap seconds if leap
+          second support is available).
+
+    `int tm_min'
+          This is the number of full minutes since the top of the hour
+          (in the range `0' through `59').
+
+    `int tm_hour'
+          This is the number of full hours past midnight (in the range
+          `0' through `23').
+
+    `int tm_mday'
+          This is the ordinal day of the month (in the range `1'
+          through `31').  Watch out for this one!  As the only ordinal
+          number in the structure, it is inconsistent with the rest of
+          the structure.
+
+    `int tm_mon'
+          This is the number of full calendar months since the
+          beginning of the year (in the range `0' through `11').  Watch
+          out for this one!  People usually use ordinal numbers for
+          month-of-year (where January = 1).
+
+    `int tm_year'
+          This is the number of full calendar years since 1900.
+
+    `int tm_wday'
+          This is the number of full days since Sunday (in the range
+          `0' through `6').
+
+    `int tm_yday'
+          This is the number of full days since the beginning of the
+          year (in the range `0' through `365').
+
+    `int tm_isdst'
+          This is a flag that indicates whether Daylight Saving Time is
+          (or was, or will be) in effect at the time described.  The
+          value is positive if Daylight Saving Time is in effect, zero
+          if it is not, and negative if the information is not
+          available.
+
+    `long int tm_gmtoff'
+          This field describes the time zone that was used to compute
+          this broken-down time value, including any adjustment for
+          daylight saving; it is the number of seconds that you must
+          add to UTC to get local time.  You can also think of this as
+          the number of seconds east of UTC.  For example, for U.S.
+          Eastern Standard Time, the value is `-5*60*60'.  The
+          `tm_gmtoff' field is derived from BSD and is a GNU library
+          extension; it is not visible in a strict ISO C environment.
+
+    `const char *tm_zone'
+          This field is the name for the time zone that was used to
+          compute this broken-down time value.  Like `tm_gmtoff', this
+          field is a BSD and GNU extension, and is not visible in a
+          strict ISO C environment.
+
+ - Function: struct tm * localtime (const time_t *TIME)
+     The `localtime' function converts the simple time pointed to by
+     TIME to broken-down time representation, expressed relative to the
+     user's specified time zone.
+
+     The return value is a pointer to a static broken-down time
+     structure, which might be overwritten by subsequent calls to
+     `ctime', `gmtime', or `localtime'.  (But no other library function
+     overwrites the contents of this object.)
+
+     The return value is the null pointer if TIME cannot be represented
+     as a broken-down time; typically this is because the year cannot
+     fit into an `int'.
+
+     Calling `localtime' has one other effect: it sets the variable
+     `tzname' with information about the current time zone.  *Note Time
+     Zone Functions::.
+
+   Using the `localtime' function is a big problem in multi-threaded
+programs.  The result is returned in a static buffer and this is used in
+all threads.  POSIX.1c introduced a variant of this function.
+
+ - Function: struct tm * localtime_r (const time_t *TIME, struct tm
+          *RESULTP)
+     The `localtime_r' function works just like the `localtime'
+     function.  It takes a pointer to a variable containing a simple
+     time and converts it to the broken-down time format.
+
+     But the result is not placed in a static buffer.  Instead it is
+     placed in the object of type `struct tm' to which the parameter
+     RESULTP points.
+
+     If the conversion is successful the function returns a pointer to
+     the object the result was written into, i.e., it returns RESULTP.
+
+ - Function: struct tm * gmtime (const time_t *TIME)
+     This function is similar to `localtime', except that the
+     broken-down time is expressed as Coordinated Universal Time (UTC)
+     (formerly called Greenwich Mean Time (GMT)) rather than relative
+     to a local time zone.
+
+
+   As for the `localtime' function we have the problem that the result
+is placed in a static variable.  POSIX.1c also provides a replacement
+for `gmtime'.
+
+ - Function: struct tm * gmtime_r (const time_t *TIME, struct tm
+          *RESULTP)
+     This function is similar to `localtime_r', except that it converts
+     just like `gmtime' the given time as Coordinated Universal Time.
+
+     If the conversion is successful the function returns a pointer to
+     the object the result was written into, i.e., it returns RESULTP.
+
+ - Function: time_t mktime (struct tm *BROKENTIME)
+     The `mktime' function is used to convert a broken-down time
+     structure to a simple time representation.  It also "normalizes"
+     the contents of the broken-down time structure, by filling in the
+     day of week and day of year based on the other date and time
+     components.
+
+     The `mktime' function ignores the specified contents of the
+     `tm_wday' and `tm_yday' members of the broken-down time structure.
+     It uses the values of the other components to determine the
+     calendar time; it's permissible for these components to have
+     unnormalized values outside their normal ranges.  The last thing
+     that `mktime' does is adjust the components of the BROKENTIME
+     structure (including the `tm_wday' and `tm_yday').
+
+     If the specified broken-down time cannot be represented as a
+     simple time, `mktime' returns a value of `(time_t)(-1)' and does
+     not modify the contents of BROKENTIME.
+
+     Calling `mktime' also sets the variable `tzname' with information
+     about the current time zone.  *Note Time Zone Functions::.
+
+ - Function: time_t timelocal (struct tm *BROKENTIME)
+     `timelocal' is functionally identical to `mktime', but more
+     mnemonically named.  Note that it is the inverse of the `localtime'
+     function.
+
+     *Portability note:*  `mktime' is essentially universally
+     available.  `timelocal' is rather rare.
+
+
+ - Function: time_t timegm (struct tm *BROKENTIME)
+     `timegm' is functionally identical to `mktime' except it always
+     takes the input values to be Coordinated Universal Time (UTC)
+     regardless of any local time zone setting.
+
+     Note that `timegm' is the inverse of `gmtime'.
+
+     *Portability note:*  `mktime' is essentially universally
+     available.  `timegm' is rather rare.  For the most portable
+     conversion from a UTC broken-down time to a simple time, set the
+     `TZ' environment variable to UTC, call `mktime', then set `TZ'
+     back.
+
+
+
+File: libc.info,  Node: High Accuracy Clock,  Next: Formatting Calendar Time,  Prev: Broken-down Time,  Up: Calendar Time
+
+High Accuracy Clock
+-------------------
+
+   The `ntp_gettime' and `ntp_adjtime' functions provide an interface
+to monitor and manipulate the system clock to maintain high accuracy
+time.  For example, you can fine tune the speed of the clock or
+synchronize it with another time source.
+
+   A typical use of these functions is by a server implementing the
+Network Time Protocol to synchronize the clocks of multiple systems and
+high precision clocks.
+
+   These functions are declared in `sys/timex.h'.
+
+ - Data Type: struct ntptimeval
+     This structure is used for information about the system clock.  It
+     contains the following members:
+    `struct timeval time'
+          This is the current calendar time, expressed as the elapsed
+          time since the epoch.  The `struct timeval' data type is
+          described in *Note Elapsed Time::.
+
+    `long int maxerror'
+          This is the maximum error, measured in microseconds.  Unless
+          updated via `ntp_adjtime' periodically, this value will reach
+          some platform-specific maximum value.
+
+    `long int esterror'
+          This is the estimated error, measured in microseconds.  This
+          value can be set by `ntp_adjtime' to indicate the estimated
+          offset of the system clock from the true calendar time.
+
+ - Function: int ntp_gettime (struct ntptimeval *TPTR)
+     The `ntp_gettime' function sets the structure pointed to by TPTR
+     to current values.  The elements of the structure afterwards
+     contain the values the timer implementation in the kernel assumes.
+     They might or might not be correct.  If they are not a
+     `ntp_adjtime' call is necessary.
+
+     The return value is `0' on success and other values on failure.
+     The following `errno' error conditions are defined for this
+     function:
+
+    `TIME_ERROR'
+          The precision clock model is not properly set up at the
+          moment, thus the clock must be considered unsynchronized, and
+          the values should be treated with care.
+
+ - Data Type: struct timex
+     This structure is used to control and monitor the system clock.  It
+     contains the following members:
+    `unsigned int modes'
+          This variable controls whether and which values are set.
+          Several symbolic constants have to be combined with _binary
+          or_ to specify the effective mode.  These constants start
+          with `MOD_'.
+
+    `long int offset'
+          This value indicates the current offset of the system clock
+          from the true calendar time.  The value is given in
+          microseconds.  If bit `MOD_OFFSET' is set in `modes', the
+          offset (and possibly other dependent values) can be set.  The
+          offset's absolute value must not exceed `MAXPHASE'.
+
+    `long int frequency'
+          This value indicates the difference in frequency between the
+          true calendar time and the system clock.  The value is
+          expressed as scaled PPM (parts per million, 0.0001%).  The
+          scaling is `1 << SHIFT_USEC'.  The value can be set with bit
+          `MOD_FREQUENCY', but the absolute value must not exceed
+          `MAXFREQ'.
+
+    `long int maxerror'
+          This is the maximum error, measured in microseconds.  A new
+          value can be set using bit `MOD_MAXERROR'.  Unless updated via
+          `ntp_adjtime' periodically, this value will increase steadily
+          and reach some platform-specific maximum value.
+
+    `long int esterror'
+          This is the estimated error, measured in microseconds.  This
+          value can be set using bit `MOD_ESTERROR'.
+
+    `int status'
+          This variable reflects the various states of the clock
+          machinery.  There are symbolic constants for the significant
+          bits, starting with `STA_'.  Some of these flags can be
+          updated using the `MOD_STATUS' bit.
+
+    `long int constant'
+          This value represents the bandwidth or stiffness of the PLL
+          (phase locked loop) implemented in the kernel.  The value can
+          be changed using bit `MOD_TIMECONST'.
+
+    `long int precision'
+          This value represents the accuracy or the maximum error when
+          reading the system clock.  The value is expressed in
+          microseconds.
+
+    `long int tolerance'
+          This value represents the maximum frequency error of the
+          system clock in scaled PPM.  This value is used to increase
+          the `maxerror' every second.
+
+    `struct timeval time'
+          The current calendar time.
+
+    `long int tick'
+          The elapsed time between clock ticks in microseconds.  A
+          clock tick is a periodic timer interrupt on which the system
+          clock is based.
+
+    `long int ppsfreq'
+          This is the first of a few optional variables that are
+          present only if the system clock can use a PPS (pulse per
+          second) signal to discipline the system clock.  The value is
+          expressed in scaled PPM and it denotes the difference in
+          frequency between the system clock and the PPS signal.
+
+    `long int jitter'
+          This value expresses a median filtered average of the PPS
+          signal's dispersion in microseconds.
+
+    `int shift'
+          This value is a binary exponent for the duration of the PPS
+          calibration interval, ranging from `PPS_SHIFT' to
+          `PPS_SHIFTMAX'.
+
+    `long int stabil'
+          This value represents the median filtered dispersion of the
+          PPS frequency in scaled PPM.
+
+    `long int jitcnt'
+          This counter represents the number of pulses where the jitter
+          exceeded the allowed maximum `MAXTIME'.
+
+    `long int calcnt'
+          This counter reflects the number of successful calibration
+          intervals.
+
+    `long int errcnt'
+          This counter represents the number of calibration errors
+          (caused by large offsets or jitter).
+
+    `long int stbcnt'
+          This counter denotes the number of of calibrations where the
+          stability exceeded the threshold.
+
+ - Function: int ntp_adjtime (struct timex *TPTR)
+     The `ntp_adjtime' function sets the structure specified by TPTR to
+     current values.
+
+     In addition, `ntp_adjtime' updates some settings to match what you
+     pass to it in *TPTR.  Use the `modes' element of *TPTR to select
+     what settings to update.  You can set `offset', `freq',
+     `maxerror', `esterror', `status', `constant', and `tick'.
+
+     `modes' = zero means set nothing.
+
+     Only the superuser can update settings.
+
+     The return value is `0' on success and other values on failure.
+     The following `errno' error conditions are defined for this
+     function:
+
+    `TIME_ERROR'
+          The high accuracy clock model is not properly set up at the
+          moment, thus the clock must be considered unsynchronized, and
+          the values should be treated with care.  Another reason could
+          be that the specified new values are not allowed.
+
+    `EPERM'
+          The process specified a settings update, but is not superuser.
+
+     For more details see RFC1305 (Network Time Protocol, Version 3) and
+     related documents.
+
+     *Portability note:* Early versions of the GNU C library did not
+     have this function but did have the synonymous `adjtimex'.
+
+

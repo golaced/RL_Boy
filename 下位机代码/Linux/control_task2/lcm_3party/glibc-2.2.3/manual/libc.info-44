@@ -1,0 +1,1252 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Process Persona,  Next: Why Change Persona,  Prev: User and Group IDs,  Up: Users and Groups
+
+The Persona of a Process
+========================
+
+   At any time, each process has an "effective user ID", a "effective
+group ID", and a set of "supplementary group IDs".  These IDs determine
+the privileges of the process.  They are collectively called the
+"persona" of the process, because they determine "who it is" for
+purposes of access control.
+
+   Your login shell starts out with a persona which consists of your
+user ID, your default group ID, and your supplementary group IDs (if
+you are in more than one group).  In normal circumstances, all your
+other processes inherit these values.
+
+   A process also has a "real user ID" which identifies the user who
+created the process, and a "real group ID" which identifies that user's
+default group.  These values do not play a role in access control, so
+we do not consider them part of the persona.  But they are also
+important.
+
+   Both the real and effective user ID can be changed during the
+lifetime of a process.  *Note Why Change Persona::.
+
+   For details on how a process's effective user ID and group IDs affect
+its permission to access files, see *Note Access Permission::.
+
+   The effective user ID of a process also controls permissions for
+sending signals using the `kill' function.  *Note Signaling Another
+Process::.
+
+   Finally, there are many operations which can only be performed by a
+process whose effective user ID is zero.  A process with this user ID is
+a "privileged process".  Commonly the user name `root' is associated
+with user ID 0, but there may be other user names with this ID.
+
+
+File: libc.info,  Node: Why Change Persona,  Next: How Change Persona,  Prev: Process Persona,  Up: Users and Groups
+
+Why Change the Persona of a Process?
+====================================
+
+   The most obvious situation where it is necessary for a process to
+change its user and/or group IDs is the `login' program.  When `login'
+starts running, its user ID is `root'.  Its job is to start a shell
+whose user and group IDs are those of the user who is logging in.  (To
+accomplish this fully, `login' must set the real user and group IDs as
+well as its persona.  But this is a special case.)
+
+   The more common case of changing persona is when an ordinary user
+program needs access to a resource that wouldn't ordinarily be
+accessible to the user actually running it.
+
+   For example, you may have a file that is controlled by your program
+but that shouldn't be read or modified directly by other users, either
+because it implements some kind of locking protocol, or because you want
+to preserve the integrity or privacy of the information it contains.
+This kind of restricted access can be implemented by having the program
+change its effective user or group ID to match that of the resource.
+
+   Thus, imagine a game program that saves scores in a file.  The game
+program itself needs to be able to update this file no matter who is
+running it, but if users can write the file without going through the
+game, they can give themselves any scores they like.  Some people
+consider this undesirable, or even reprehensible.  It can be prevented
+by creating a new user ID and login name (say, `games') to own the
+scores file, and make the file writable only by this user.  Then, when
+the game program wants to update this file, it can change its effective
+user ID to be that for `games'.  In effect, the program must adopt the
+persona of `games' so it can write the scores file.
+
+
+File: libc.info,  Node: How Change Persona,  Next: Reading Persona,  Prev: Why Change Persona,  Up: Users and Groups
+
+How an Application Can Change Persona
+=====================================
+
+   The ability to change the persona of a process can be a source of
+unintentional privacy violations, or even intentional abuse.  Because of
+the potential for problems, changing persona is restricted to special
+circumstances.
+
+   You can't arbitrarily set your user ID or group ID to anything you
+want; only privileged processes can do that.  Instead, the normal way
+for a program to change its persona is that it has been set up in
+advance to change to a particular user or group.  This is the function
+of the setuid and setgid bits of a file's access mode.  *Note
+Permission Bits::.
+
+   When the setuid bit of an executable file is on, executing that file
+gives the process a third user ID: the "file user ID".  This ID is set
+to the owner ID of the file.  The system then changes the effective
+user ID to the file user ID.  The real user ID remains as it was.
+Likewise, if the setgid bit is on, the process is given a "file group
+ID" equal to the group ID of the file, and its effective group ID is
+changed to the file group ID.
+
+   If a process has a file ID (user or group), then it can at any time
+change its effective ID to its real ID and back to its file ID.
+Programs use this feature to relinquish their special privileges except
+when they actually need them.  This makes it less likely that they can
+be tricked into doing something inappropriate with their privileges.
+
+   *Portability Note:* Older systems do not have file IDs.  To
+determine if a system has this feature, you can test the compiler
+define `_POSIX_SAVED_IDS'.  (In the POSIX standard, file IDs are known
+as saved IDs.)
+
+   *Note File Attributes::, for a more general discussion of file modes
+and accessibility.
+
+
+File: libc.info,  Node: Reading Persona,  Next: Setting User ID,  Prev: How Change Persona,  Up: Users and Groups
+
+Reading the Persona of a Process
+================================
+
+   Here are detailed descriptions of the functions for reading the user
+and group IDs of a process, both real and effective.  To use these
+facilities, you must include the header files `sys/types.h' and
+`unistd.h'.
+
+ - Data Type: uid_t
+     This is an integer data type used to represent user IDs.  In the
+     GNU library, this is an alias for `unsigned int'.
+
+ - Data Type: gid_t
+     This is an integer data type used to represent group IDs.  In the
+     GNU library, this is an alias for `unsigned int'.
+
+ - Function: uid_t getuid (void)
+     The `getuid' function returns the real user ID of the process.
+
+ - Function: gid_t getgid (void)
+     The `getgid' function returns the real group ID of the process.
+
+ - Function: uid_t geteuid (void)
+     The `geteuid' function returns the effective user ID of the
+     process.
+
+ - Function: gid_t getegid (void)
+     The `getegid' function returns the effective group ID of the
+     process.
+
+ - Function: int getgroups (int COUNT, gid_t *GROUPS)
+     The `getgroups' function is used to inquire about the supplementary
+     group IDs of the process.  Up to COUNT of these group IDs are
+     stored in the array GROUPS; the return value from the function is
+     the number of group IDs actually stored.  If COUNT is smaller than
+     the total number of supplementary group IDs, then `getgroups'
+     returns a value of `-1' and `errno' is set to `EINVAL'.
+
+     If COUNT is zero, then `getgroups' just returns the total number
+     of supplementary group IDs.  On systems that do not support
+     supplementary groups, this will always be zero.
+
+     Here's how to use `getgroups' to read all the supplementary group
+     IDs:
+
+          gid_t *
+          read_all_groups (void)
+          {
+            int ngroups = getgroups (0, NULL);
+            gid_t *groups
+              = (gid_t *) xmalloc (ngroups * sizeof (gid_t));
+            int val = getgroups (ngroups, groups);
+            if (val < 0)
+              {
+                free (groups);
+                return NULL;
+              }
+            return groups;
+          }
+
+
+File: libc.info,  Node: Setting User ID,  Next: Setting Groups,  Prev: Reading Persona,  Up: Users and Groups
+
+Setting the User ID
+===================
+
+   This section describes the functions for altering the user ID (real
+and/or effective) of a process.  To use these facilities, you must
+include the header files `sys/types.h' and `unistd.h'.
+
+ - Function: int seteuid (uid_t NEWEUID)
+     This function sets the effective user ID of a process to NEWUID,
+     provided that the process is allowed to change its effective user
+     ID.  A privileged process (effective user ID zero) can change its
+     effective user ID to any legal value.  An unprivileged process
+     with a file user ID can change its effective user ID to its real
+     user ID or to its file user ID.  Otherwise, a process may not
+     change its effective user ID at all.
+
+     The `seteuid' function returns a value of `0' to indicate
+     successful completion, and a value of `-1' to indicate an error.
+     The following `errno' error conditions are defined for this
+     function:
+
+    `EINVAL'
+          The value of the NEWUID argument is invalid.
+
+    `EPERM'
+          The process may not change to the specified ID.
+
+     Older systems (those without the `_POSIX_SAVED_IDS' feature) do not
+     have this function.
+
+ - Function: int setuid (uid_t NEWUID)
+     If the calling process is privileged, this function sets both the
+     real and effective user ID of the process to NEWUID.  It also
+     deletes the file user ID of the process, if any.  NEWUID may be any
+     legal value.  (Once this has been done, there is no way to recover
+     the old effective user ID.)
+
+     If the process is not privileged, and the system supports the
+     `_POSIX_SAVED_IDS' feature, then this function behaves like
+     `seteuid'.
+
+     The return values and error conditions are the same as for
+     `seteuid'.
+
+ - Function: int setreuid (uid_t RUID, uid_t EUID)
+     This function sets the real user ID of the process to RUID and the
+     effective user ID to EUID.  If RUID is `-1', it means not to
+     change the real user ID; likewise if EUID is `-1', it means not to
+     change the effective user ID.
+
+     The `setreuid' function exists for compatibility with 4.3 BSD Unix,
+     which does not support file IDs.  You can use this function to
+     swap the effective and real user IDs of the process.  (Privileged
+     processes are not limited to this particular usage.)  If file IDs
+     are supported, you should use that feature instead of this
+     function.  *Note Enable/Disable Setuid::.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EPERM'
+          The process does not have the appropriate privileges; you do
+          not have permission to change to the specified ID.
+
+
+File: libc.info,  Node: Setting Groups,  Next: Enable/Disable Setuid,  Prev: Setting User ID,  Up: Users and Groups
+
+Setting the Group IDs
+=====================
+
+   This section describes the functions for altering the group IDs (real
+and effective) of a process.  To use these facilities, you must include
+the header files `sys/types.h' and `unistd.h'.
+
+ - Function: int setegid (gid_t NEWGID)
+     This function sets the effective group ID of the process to
+     NEWGID, provided that the process is allowed to change its group
+     ID.  Just as with `seteuid', if the process is privileged it may
+     change its effective group ID to any value; if it isn't, but it
+     has a file group ID, then it may change to its real group ID or
+     file group ID; otherwise it may not change its effective group ID.
+
+     Note that a process is only privileged if its effective _user_ ID
+     is zero.  The effective group ID only affects access permissions.
+
+     The return values and error conditions for `setegid' are the same
+     as those for `seteuid'.
+
+     This function is only present if `_POSIX_SAVED_IDS' is defined.
+
+ - Function: int setgid (gid_t NEWGID)
+     This function sets both the real and effective group ID of the
+     process to NEWGID, provided that the process is privileged.  It
+     also deletes the file group ID, if any.
+
+     If the process is not privileged, then `setgid' behaves like
+     `setegid'.
+
+     The return values and error conditions for `setgid' are the same
+     as those for `seteuid'.
+
+ - Function: int setregid (gid_t RGID, gid_t EGID)
+     This function sets the real group ID of the process to RGID and
+     the effective group ID to EGID.  If RGID is `-1', it means not to
+     change the real group ID; likewise if EGID is `-1', it means not
+     to change the effective group ID.
+
+     The `setregid' function is provided for compatibility with 4.3 BSD
+     Unix, which does not support file IDs.  You can use this function
+     to swap the effective and real group IDs of the process.
+     (Privileged processes are not limited to this usage.)  If file IDs
+     are supported, you should use that feature instead of using this
+     function.  *Note Enable/Disable Setuid::.
+
+     The return values and error conditions for `setregid' are the same
+     as those for `setreuid'.
+
+   `setuid' and `setgid' behave differently depending on whether the
+effective user ID at the time is zero.  If it is not zero, they behave
+like `seteuid' and `setegid'.  If it is, they change both effective and
+real IDs and delete the file ID.  To avoid confusion, we recommend you
+always use `seteuid' and `setegid' except when you know the effective
+user ID is zero and your intent is to change the persona permanently.
+This case is rare--most of the programs that need it, such as `login'
+and `su', have already been written.
+
+   Note that if your program is setuid to some user other than `root',
+there is no way to drop privileges permanently.
+
+   The system also lets privileged processes change their supplementary
+group IDs.  To use `setgroups' or `initgroups', your programs should
+include the header file `grp.h'.
+
+ - Function: int setgroups (size_t COUNT, gid_t *GROUPS)
+     This function sets the process's supplementary group IDs.  It can
+     only be called from privileged processes.  The COUNT argument
+     specifies the number of group IDs in the array GROUPS.
+
+     This function returns `0' if successful and `-1' on error.  The
+     following `errno' error conditions are defined for this function:
+
+    `EPERM'
+          The calling process is not privileged.
+
+ - Function: int initgroups (const char *USER, gid_t GID)
+     The `initgroups' function sets the process's supplementary group
+     IDs to be the normal default for the user name USER. If GID is not
+     -1, it includes that group also.
+
+     This function works by scanning the group database for all the
+     groups USER belongs to.  It then calls `setgroups' with the list it
+     has constructed.
+
+     The return values and error conditions are the same as for
+     `setgroups'.
+
+
+File: libc.info,  Node: Enable/Disable Setuid,  Next: Setuid Program Example,  Prev: Setting Groups,  Up: Users and Groups
+
+Enabling and Disabling Setuid Access
+====================================
+
+   A typical setuid program does not need its special access all of the
+time.  It's a good idea to turn off this access when it isn't needed,
+so it can't possibly give unintended access.
+
+   If the system supports the `_POSIX_SAVED_IDS' feature, you can
+accomplish this with `seteuid'.  When the game program starts, its real
+user ID is `jdoe', its effective user ID is `games', and its saved user
+ID is also `games'.  The program should record both user ID values once
+at the beginning, like this:
+
+     user_user_id = getuid ();
+     game_user_id = geteuid ();
+
+   Then it can turn off game file access with
+
+     seteuid (user_user_id);
+
+and turn it on with
+
+     seteuid (game_user_id);
+
+Throughout this process, the real user ID remains `jdoe' and the file
+user ID remains `games', so the program can always set its effective
+user ID to either one.
+
+   On other systems that don't support file user IDs, you can turn
+setuid access on and off by using `setreuid' to swap the real and
+effective user IDs of the process, as follows:
+
+     setreuid (geteuid (), getuid ());
+
+This special case is always allowed--it cannot fail.
+
+   Why does this have the effect of toggling the setuid access?
+Suppose a game program has just started, and its real user ID is `jdoe'
+while its effective user ID is `games'.  In this state, the game can
+write the scores file.  If it swaps the two uids, the real becomes
+`games' and the effective becomes `jdoe'; now the program has only
+`jdoe' access.  Another swap brings `games' back to the effective user
+ID and restores access to the scores file.
+
+   In order to handle both kinds of systems, test for the saved user ID
+feature with a preprocessor conditional, like this:
+
+     #ifdef _POSIX_SAVED_IDS
+       setuid (user_user_id);
+     #else
+       setreuid (geteuid (), getuid ());
+     #endif
+
+
+File: libc.info,  Node: Setuid Program Example,  Next: Tips for Setuid,  Prev: Enable/Disable Setuid,  Up: Users and Groups
+
+Setuid Program Example
+======================
+
+   Here's an example showing how to set up a program that changes its
+effective user ID.
+
+   This is part of a game program called `caber-toss' that manipulates
+a file `scores' that should be writable only by the game program
+itself.  The program assumes that its executable file will be installed
+with the setuid bit set and owned by the same user as the `scores'
+file.  Typically, a system administrator will set up an account like
+`games' for this purpose.
+
+   The executable file is given mode `4755', so that doing an `ls -l'
+on it produces output like:
+
+     -rwsr-xr-x   1 games    184422 Jul 30 15:17 caber-toss
+
+The setuid bit shows up in the file modes as the `s'.
+
+   The scores file is given mode `644', and doing an `ls -l' on it
+shows:
+
+     -rw-r--r--  1 games           0 Jul 31 15:33 scores
+
+   Here are the parts of the program that show how to set up the changed
+user ID.  This program is conditionalized so that it makes use of the
+file IDs feature if it is supported, and otherwise uses `setreuid' to
+swap the effective and real user IDs.
+
+     #include <stdio.h>
+     #include <sys/types.h>
+     #include <unistd.h>
+     #include <stdlib.h>
+     
+     
+     /* Remember the effective and real UIDs. */
+     
+     static uid_t euid, ruid;
+     
+     
+     /* Restore the effective UID to its original value. */
+     
+     void
+     do_setuid (void)
+     {
+       int status;
+     
+     #ifdef _POSIX_SAVED_IDS
+       status = seteuid (euid);
+     #else
+       status = setreuid (ruid, euid);
+     #endif
+       if (status < 0) {
+         fprintf (stderr, "Couldn't set uid.\n");
+         exit (status);
+         }
+     }
+     
+     
+     /* Set the effective UID to the real UID. */
+     
+     void
+     undo_setuid (void)
+     {
+       int status;
+     
+     #ifdef _POSIX_SAVED_IDS
+       status = seteuid (ruid);
+     #else
+       status = setreuid (euid, ruid);
+     #endif
+       if (status < 0) {
+         fprintf (stderr, "Couldn't set uid.\n");
+         exit (status);
+         }
+     }
+     
+     /* Main program. */
+     
+     int
+     main (void)
+     {
+       /* Remember the real and effective user IDs.  */
+       ruid = getuid ();
+       euid = geteuid ();
+       undo_setuid ();
+     
+       /* Do the game and record the score.  */
+       ...
+     }
+
+   Notice how the first thing the `main' function does is to set the
+effective user ID back to the real user ID.  This is so that any other
+file accesses that are performed while the user is playing the game use
+the real user ID for determining permissions.  Only when the program
+needs to open the scores file does it switch back to the file user ID,
+like this:
+
+     /* Record the score. */
+     
+     int
+     record_score (int score)
+     {
+       FILE *stream;
+       char *myname;
+     
+       /* Open the scores file. */
+       do_setuid ();
+       stream = fopen (SCORES_FILE, "a");
+       undo_setuid ();
+     
+       /* Write the score to the file. */
+       if (stream)
+         {
+           myname = cuserid (NULL);
+           if (score < 0)
+             fprintf (stream, "%10s: Couldn't lift the caber.\n", myname);
+           else
+             fprintf (stream, "%10s: %d feet.\n", myname, score);
+           fclose (stream);
+           return 0;
+         }
+       else
+         return -1;
+     }
+
+
+File: libc.info,  Node: Tips for Setuid,  Next: Who Logged In,  Prev: Setuid Program Example,  Up: Users and Groups
+
+Tips for Writing Setuid Programs
+================================
+
+   It is easy for setuid programs to give the user access that isn't
+intended--in fact, if you want to avoid this, you need to be careful.
+Here are some guidelines for preventing unintended access and
+minimizing its consequences when it does occur:
+
+   * Don't have `setuid' programs with privileged user IDs such as
+     `root' unless it is absolutely necessary.  If the resource is
+     specific to your particular program, it's better to define a new,
+     nonprivileged user ID or group ID just to manage that resource.
+     It's better if you can write your program to use a special group
+     than a special user.
+
+   * Be cautious about using the `exec' functions in combination with
+     changing the effective user ID.  Don't let users of your program
+     execute arbitrary programs under a changed user ID.  Executing a
+     shell is especially bad news. Less obviously, the `execlp' and
+     `execvp' functions are a potential risk (since the program they
+     execute depends on the user's `PATH' environment variable).
+
+     If you must `exec' another program under a changed ID, specify an
+     absolute file name (*note File Name Resolution::) for the
+     executable, and make sure that the protections on that executable
+     and _all_ containing directories are such that ordinary users
+     cannot replace it with some other program.
+
+     You should also check the arguments passed to the program to make
+     sure they do not have unexpected effects.  Likewise, you should
+     examine the environment variables.  Decide which arguments and
+     variables are safe, and reject all others.
+
+     You should never use `system' in a privileged program, because it
+     invokes a shell.
+
+   * Only use the user ID controlling the resource in the part of the
+     program that actually uses that resource.  When you're finished
+     with it, restore the effective user ID back to the actual user's
+     user ID.  *Note Enable/Disable Setuid::.
+
+   * If the `setuid' part of your program needs to access other files
+     besides the controlled resource, it should verify that the real
+     user would ordinarily have permission to access those files.  You
+     can use the `access' function (*note Access Permission::) to check
+     this; it uses the real user and group IDs, rather than the
+     effective IDs.
+
+
+File: libc.info,  Node: Who Logged In,  Next: User Accounting Database,  Prev: Tips for Setuid,  Up: Users and Groups
+
+Identifying Who Logged In
+=========================
+
+   You can use the functions listed in this section to determine the
+login name of the user who is running a process, and the name of the
+user who logged in the current session.  See also the function `getuid'
+and friends (*note Reading Persona::).  How this information is
+collected by the system and how to control/add/remove information from
+the background storage is described in *Note User Accounting Database::.
+
+   The `getlogin' function is declared in `unistd.h', while `cuserid'
+and `L_cuserid' are declared in `stdio.h'.
+
+ - Function: char * getlogin (void)
+     The `getlogin' function returns a pointer to a string containing
+     the name of the user logged in on the controlling terminal of the
+     process, or a null pointer if this information cannot be
+     determined.  The string is statically allocated and might be
+     overwritten on subsequent calls to this function or to `cuserid'.
+
+ - Function: char * cuserid (char *STRING)
+     The `cuserid' function returns a pointer to a string containing a
+     user name associated with the effective ID of the process.  If
+     STRING is not a null pointer, it should be an array that can hold
+     at least `L_cuserid' characters; the string is returned in this
+     array.  Otherwise, a pointer to a string in a static area is
+     returned.  This string is statically allocated and might be
+     overwritten on subsequent calls to this function or to `getlogin'.
+
+     The use of this function is deprecated since it is marked to be
+     withdrawn in XPG4.2 and has already been removed from newer
+     revisions of POSIX.1.
+
+ - Macro: int L_cuserid
+     An integer constant that indicates how long an array you might
+     need to store a user name.
+
+   These functions let your program identify positively the user who is
+running or the user who logged in this session.  (These can differ when
+setuid programs are involved; see *Note Process Persona::.)  The user
+cannot do anything to fool these functions.
+
+   For most purposes, it is more useful to use the environment variable
+`LOGNAME' to find out who the user is.  This is more flexible precisely
+because the user can set `LOGNAME' arbitrarily.  *Note Standard
+Environment::.
+
+
+File: libc.info,  Node: User Accounting Database,  Next: User Database,  Prev: Who Logged In,  Up: Users and Groups
+
+The User Accounting Database
+============================
+
+   Most Unix-like operating systems keep track of logged in users by
+maintaining a user accounting database.  This user accounting database
+stores for each terminal, who has logged on, at what time, the process
+ID of the user's login shell, etc., etc., but also stores information
+about the run level of the system, the time of the last system reboot,
+and possibly more.
+
+   The user accounting database typically lives in `/etc/utmp',
+`/var/adm/utmp' or `/var/run/utmp'.  However, these files should
+*never* be accessed directly.  For reading information from and writing
+information to the user accounting database, the functions described in
+this section should be used.
+
+* Menu:
+
+* Manipulating the Database::   Scanning and modifying the user
+                                 accounting database.
+* XPG Functions::               A standardized way for doing the same thing.
+* Logging In and Out::          Functions from BSD that modify the user
+                                 accounting database.
+
+
+File: libc.info,  Node: Manipulating the Database,  Next: XPG Functions,  Up: User Accounting Database
+
+Manipulating the User Accounting Database
+-----------------------------------------
+
+   These functions and the corresponding data structures are declared in
+the header file `utmp.h'.
+
+ - Data Type: struct exit_status
+     The `exit_status' data structure is used to hold information about
+     the exit status of processes marked as `DEAD_PROCESS' in the user
+     accounting database.
+
+    `short int e_termination'
+          The exit status of the process.
+
+    `short int e_exit'
+          The exit status of the process.
+
+ - Data Type: struct utmp
+     The `utmp' data structure is used to hold information about entries
+     in the user accounting database.  On the GNU system it has the
+     following members:
+
+    `short int ut_type'
+          Specifies the type of login; one of `EMPTY', `RUN_LVL',
+          `BOOT_TIME', `OLD_TIME', `NEW_TIME', `INIT_PROCESS',
+          `LOGIN_PROCESS', `USER_PROCESS', `DEAD_PROCESS' or
+          `ACCOUNTING'.
+
+    `pid_t ut_pid'
+          The process ID number of the login process.
+
+    `char ut_line[]'
+          The device name of the tty (without `/dev/').
+
+    `char ut_id[]'
+          The inittab ID of the process.
+
+    `char ut_user[]'
+          The user's login name.
+
+    `char ut_host[]'
+          The name of the host from which the user logged in.
+
+    `struct exit_status ut_exit'
+          The exit status of a process marked as `DEAD_PROCESS'.
+
+    `long ut_session'
+          The Session ID, used for windowing.
+
+    `struct timeval ut_tv'
+          Time the entry was made.  For entries of type `OLD_TIME' this
+          is the time when the system clock changed, and for entries of
+          type `NEW_TIME' this is the time the system clock was set to.
+
+    `int32_t ut_addr_v6[4]'
+          The Internet address of a remote host.
+
+   The `ut_type', `ut_pid', `ut_id', `ut_tv', and `ut_host' fields are
+not available on all systems.  Portable applications therefore should
+be prepared for these situations.  To help doing this the `utmp.h'
+header provides macros `_HAVE_UT_TYPE', `_HAVE_UT_PID', `_HAVE_UT_ID',
+`_HAVE_UT_TV', and `_HAVE_UT_HOST' if the respective field is
+available.  The programmer can handle the situations by using `#ifdef'
+in the program code.
+
+   The following macros are defined for use as values for the `ut_type'
+member of the `utmp' structure.  The values are integer constants.
+
+`EMPTY'
+     This macro is used to indicate that the entry contains no valid
+     user accounting information.
+
+`RUN_LVL'
+     This macro is used to identify the systems runlevel.
+
+`BOOT_TIME'
+     This macro is used to identify the time of system boot.
+
+`OLD_TIME'
+     This macro is used to identify the time when the system clock
+     changed.
+
+`NEW_TIME'
+     This macro is used to identify the time after the system changed.
+
+`INIT_PROCESS'
+     This macro is used to identify a process spawned by the init
+     process.
+
+`LOGIN_PROCESS'
+     This macro is used to identify the session leader of a logged in
+     user.
+
+`USER_PROCESS'
+     This macro is used to identify a user process.
+
+`DEAD_PROCESS'
+     This macro is used to identify a terminated process.
+
+`ACCOUNTING'
+     ???
+
+   The size of the `ut_line', `ut_id', `ut_user' and `ut_host' arrays
+can be found using the `sizeof' operator.
+
+   Many older systems have, instead of an `ut_tv' member, an `ut_time'
+member, usually of type `time_t', for representing the time associated
+with the entry.  Therefore, for backwards compatibility only, `utmp.h'
+defines `ut_time' as an alias for `ut_tv.tv_sec'.
+
+ - Function: void setutent (void)
+     This function opens the user accounting database to begin scanning
+     it.  You can then call `getutent', `getutid' or `getutline' to
+     read entries and `pututline' to write entries.
+
+     If the database is already open, it resets the input to the
+     beginning of the database.
+
+ - Function: struct utmp * getutent (void)
+     The `getutent' function reads the next entry from the user
+     accounting database.  It returns a pointer to the entry, which is
+     statically allocated and may be overwritten by subsequent calls to
+     `getutent'.  You must copy the contents of the structure if you
+     wish to save the information or you can use the `getutent_r'
+     function which stores the data in a user-provided buffer.
+
+     A null pointer is returned in case no further entry is available.
+
+ - Function: void endutent (void)
+     This function closes the user accounting database.
+
+ - Function: struct utmp * getutid (const struct utmp *ID)
+     This function searches forward from the current point in the
+     database for an entry that matches ID.  If the `ut_type' member of
+     the ID structure is one of `RUN_LVL', `BOOT_TIME', `OLD_TIME' or
+     `NEW_TIME' the entries match if the `ut_type' members are
+     identical.  If the `ut_type' member of the ID structure is
+     `INIT_PROCESS', `LOGIN_PROCESS', `USER_PROCESS' or `DEAD_PROCESS',
+     the entries match if the `ut_type' member of the entry read from
+     the database is one of these four, and the `ut_id' members match.
+     However if the `ut_id' member of either the ID structure or the
+     entry read from the database is empty it checks if the `ut_line'
+     members match instead.  If a matching entry is found, `getutid'
+     returns a pointer to the entry, which is statically allocated, and
+     may be overwritten by a subsequent call to `getutent', `getutid'
+     or `getutline'.  You must copy the contents of the structure if
+     you wish to save the information.
+
+     A null pointer is returned in case the end of the database is
+     reached without a match.
+
+     The `getutid' function may cache the last read entry.  Therefore,
+     if you are using `getutid' to search for multiple occurrences, it
+     is necessary to zero out the static data after each call.
+     Otherwise `getutid' could just return a pointer to the same entry
+     over and over again.
+
+ - Function: struct utmp * getutline (const struct utmp *LINE)
+     This function searches forward from the current point in the
+     database until it finds an entry whose `ut_type' value is
+     `LOGIN_PROCESS' or `USER_PROCESS', and whose `ut_line' member
+     matches the `ut_line' member of the LINE structure.  If it finds
+     such an entry, it returns a pointer to the entry which is
+     statically allocated, and may be overwritten by a subsequent call
+     to `getutent', `getutid' or `getutline'.  You must copy the
+     contents of the structure if you wish to save the information.
+
+     A null pointer is returned in case the end of the database is
+     reached without a match.
+
+     The `getutline' function may cache the last read entry.  Therefore
+     if you are using `getutline' to search for multiple occurrences, it
+     is necessary to zero out the static data after each call.
+     Otherwise `getutline' could just return a pointer to the same
+     entry over and over again.
+
+ - Function: struct utmp * pututline (const struct utmp *UTMP)
+     The `pututline' function inserts the entry `*UTMP' at the
+     appropriate place in the user accounting database.  If it finds
+     that it is not already at the correct place in the database, it
+     uses `getutid' to search for the position to insert the entry,
+     however this will not modify the static structure returned by
+     `getutent', `getutid' and `getutline'.  If this search fails, the
+     entry is appended to the database.
+
+     The `pututline' function returns a pointer to a copy of the entry
+     inserted in the user accounting database, or a null pointer if the
+     entry could not be added.  The following `errno' error conditions
+     are defined for this function:
+
+    `EPERM'
+          The process does not have the appropriate privileges; you
+          cannot modify the user accounting database.
+
+   All the `get*' functions mentioned before store the information they
+return in a static buffer.  This can be a problem in multi-threaded
+programs since the data returned for the request is overwritten by the
+return value data in another thread.  Therefore the GNU C Library
+provides as extensions three more functions which return the data in a
+user-provided buffer.
+
+ - Function: int getutent_r (struct utmp *BUFFER, struct utmp **RESULT)
+     The `getutent_r' is equivalent to the `getutent' function.  It
+     returns the next entry from the database.  But instead of storing
+     the information in a static buffer it stores it in the buffer
+     pointed to by the parameter BUFFER.
+
+     If the call was successful, the function returns `0' and the
+     pointer variable pointed to by the parameter RESULT contains a
+     pointer to the buffer which contains the result (this is most
+     probably the same value as BUFFER).  If something went wrong
+     during the execution of `getutent_r' the function returns `-1'.
+
+     This function is a GNU extension.
+
+ - Function: int getutid_r (const struct utmp *ID, struct utmp *BUFFER,
+          struct utmp **RESULT)
+     This function retrieves just like `getutid' the next entry matching
+     the information stored in ID.  But the result is stored in the
+     buffer pointed to by the parameter BUFFER.
+
+     If successful the function returns `0' and the pointer variable
+     pointed to by the parameter RESULT contains a pointer to the
+     buffer with the result (probably the same as RESULT.  If not
+     successful the function return `-1'.
+
+     This function is a GNU extension.
+
+ - Function: int getutline_r (const struct utmp *LINE, struct utmp
+          *BUFFER, struct utmp **RESULT)
+     This function retrieves just like `getutline' the next entry
+     matching the information stored in LINE.  But the result is stored
+     in the buffer pointed to by the parameter BUFFER.
+
+     If successful the function returns `0' and the pointer variable
+     pointed to by the parameter RESULT contains a pointer to the
+     buffer with the result (probably the same as RESULT.  If not
+     successful the function return `-1'.
+
+     This function is a GNU extension.
+
+   In addition to the user accounting database, most systems keep a
+number of similar databases.  For example most systems keep a log file
+with all previous logins (usually in `/etc/wtmp' or `/var/log/wtmp').
+
+   For specifying which database to examine, the following function
+should be used.
+
+ - Function: int utmpname (const char *FILE)
+     The `utmpname' function changes the name of the database to be
+     examined to FILE, and closes any previously opened database.  By
+     default `getutent', `getutid', `getutline' and `pututline' read
+     from and write to the user accounting database.
+
+     The following macros are defined for use as the FILE argument:
+
+      - Macro: char * _PATH_UTMP
+          This macro is used to specify the user accounting database.
+
+      - Macro: char * _PATH_WTMP
+          This macro is used to specify the user accounting log file.
+
+     The `utmpname' function returns a value of `0' if the new name was
+     successfully stored, and a value of `-1' to indicate an error.
+     Note that `utmpname' does not try to open the database, and that
+     therefore the return value does not say anything about whether the
+     database can be successfully opened.
+
+   Specially for maintaining log-like databases the GNU C Library
+provides the following function:
+
+ - Function: void updwtmp (const char *WTMP_FILE, const struct utmp
+          *UTMP)
+     The `updwtmp' function appends the entry *UTMP to the database
+     specified by WTMP_FILE.  For possible values for the WTMP_FILE
+     argument see the `utmpname' function.
+
+   *Portability Note:* Although many operating systems provide a subset
+of these functions, they are not standardized.  There are often subtle
+differences in the return types, and there are considerable differences
+between the various definitions of `struct utmp'.  When programming for
+the GNU system, it is probably best to stick with the functions
+described in this section.  If however, you want your program to be
+portable, consider using the XPG functions described in *Note XPG
+Functions::, or take a look at the BSD compatible functions in *Note
+Logging In and Out::.
+
+
+File: libc.info,  Node: XPG Functions,  Next: Logging In and Out,  Prev: Manipulating the Database,  Up: User Accounting Database
+
+XPG User Accounting Database Functions
+--------------------------------------
+
+   These functions, described in the X/Open Portability Guide, are
+declared in the header file `utmpx.h'.
+
+ - Data Type: struct utmpx
+     The `utmpx' data structure contains at least the following members:
+
+    `short int ut_type'
+          Specifies the type of login; one of `EMPTY', `RUN_LVL',
+          `BOOT_TIME', `OLD_TIME', `NEW_TIME', `INIT_PROCESS',
+          `LOGIN_PROCESS', `USER_PROCESS' or `DEAD_PROCESS'.
+
+    `pid_t ut_pid'
+          The process ID number of the login process.
+
+    `char ut_line[]'
+          The device name of the tty (without `/dev/').
+
+    `char ut_id[]'
+          The inittab ID of the process.
+
+    `char ut_user[]'
+          The user's login name.
+
+    `struct timeval ut_tv'
+          Time the entry was made.  For entries of type `OLD_TIME' this
+          is the time when the system clock changed, and for entries of
+          type `NEW_TIME' this is the time the system clock was set to.
+     On the GNU system, `struct utmpx' is identical to `struct utmp'
+     except for the fact that including `utmpx.h' does not make visible
+     the declaration of `struct exit_status'.
+
+   The following macros are defined for use as values for the `ut_type'
+member of the `utmpx' structure.  The values are integer constants and
+are, on the GNU system, identical to the definitions in `utmp.h'.
+
+`EMPTY'
+     This macro is used to indicate that the entry contains no valid
+     user accounting information.
+
+`RUN_LVL'
+     This macro is used to identify the systems runlevel.
+
+`BOOT_TIME'
+     This macro is used to identify the time of system boot.
+
+`OLD_TIME'
+     This macro is used to identify the time when the system clock
+     changed.
+
+`NEW_TIME'
+     This macro is used to identify the time after the system changed.
+
+`INIT_PROCESS'
+     This macro is used to identify a process spawned by the init
+     process.
+
+`LOGIN_PROCESS'
+     This macro is used to identify the session leader of a logged in
+     user.
+
+`USER_PROCESS'
+     This macro is used to identify a user process.
+
+`DEAD_PROCESS'
+     This macro is used to identify a terminated process.
+
+   The size of the `ut_line', `ut_id' and `ut_user' arrays can be found
+using the `sizeof' operator.
+
+ - Function: void setutxent (void)
+     This function is similar to `setutent'.  On the GNU system it is
+     simply an alias for `setutent'.
+
+ - Function: struct utmpx * getutxent (void)
+     The `getutxent' function is similar to `getutent', but returns a
+     pointer to a `struct utmpx' instead of `struct utmp'.  On the GNU
+     system it simply is an alias for `getutent'.
+
+ - Function: void endutxent (void)
+     This function is similar to `endutent'.  On the GNU system it is
+     simply an alias for `endutent'.
+
+ - Function: struct utmpx * getutxid (const struct utmpx *ID)
+     This function is similar to `getutid', but uses `struct utmpx'
+     instead of `struct utmp'.  On the GNU system it is simply an alias
+     for `getutid'.
+
+ - Function: struct utmpx * getutxline (const struct utmpx *LINE)
+     This function is similar to `getutid', but uses `struct utmpx'
+     instead of `struct utmp'.  On the GNU system it is simply an alias
+     for `getutline'.
+
+ - Function: struct utmpx * pututxline (const struct utmpx *UTMP)
+     The `pututxline' function is functionally identical to
+     `pututline', but uses `struct utmpx' instead of `struct utmp'.  On
+     the GNU system, `pututxline' is simply an alias for `pututline'.
+
+ - Function: int utmpxname (const char *FILE)
+     The `utmpxname' function is functionally identical to `utmpname'.
+     On the GNU system, `utmpxname' is simply an alias for `utmpname'.
+
+   You can translate between a traditional `struct utmp' and an XPG
+`struct utmpx' with the following functions.  On the GNU system, these
+functions are merely copies, since the two structures are identical.
+
+ - Function: int getutmp (const struct utmpx *utmpx, struct utmp *utmp)
+     `getutmp' copies the information, insofar as the structures are
+     compatible, from UTMPX to UTMP.
+
+ - Function: int getutmpx (const struct utmp *utmp, struct utmpx *utmpx)
+     `getutmpx' copies the information, insofar as the structures are
+     compatible, from UTMP to UTMPX.
+
+
+File: libc.info,  Node: Logging In and Out,  Prev: XPG Functions,  Up: User Accounting Database
+
+Logging In and Out
+------------------
+
+   These functions, derived from BSD, are available in the separate
+`libutil' library, and declared in `utmp.h'.
+
+   Note that the `ut_user' member of `struct utmp' is called `ut_name'
+in BSD.  Therefore, `ut_name' is defined as an alias for `ut_user' in
+`utmp.h'.
+
+ - Function: int login_tty (int FILEDES)
+     This function makes FILEDES the controlling terminal of the
+     current process, redirects standard input, standard output and
+     standard error output to this terminal, and closes FILEDES.
+
+     This function returns `0' on successful completion, and `-1' on
+     error.
+
+ - Function: void login (const struct utmp *ENTRY)
+     The `login' functions inserts an entry into the user accounting
+     database.  The `ut_line' member is set to the name of the terminal
+     on standard input.  If standard input is not a terminal `login'
+     uses standard output or standard error output to determine the
+     name of the terminal.  If `struct utmp' has a `ut_type' member,
+     `login' sets it to `USER_PROCESS', and if there is an `ut_pid'
+     member, it will be set to the process ID of the current process.
+     The remaining entries are copied from ENTRY.
+
+     A copy of the entry is written to the user accounting log file.
+
+ - Function: int logout (const char *UT_LINE)
+     This function modifies the user accounting database to indicate
+     that the user on UT_LINE has logged out.
+
+     The `logout' function returns `1' if the entry was successfully
+     written to the database, or `0' on error.
+
+ - Function: void logwtmp (const char *UT_LINE, const char *UT_NAME,
+          const char *UT_HOST)
+     The `logwtmp' function appends an entry to the user accounting log
+     file, for the current time and the information provided in the
+     UT_LINE, UT_NAME and UT_HOST arguments.
+
+   *Portability Note:* The BSD `struct utmp' only has the `ut_line',
+`ut_name', `ut_host' and `ut_time' members.  Older systems do not even
+have the `ut_host' member.
+
+
+File: libc.info,  Node: User Database,  Next: Group Database,  Prev: User Accounting Database,  Up: Users and Groups
+
+User Database
+=============
+
+   This section describes how to search and scan the database of
+registered users.  The database itself is kept in the file
+`/etc/passwd' on most systems, but on some systems a special network
+server gives access to it.
+
+* Menu:
+
+* User Data Structure::         What each user record contains.
+* Lookup User::                 How to look for a particular user.
+* Scanning All Users::          Scanning the list of all users, one by one.
+* Writing a User Entry::        How a program can rewrite a user's record.
+
+
+File: libc.info,  Node: User Data Structure,  Next: Lookup User,  Up: User Database
+
+The Data Structure that Describes a User
+----------------------------------------
+
+   The functions and data structures for accessing the system user
+database are declared in the header file `pwd.h'.
+
+ - Data Type: struct passwd
+     The `passwd' data structure is used to hold information about
+     entries in the system user data base.  It has at least the
+     following members:
+
+    `char *pw_name'
+          The user's login name.
+
+    `char *pw_passwd.'
+          The encrypted password string.
+
+    `uid_t pw_uid'
+          The user ID number.
+
+    `gid_t pw_gid'
+          The user's default group ID number.
+
+    `char *pw_gecos'
+          A string typically containing the user's real name, and
+          possibly other information such as a phone number.
+
+    `char *pw_dir'
+          The user's home directory, or initial working directory.
+          This might be a null pointer, in which case the
+          interpretation is system-dependent.
+
+    `char *pw_shell'
+          The user's default shell, or the initial program run when the
+          user logs in.  This might be a null pointer, indicating that
+          the system default should be used.
+
+
+File: libc.info,  Node: Lookup User,  Next: Scanning All Users,  Prev: User Data Structure,  Up: User Database
+
+Looking Up One User
+-------------------
+
+   You can search the system user database for information about a
+specific user using `getpwuid' or `getpwnam'.  These functions are
+declared in `pwd.h'.
+
+ - Function: struct passwd * getpwuid (uid_t UID)
+     This function returns a pointer to a statically-allocated structure
+     containing information about the user whose user ID is UID.  This
+     structure may be overwritten on subsequent calls to `getpwuid'.
+
+     A null pointer value indicates there is no user in the data base
+     with user ID UID.
+
+ - Function: int getpwuid_r (uid_t UID, struct passwd *RESULT_BUF, char
+          *BUFFER, size_t BUFLEN, struct passwd **RESULT)
+     This function is similar to `getpwuid' in that it returns
+     information about the user whose user ID is UID.  However, it
+     fills the user supplied structure pointed to by RESULT_BUF with
+     the information instead of using a static buffer.  The first
+     BUFLEN bytes of the additional buffer pointed to by BUFFER are
+     used to contain additional information, normally strings which are
+     pointed to by the elements of the result structure.
+
+     If a user with ID UID is found, the pointer returned in RESULT
+     points to the record which contains the wanted data (i.e., RESULT
+     contains the value RESULT_BUF).  If no user is found or if an
+     error occurred, the pointer returned in RESULT is a null pointer.
+     The function returns zero or an error code.  If the buffer BUFFER
+     is too small to contain all the needed information, the error code
+     `ERANGE' is returned and ERRNO is set to `ERANGE'.
+
+ - Function: struct passwd * getpwnam (const char *NAME)
+     This function returns a pointer to a statically-allocated structure
+     containing information about the user whose user name is NAME.
+     This structure may be overwritten on subsequent calls to
+     `getpwnam'.
+
+     A null pointer return indicates there is no user named NAME.
+
+ - Function: int getpwnam_r (const char *NAME, struct passwd
+          *RESULT_BUF, char *BUFFER, size_t BUFLEN, struct passwd
+          **RESULT)
+     This function is similar to `getpwnam' in that is returns
+     information about the user whose user name is NAME.  However, like
+     `getpwuid_r', it fills the user supplied buffers in RESULT_BUF and
+     BUFFER with the information instead of using a static buffer.
+
+     The return values are the same as for `getpwuid_r'.
+

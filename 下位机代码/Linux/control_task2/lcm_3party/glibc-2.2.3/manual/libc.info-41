@@ -1,0 +1,1252 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Argp Example 4,  Prev: Argp Example 3,  Up: Argp Examples
+
+A Program Using Multiple Combined Argp Parsers
+..............................................
+
+   This program uses the same features as example 3, but has more
+options, and somewhat more structure in the `--help' output.  It also
+shows how you can `steal' the remainder of the input arguments past a
+certain point, for programs that accept a list of items, and the special
+KEY value `ARGP_KEY_NO_ARGS', which is only given if no non-option
+arguments were supplied to the program (*note Argp Special Keys::).
+
+   For structuring the help output, two features are used: _headers_,
+which are entries in the options vector (*note Argp Option Vectors::)
+with the first four fields being zero, and a two part documentation
+string (in the variable `doc'), which allows documentation both before
+and after the options (*note Argp Parsers::); the two parts of `doc'
+are separated by a vertical-tab character (`'\v'', or `'\013'').  By
+convention, the documentation before the options is just a short string
+saying what the program does, and that afterwards is longer, describing
+the behavior in more detail.  All documentation strings are
+automatically filled for output, although newlines may be included to
+force a line break at a particular point.  All documentation strings
+are also passed to the `gettext' function, for possible translation
+into the current locale.
+
+     /* Argp example #4 - a program with somewhat more complicated options */
+     
+     /* This program uses the same features as example 3, but has more
+        options, and somewhat more structure in the -help output.  It
+        also shows how you can `steal' the remainder of the input
+        arguments past a certain point, for programs that accept a
+        list of items.  It also shows the special argp KEY value
+        ARGP_KEY_NO_ARGS, which is only given if no non-option
+        arguments were supplied to the program.
+     
+        For structuring the help output, two features are used,
+        *headers* which are entries in the options vector with the
+        first four fields being zero, and a two part documentation
+        string (in the variable DOC), which allows documentation both
+        before and after the options; the two parts of DOC are
+        separated by a vertical-tab character ('\v', or '\013').  By
+        convention, the documentation before the options is just a
+        short string saying what the program does, and that afterwards
+        is longer, describing the behavior in more detail.  All
+        documentation strings are automatically filled for output,
+        although newlines may be included to force a line break at a
+        particular point.  All documentation strings are also passed to
+        the `gettext' function, for possible translation into the
+        current locale. */
+     
+     #include <stdlib.h>
+     #include <error.h>
+     #include <argp.h>
+     
+     const char *argp_program_version =
+       "argp-ex4 1.0";
+     const char *argp_program_bug_address =
+       "<bug-gnu-utils@prep.ai.mit.edu>";
+     
+     /* Program documentation. */
+     static char doc[] =
+       "Argp example #4 -- a program with somewhat more complicated\
+     options\
+     \vThis part of the documentation comes *after* the options;\
+      note that the text is automatically filled, but it's possible\
+      to force a line-break, e.g.\n<-- here.";
+     
+     /* A description of the arguments we accept. */
+     static char args_doc[] = "ARG1 [STRING...]";
+     
+     /* Keys for options without short-options. */
+     #define OPT_ABORT  1            /* -abort */
+     
+     /* The options we understand. */
+     static struct argp_option options[] = {
+       {"verbose",  'v', 0,       0, "Produce verbose output" },
+       {"quiet",    'q', 0,       0, "Don't produce any output" },
+       {"silent",   's', 0,       OPTION_ALIAS },
+       {"output",   'o', "FILE",  0,
+        "Output to FILE instead of standard output" },
+     
+       {0,0,0,0, "The following options should be grouped together:" },
+       {"repeat",   'r', "COUNT", OPTION_ARG_OPTIONAL,
+        "Repeat the output COUNT (default 10) times"},
+       {"abort",    OPT_ABORT, 0, 0, "Abort before showing any output"},
+     
+       { 0 }
+     };
+     
+     /* Used by `main' to communicate with `parse_opt'. */
+     struct arguments
+     {
+       char *arg1;                   /* ARG1 */
+       char **strings;               /* [STRING...] */
+       int silent, verbose, abort;   /* `-s', `-v', `--abort' */
+       char *output_file;            /* FILE arg to `--output' */
+       int repeat_count;             /* COUNT arg to `--repeat' */
+     };
+     
+     /* Parse a single option. */
+     static error_t
+     parse_opt (int key, char *arg, struct argp_state *state)
+     {
+       /* Get the `input' argument from `argp_parse', which we
+          know is a pointer to our arguments structure. */
+       struct arguments *arguments = state->input;
+     
+       switch (key)
+         {
+         case 'q': case 's':
+           arguments->silent = 1;
+           break;
+         case 'v':
+           arguments->verbose = 1;
+           break;
+         case 'o':
+           arguments->output_file = arg;
+           break;
+         case 'r':
+           arguments->repeat_count = arg ? atoi (arg) : 10;
+           break;
+         case OPT_ABORT:
+           arguments->abort = 1;
+           break;
+     
+         case ARGP_KEY_NO_ARGS:
+           argp_usage (state);
+     
+         case ARGP_KEY_ARG:
+           /* Here we know that `state->arg_num == 0', since we
+              force argument parsing to end before any more arguments can
+              get here. */
+           arguments->arg1 = arg;
+     
+           /* Now we consume all the rest of the arguments.
+              `state->next' is the index in `state->argv' of the
+              next argument to be parsed, which is the first STRING
+              we're interested in, so we can just use
+              `&state->argv[state->next]' as the value for
+              arguments->strings.
+     
+              _In addition_, by setting `state->next' to the end
+              of the arguments, we can force argp to stop parsing here and
+              return. */
+           arguments->strings = &state->argv[state->next];
+           state->next = state->argc;
+     
+           break;
+     
+         default:
+           return ARGP_ERR_UNKNOWN;
+         }
+       return 0;
+     }
+     
+     /* Our argp parser. */
+     static struct argp argp = { options, parse_opt, args_doc, doc };
+     
+     int main (int argc, char **argv)
+     {
+       int i, j;
+       struct arguments arguments;
+     
+       /* Default values. */
+       arguments.silent = 0;
+       arguments.verbose = 0;
+       arguments.output_file = "-";
+       arguments.repeat_count = 1;
+       arguments.abort = 0;
+     
+       /* Parse our arguments; every option seen by `parse_opt' will be
+          reflected in `arguments'. */
+       argp_parse (&argp, argc, argv, 0, 0, &arguments);
+     
+       if (arguments.abort)
+         error (10, 0, "ABORTED");
+     
+       for (i = 0; i < arguments.repeat_count; i++)
+         {
+           printf ("ARG1 = %s\n", arguments.arg1);
+           printf ("STRINGS = ");
+           for (j = 0; arguments.strings[j]; j++)
+             printf (j == 0 ? "%s" : ", %s", arguments.strings[j]);
+           printf ("\n");
+           printf ("OUTPUT_FILE = %s\nVERBOSE = %s\nSILENT = %s\n",
+                   arguments.output_file,
+                   arguments.verbose ? "yes" : "no",
+                   arguments.silent ? "yes" : "no");
+         }
+     
+       exit (0);
+     }
+
+
+File: libc.info,  Node: Argp User Customization,  Prev: Argp Examples,  Up: Argp
+
+Argp User Customization
+-----------------------
+
+   The way formatting of argp `--help' output may be controlled to some
+extent by a program's users, by setting the `ARGP_HELP_FMT' environment
+variable to a comma-separated list (whitespace is ignored) of the
+following tokens:
+
+`dup-args'
+`no-dup-args'
+     Turn "duplicate-argument-mode" on or off.  In duplicate argument
+     mode, if an option which accepts an argument has multiple names,
+     the argument is shown for each name; otherwise, it is only shown
+     for the first long option, and a note is emitted later so the user
+     knows that it applies to the other names as well.  The default is
+     `no-dup-args', which is less consistent, but prettier.
+
+`dup-args-note'
+
+`no-dup-args-note'
+     Enable or disable the note informing the user of suppressed option
+     argument duplication.  The default is `dup-args-note'.
+
+`short-opt-col=N'
+     Show the first short option in column N (default 2).
+
+`long-opt-col=N'
+     Show the first long option in column N (default 6).
+
+`doc-opt-col=N'
+     Show `documentation options' (*note Argp Option Flags::) in column
+     N (default 2).
+
+`opt-doc-col=N'
+     Show the documentation for options starting in column N (default
+     29).
+
+`header-col=N'
+     Indent group headers (which document groups of options) to column
+     N (default 1).
+
+`usage-indent=N'
+     Indent continuation lines in `Usage:' messages to column N
+     (default 12).
+
+`rmargin=N'
+     Word wrap help output at or before column N (default 79).
+
+
+File: libc.info,  Node: Suboptions,  Next: Suboptions Example,  Prev: Argp,  Up: Parsing Program Arguments
+
+Parsing of Suboptions
+.....................
+
+   Having a single level of options is sometimes not enough.  There
+might be too many options which have to be available or a set of
+options is closely related.
+
+   For this case some programs use suboptions.  One of the most
+prominent programs is certainly `mount'(8).  The `-o' option take one
+argument which itself is a comma separated list of options.  To ease the
+programming of code like this the function `getsubopt' is available.
+
+ - Function: int getsubopt (char **OPTIONP, const char* const *TOKENS,
+          char **VALUEP)
+     The OPTIONP parameter must be a pointer to a variable containing
+     the address of the string to process.  When the function returns
+     the reference is updated to point to the next suboption or to the
+     terminating `\0' character if there is no more suboption available.
+
+     The TOKENS parameter references an array of strings containing the
+     known suboptions.  All strings must be `\0' terminated and to mark
+     the end a null pointer must be stored.  When `getsubopt' finds a
+     possible legal suboption it compares it with all strings available
+     in the TOKENS array and returns the index in the string as the
+     indicator.
+
+     In case the suboption has an associated value introduced by a `='
+     character, a pointer to the value is returned in VALUEP.  The
+     string is `\0' terminated.  If no argument is available VALUEP is
+     set to the null pointer.  By doing this the caller can check
+     whether a necessary value is given or whether no unexpected value
+     is present.
+
+     In case the next suboption in the string is not mentioned in the
+     TOKENS array the starting address of the suboption including a
+     possible value is returned in VALUEP and the return value of the
+     function is `-1'.
+
+
+File: libc.info,  Node: Suboptions Example,  Prev: Suboptions,  Up: Parsing Program Arguments
+
+Parsing of Suboptions Example
+-----------------------------
+
+   The code which might appear in the `mount'(8) program is a perfect
+example of the use of `getsubopt':
+
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <unistd.h>
+     
+     int do_all;
+     const char *type;
+     int read_size;
+     int write_size;
+     int read_only;
+     
+     enum
+     {
+       RO_OPTION = 0,
+       RW_OPTION,
+       READ_SIZE_OPTION,
+       WRITE_SIZE_OPTION,
+       THE_END
+     };
+     
+     const char *mount_opts[] =
+     {
+       [RO_OPTION] = "ro",
+       [RW_OPTION] = "rw",
+       [READ_SIZE_OPTION] = "rsize",
+       [WRITE_SIZE_OPTION] = "wsize",
+       [THE_END] = NULL
+     };
+     
+     int
+     main (int argc, char *argv[])
+     {
+       char *subopts, *value;
+       int opt;
+     
+       while ((opt = getopt (argc, argv, "at:o:")) != -1)
+         switch (opt)
+           {
+           case 'a':
+             do_all = 1;
+             break;
+           case 't':
+             type = optarg;
+             break;
+           case 'o':
+             subopts = optarg;
+             while (*subopts != '\0')
+               switch (getsubopt (&subopts, mount_opts, &value))
+                 {
+                 case RO_OPTION:
+                   read_only = 1;
+                   break;
+                 case RW_OPTION:
+                   read_only = 0;
+                   break;
+                 case READ_SIZE_OPTION:
+                   if (value == NULL)
+                     abort ();
+                   read_size = atoi (value);
+                   break;
+                 case WRITE_SIZE_OPTION:
+                   if (value == NULL)
+                     abort ();
+                   write_size = atoi (value);
+                   break;
+                 default:
+                   /* Unknown suboption. */
+                   printf ("Unknown suboption `%s'\n", value);
+                   break;
+                 }
+             break;
+           default:
+             abort ();
+           }
+     
+       /* Do the real work. */
+     
+       return 0;
+     }
+
+
+File: libc.info,  Node: Environment Variables,  Next: System Calls,  Prev: Program Arguments,  Up: Program Basics
+
+Environment Variables
+=====================
+
+   When a program is executed, it receives information about the
+context in which it was invoked in two ways.  The first mechanism uses
+the ARGV and ARGC arguments to its `main' function, and is discussed in
+*Note Program Arguments::.  The second mechanism uses "environment
+variables" and is discussed in this section.
+
+   The ARGV mechanism is typically used to pass command-line arguments
+specific to the particular program being invoked.  The environment, on
+the other hand, keeps track of information that is shared by many
+programs, changes infrequently, and that is less frequently used.
+
+   The environment variables discussed in this section are the same
+environment variables that you set using assignments and the `export'
+command in the shell.  Programs executed from the shell inherit all of
+the environment variables from the shell.
+
+   Standard environment variables are used for information about the
+user's home directory, terminal type, current locale, and so on; you
+can define additional variables for other purposes.  The set of all
+environment variables that have values is collectively known as the
+"environment".
+
+   Names of environment variables are case-sensitive and must not
+contain the character `='.  System-defined environment variables are
+invariably uppercase.
+
+   The values of environment variables can be anything that can be
+represented as a string.  A value must not contain an embedded null
+character, since this is assumed to terminate the string.
+
+* Menu:
+
+* Environment Access::          How to get and set the values of
+				 environment variables.
+* Standard Environment::        These environment variables have
+                		 standard interpretations.
+
+
+File: libc.info,  Node: Environment Access,  Next: Standard Environment,  Up: Environment Variables
+
+Environment Access
+------------------
+
+   The value of an environment variable can be accessed with the
+`getenv' function.  This is declared in the header file `stdlib.h'.
+All of the following functions can be safely used in multi-threaded
+programs.  It is made sure that concurrent modifications to the
+environment do not lead to errors.
+
+ - Function: char * getenv (const char *NAME)
+     This function returns a string that is the value of the environment
+     variable NAME.  You must not modify this string.  In some non-Unix
+     systems not using the GNU library, it might be overwritten by
+     subsequent calls to `getenv' (but not by any other library
+     function).  If the environment variable NAME is not defined, the
+     value is a null pointer.
+
+ - Function: int putenv (char *STRING)
+     The `putenv' function adds or removes definitions from the
+     environment.  If the STRING is of the form `NAME=VALUE', the
+     definition is added to the environment.  Otherwise, the STRING is
+     interpreted as the name of an environment variable, and any
+     definition for this variable in the environment is removed.
+
+     The difference to the `setenv' function is that the exact string
+     given as the parameter STRING is put into the environment.  If the
+     user should change the string after the `putenv' call this will
+     reflect in automatically in the environment.  This also requires
+     that STRING is no automatic variable which scope is left before the
+     variable is removed from the environment.  The same applies of
+     course to dynamically allocated variables which are freed later.
+
+     This function is part of the extended Unix interface.  Since it
+     was also available in old SVID libraries you should define either
+     _XOPEN_SOURCE or _SVID_SOURCE before including any header.
+
+ - Function: int setenv (const char *NAME, const char *VALUE, int
+          REPLACE)
+     The `setenv' function can be used to add a new definition to the
+     environment.  The entry with the name NAME is replaced by the
+     value `NAME=VALUE'.  Please note that this is also true if VALUE
+     is the empty string.  To do this a new string is created and the
+     strings NAME and VALUE are copied.  A null pointer for the VALUE
+     parameter is illegal.  If the environment already contains an
+     entry with key NAME the REPLACE parameter controls the action.  If
+     replace is zero, nothing happens.  Otherwise the old entry is
+     replaced by the new one.
+
+     Please note that you cannot remove an entry completely using this
+     function.
+
+     This function was originally part of the BSD library but is now
+     part of the Unix standard.
+
+ - Function: int unsetenv (const char *NAME)
+     Using this function one can remove an entry completely from the
+     environment.  If the environment contains an entry with the key
+     NAME this whole entry is removed.  A call to this function is
+     equivalent to a call to `putenv' when the VALUE part of the string
+     is empty.
+
+     The function return `-1' if NAME is a null pointer, points to an
+     empty string, or points to a string containing a `=' character.
+     It returns `0' if the call succeeded.
+
+     This function was originall part of the BSD library but is now
+     part of the Unix standard.  The BSD version had no return value,
+     though.
+
+   There is one more function to modify the whole environment.  This
+function is said to be used in the POSIX.9 (POSIX bindings for Fortran
+77) and so one should expect it did made it into POSIX.1.  But this
+never happened.  But we still provide this function as a GNU extension
+to enable writing standard compliant Fortran environments.
+
+ - Function: int clearenv (void)
+     The `clearenv' function removes all entries from the environment.
+     Using `putenv' and `setenv' new entries can be added again later.
+
+     If the function is successful it returns `0'.  Otherwise the return
+     value is nonzero.
+
+   You can deal directly with the underlying representation of
+environment objects to add more variables to the environment (for
+example, to communicate with another program you are about to execute;
+*note Executing a File::).
+
+ - Variable: char ** environ
+     The environment is represented as an array of strings.  Each
+     string is of the format `NAME=VALUE'.  The order in which strings
+     appear in the environment is not significant, but the same NAME
+     must not appear more than once.  The last element of the array is
+     a null pointer.
+
+     This variable is declared in the header file `unistd.h'.
+
+     If you just want to get the value of an environment variable, use
+     `getenv'.
+
+   Unix systems, and the GNU system, pass the initial value of
+`environ' as the third argument to `main'.  *Note Program Arguments::.
+
+
+File: libc.info,  Node: Standard Environment,  Prev: Environment Access,  Up: Environment Variables
+
+Standard Environment Variables
+------------------------------
+
+   These environment variables have standard meanings.  This doesn't
+mean that they are always present in the environment; but if these
+variables _are_ present, they have these meanings.  You shouldn't try
+to use these environment variable names for some other purpose.
+
+`HOME'
+     This is a string representing the user's "home directory", or
+     initial default working directory.
+
+     The user can set `HOME' to any value.  If you need to make sure to
+     obtain the proper home directory for a particular user, you should
+     not use `HOME'; instead, look up the user's name in the user
+     database (*note User Database::).
+
+     For most purposes, it is better to use `HOME', precisely because
+     this lets the user specify the value.
+
+`LOGNAME'
+     This is the name that the user used to log in.  Since the value in
+     the environment can be tweaked arbitrarily, this is not a reliable
+     way to identify the user who is running a program; a function like
+     `getlogin' (*note Who Logged In::) is better for that purpose.
+
+     For most purposes, it is better to use `LOGNAME', precisely because
+     this lets the user specify the value.
+
+`PATH'
+     A "path" is a sequence of directory names which is used for
+     searching for a file.  The variable `PATH' holds a path used for
+     searching for programs to be run.
+
+     The `execlp' and `execvp' functions (*note Executing a File::) use
+     this environment variable, as do many shells and other utilities
+     which are implemented in terms of those functions.
+
+     The syntax of a path is a sequence of directory names separated by
+     colons.  An empty string instead of a directory name stands for the
+     current directory (*note Working Directory::).
+
+     A typical value for this environment variable might be a string
+     like:
+
+          :/bin:/etc:/usr/bin:/usr/new/X11:/usr/new:/usr/local/bin
+
+     This means that if the user tries to execute a program named `foo',
+     the system will look for files named `foo', `/bin/foo',
+     `/etc/foo', and so on.  The first of these files that exists is
+     the one that is executed.
+
+`TERM'
+     This specifies the kind of terminal that is receiving program
+     output.  Some programs can make use of this information to take
+     advantage of special escape sequences or terminal modes supported
+     by particular kinds of terminals.  Many programs which use the
+     termcap library (*note Find: (termcap)Finding a Terminal
+     Description.) use the `TERM' environment variable, for example.
+
+`TZ'
+     This specifies the time zone.  *Note TZ Variable::, for
+     information about the format of this string and how it is used.
+
+`LANG'
+     This specifies the default locale to use for attribute categories
+     where neither `LC_ALL' nor the specific environment variable for
+     that category is set.  *Note Locales::, for more information about
+     locales.
+
+`LC_ALL'
+     If this environment variable is set it overrides the selection for
+     all the locales done using the other `LC_*' environment variables.
+     The value of the other `LC_*' environment variables is simply
+     ignored in this case.
+
+`LC_COLLATE'
+     This specifies what locale to use for string sorting.
+
+`LC_CTYPE'
+     This specifies what locale to use for character sets and character
+     classification.
+
+`LC_MESSAGES'
+     This specifies what locale to use for printing messages and to
+     parse responses.
+
+`LC_MONETARY'
+     This specifies what locale to use for formatting monetary values.
+
+`LC_NUMERIC'
+     This specifies what locale to use for formatting numbers.
+
+`LC_TIME'
+     This specifies what locale to use for formatting date/time values.
+
+`NLSPATH'
+     This specifies the directories in which the `catopen' function
+     looks for message translation catalogs.
+
+`_POSIX_OPTION_ORDER'
+     If this environment variable is defined, it suppresses the usual
+     reordering of command line arguments by `getopt' and `argp_parse'.
+     *Note Argument Syntax::.
+
+
+File: libc.info,  Node: System Calls,  Next: Program Termination,  Prev: Environment Variables,  Up: Program Basics
+
+System Calls
+============
+
+   A system call is a request for service that a program makes of the
+kernel.  The service is generally something that only the kernel has
+the privilege to do, such as doing I/O.  Programmers don't normally
+need to be concerned with system calls because there are functions in
+the GNU C library to do virtually everything that system calls do.
+These functions work by making system calls themselves.  For example,
+there is a system call that changes the permissions of a file, but you
+don't need to know about it because you can just use the GNU C
+library's `chmod' function.
+
+   System calls are sometimes called kernel calls.
+
+   However, there are times when you want to make a system call
+explicitly, and for that, the GNU C library provides the `syscall'
+function.  `syscall' is harder to use and less portable than functions
+like `chmod', but easier and more portable than coding the system call
+in assembler instructions.
+
+   `syscall' is most useful when you are working with a system call
+which is special to your system or is newer than the GNU C library you
+are using.  `syscall' is implemented in an entirely generic way; the
+function does not know anything about what a particular system call
+does or even if it is valid.
+
+   The description of `syscall' in this section assumes a certain
+protocol for system calls on the various platforms on which the GNU C
+library runs.  That protocol is not defined by any strong authority, but
+we won't describe it here either because anyone who is coding `syscall'
+probably won't accept anything less than kernel and C library source
+code as a specification of the interface between them anyway.
+
+   `syscall' is declared in `unistd.h'.
+
+ - Function: long int syscall (long int SYSNO, ...)
+     `syscall' performs a generic system call.
+
+     SYSNO is the system call number.  Each kind of system call is
+     identified by a number.  Macros for all the possible system call
+     numbers are defined in `sys/syscall.h'
+
+     The remaining arguments are the arguments for the system call, in
+     order, and their meanings depend on the kind of system call.  Each
+     kind of system call has a definite number of arguments, from zero
+     to five.  If you code more arguments than the system call takes,
+     the extra ones to the right are ignored.
+
+     The return value is the return value from the system call, unless
+     the system call failed.  In that case, `syscall' returns `-1' and
+     sets `errno' to an error code that the system call returned.  Note
+     that system calls do not return `-1' when they succeed.
+
+     If you specify an invalid SYSNO, `syscall' returns `-1' with
+     `errno' = `ENOSYS'.
+
+     Example:
+
+
+          #include <unistd.h>
+          #include <sys/syscall.h>
+          #include <errno.h>
+          
+          ...
+          
+          int rc;
+          
+          rc = syscall(SYS_chmod, "/etc/passwd", 0444);
+          
+          if (rc == -1)
+             fprintf(stderr, "chmod failed, errno = %d\n", errno);
+
+     This, if all the compatibility stars are aligned, is equivalent to
+     the following preferable code:
+
+
+          #include <sys/types.h>
+          #include <sys/stat.h>
+          #include <errno.h>
+          
+          ...
+          
+          int rc;
+          
+          rc = chmod("/etc/passwd", 0444);
+          if (rc == -1)
+             fprintf(stderr, "chmod failed, errno = %d\n", errno);
+
+
+
+File: libc.info,  Node: Program Termination,  Prev: System Calls,  Up: Program Basics
+
+Program Termination
+===================
+
+   The usual way for a program to terminate is simply for its `main'
+function to return.  The "exit status value" returned from the `main'
+function is used to report information back to the process's parent
+process or shell.
+
+   A program can also terminate normally by calling the `exit' function.
+
+   In addition, programs can be terminated by signals; this is
+discussed in more detail in *Note Signal Handling::.  The `abort'
+function causes a signal that kills the program.
+
+* Menu:
+
+* Normal Termination::          If a program calls `exit', a
+                                 process terminates normally.
+* Exit Status::                 The `exit status' provides information
+                                 about why the process terminated.
+* Cleanups on Exit::            A process can run its own cleanup
+                                 functions upon normal termination.
+* Aborting a Program::          The `abort' function causes
+                                 abnormal program termination.
+* Termination Internals::       What happens when a process terminates.
+
+
+File: libc.info,  Node: Normal Termination,  Next: Exit Status,  Up: Program Termination
+
+Normal Termination
+------------------
+
+   A process terminates normally when its program signals it is done by
+calling `exit'.  Returning from `main' is equivalent to calling `exit',
+and the value that `main' returns is used as the argument to `exit'.
+
+ - Function: void exit (int STATUS)
+     The `exit' function tells the system that the program is done,
+     which causes it to terminate the process.
+
+     STATUS is the program's exit status, which becomes part of the
+     process' termination status.  This function does not return.
+
+   Normal termination causes the following actions:
+
+  1. Functions that were registered with the `atexit' or `on_exit'
+     functions are called in the reverse order of their registration.
+     This mechanism allows your application to specify its own
+     "cleanup" actions to be performed at program termination.
+     Typically, this is used to do things like saving program state
+     information in a file, or unlocking locks in shared data bases.
+
+  2. All open streams are closed, writing out any buffered output data.
+     See *Note Closing Streams::.  In addition, temporary files opened
+     with the `tmpfile' function are removed; see *Note Temporary
+     Files::.
+
+  3. `_exit' is called, terminating the program.  *Note Termination
+     Internals::.
+
+
+File: libc.info,  Node: Exit Status,  Next: Cleanups on Exit,  Prev: Normal Termination,  Up: Program Termination
+
+Exit Status
+-----------
+
+   When a program exits, it can return to the parent process a small
+amount of information about the cause of termination, using the "exit
+status".  This is a value between 0 and 255 that the exiting process
+passes as an argument to `exit'.
+
+   Normally you should use the exit status to report very broad
+information about success or failure.  You can't provide a lot of
+detail about the reasons for the failure, and most parent processes
+would not want much detail anyway.
+
+   There are conventions for what sorts of status values certain
+programs should return.  The most common convention is simply 0 for
+success and 1 for failure.  Programs that perform comparison use a
+different convention: they use status 1 to indicate a mismatch, and
+status 2 to indicate an inability to compare.  Your program should
+follow an existing convention if an existing convention makes sense for
+it.
+
+   A general convention reserves status values 128 and up for special
+purposes.  In particular, the value 128 is used to indicate failure to
+execute another program in a subprocess.  This convention is not
+universally obeyed, but it is a good idea to follow it in your programs.
+
+   *Warning:* Don't try to use the number of errors as the exit status.
+This is actually not very useful; a parent process would generally not
+care how many errors occurred.  Worse than that, it does not work,
+because the status value is truncated to eight bits.  Thus, if the
+program tried to report 256 errors, the parent would receive a report
+of 0 errors--that is, success.
+
+   For the same reason, it does not work to use the value of `errno' as
+the exit status--these can exceed 255.
+
+   *Portability note:* Some non-POSIX systems use different conventions
+for exit status values.  For greater portability, you can use the
+macros `EXIT_SUCCESS' and `EXIT_FAILURE' for the conventional status
+value for success and failure, respectively.  They are declared in the
+file `stdlib.h'.
+
+ - Macro: int EXIT_SUCCESS
+     This macro can be used with the `exit' function to indicate
+     successful program completion.
+
+     On POSIX systems, the value of this macro is `0'.  On other
+     systems, the value might be some other (possibly non-constant)
+     integer expression.
+
+ - Macro: int EXIT_FAILURE
+     This macro can be used with the `exit' function to indicate
+     unsuccessful program completion in a general sense.
+
+     On POSIX systems, the value of this macro is `1'.  On other
+     systems, the value might be some other (possibly non-constant)
+     integer expression.  Other nonzero status values also indicate
+     failures.  Certain programs use different nonzero status values to
+     indicate particular kinds of "non-success".  For example, `diff'
+     uses status value `1' to mean that the files are different, and
+     `2' or more to mean that there was difficulty in opening the files.
+
+   Don't confuse a program's exit status with a process' termination
+status.  There are lots of ways a process can terminate besides having
+it's program finish.  In the event that the process termination _is_
+caused by program termination (i.e. `exit'), though, the program's exit
+status becomes part of the process' termination status.
+
+
+File: libc.info,  Node: Cleanups on Exit,  Next: Aborting a Program,  Prev: Exit Status,  Up: Program Termination
+
+Cleanups on Exit
+----------------
+
+   Your program can arrange to run its own cleanup functions if normal
+termination happens.  If you are writing a library for use in various
+application programs, then it is unreliable to insist that all
+applications call the library's cleanup functions explicitly before
+exiting.  It is much more robust to make the cleanup invisible to the
+application, by setting up a cleanup function in the library itself
+using `atexit' or `on_exit'.
+
+ - Function: int atexit (void (*FUNCTION) (void))
+     The `atexit' function registers the function FUNCTION to be called
+     at normal program termination.  The FUNCTION is called with no
+     arguments.
+
+     The return value from `atexit' is zero on success and nonzero if
+     the function cannot be registered.
+
+ - Function: int on_exit (void (*FUNCTION)(int STATUS, void *ARG), void
+          *ARG)
+     This function is a somewhat more powerful variant of `atexit'.  It
+     accepts two arguments, a function FUNCTION and an arbitrary
+     pointer ARG.  At normal program termination, the FUNCTION is
+     called with two arguments:  the STATUS value passed to `exit', and
+     the ARG.
+
+     This function is included in the GNU C library only for
+     compatibility for SunOS, and may not be supported by other
+     implementations.
+
+   Here's a trivial program that illustrates the use of `exit' and
+`atexit':
+
+     #include <stdio.h>
+     #include <stdlib.h>
+     
+     void
+     bye (void)
+     {
+       puts ("Goodbye, cruel world....");
+     }
+     
+     int
+     main (void)
+     {
+       atexit (bye);
+       exit (EXIT_SUCCESS);
+     }
+
+When this program is executed, it just prints the message and exits.
+
+
+File: libc.info,  Node: Aborting a Program,  Next: Termination Internals,  Prev: Cleanups on Exit,  Up: Program Termination
+
+Aborting a Program
+------------------
+
+   You can abort your program using the `abort' function.  The prototype
+for this function is in `stdlib.h'.
+
+ - Function: void abort (void)
+     The `abort' function causes abnormal program termination.  This
+     does not execute cleanup functions registered with `atexit' or
+     `on_exit'.
+
+     This function actually terminates the process by raising a
+     `SIGABRT' signal, and your program can include a handler to
+     intercept this signal; see *Note Signal Handling::.
+
+   *Future Change Warning:* Proposed Federal censorship regulations may
+prohibit us from giving you information about the possibility of
+calling this function.  We would be required to say that this is not an
+acceptable way of terminating a program.
+
+
+File: libc.info,  Node: Termination Internals,  Prev: Aborting a Program,  Up: Program Termination
+
+Termination Internals
+---------------------
+
+   The `_exit' function is the primitive used for process termination
+by `exit'.  It is declared in the header file `unistd.h'.
+
+ - Function: void _exit (int STATUS)
+     The `_exit' function is the primitive for causing a process to
+     terminate with status STATUS.  Calling this function does not
+     execute cleanup functions registered with `atexit' or `on_exit'.
+
+ - Function: void _Exit (int STATUS)
+     The `_Exit' function is the ISO C equivalent to `_exit'.  The
+     ISO C committee members were not sure whether the definitions of
+     `_exit' and `_Exit' were compatible so they have not used the
+     POSIX name.
+
+     This function was introduced in ISO C99 and is declared in
+     `stdlib.h'.
+
+   When a process terminates for any reason--either because the program
+terminates, or as a result of a signal--the following things happen:
+
+   * All open file descriptors in the process are closed.  *Note
+     Low-Level I/O::.  Note that streams are not flushed automatically
+     when the process terminates; see *Note I/O on Streams::.
+
+   * A process exit status is saved to be reported back to the parent
+     process via `wait' or `waitpid'; see *Note Process Completion::.
+     If the program exited, this status includes as its low-order 8
+     bits the program exit status.
+
+   * Any child processes of the process being terminated are assigned a
+     new parent process.  (On most systems, including GNU, this is the
+     `init' process, with process ID 1.)
+
+   * A `SIGCHLD' signal is sent to the parent process.
+
+   * If the process is a session leader that has a controlling
+     terminal, then a `SIGHUP' signal is sent to each process in the
+     foreground job, and the controlling terminal is disassociated from
+     that session.  *Note Job Control::.
+
+   * If termination of a process causes a process group to become
+     orphaned, and any member of that process group is stopped, then a
+     `SIGHUP' signal and a `SIGCONT' signal are sent to each process in
+     the group.  *Note Job Control::.
+
+
+File: libc.info,  Node: Processes,  Next: Job Control,  Prev: Program Basics,  Up: Top
+
+Processes
+*********
+
+   "Processes" are the primitive units for allocation of system
+resources.  Each process has its own address space and (usually) one
+thread of control.  A process executes a program; you can have multiple
+processes executing the same program, but each process has its own copy
+of the program within its own address space and executes it
+independently of the other copies.
+
+   Processes are organized hierarchically.  Each process has a "parent
+process" which explicitly arranged to create it.  The processes created
+by a given parent are called its "child processes".  A child inherits
+many of its attributes from the parent process.
+
+   This chapter describes how a program can create, terminate, and
+control child processes.  Actually, there are three distinct operations
+involved: creating a new child process, causing the new process to
+execute a program, and coordinating the completion of the child process
+with the original program.
+
+   The `system' function provides a simple, portable mechanism for
+running another program; it does all three steps automatically.  If you
+need more control over the details of how this is done, you can use the
+primitive functions to do each step individually instead.
+
+* Menu:
+
+* Running a Command::           The easy way to run another program.
+* Process Creation Concepts::   An overview of the hard way to do it.
+* Process Identification::      How to get the process ID of a process.
+* Creating a Process::          How to fork a child process.
+* Executing a File::            How to make a process execute another program.
+* Process Completion::          How to tell when a child process has completed.
+* Process Completion Status::   How to interpret the status value
+                                 returned from a child process.
+* BSD Wait Functions::  	More functions, for backward compatibility.
+* Process Creation Example::    A complete example program.
+
+
+File: libc.info,  Node: Running a Command,  Next: Process Creation Concepts,  Up: Processes
+
+Running a Command
+=================
+
+   The easy way to run another program is to use the `system' function.
+This function does all the work of running a subprogram, but it
+doesn't give you much control over the details: you have to wait until
+the subprogram terminates before you can do anything else.
+
+ - Function: int system (const char *COMMAND)
+     This function executes COMMAND as a shell command.  In the GNU C
+     library, it always uses the default shell `sh' to run the command.
+     In particular, it searches the directories in `PATH' to find
+     programs to execute.  The return value is `-1' if it wasn't
+     possible to create the shell process, and otherwise is the status
+     of the shell process.  *Note Process Completion::, for details on
+     how this status code can be interpreted.
+
+     If the COMMAND argument is a null pointer, a return value of zero
+     indicates that no command processor is available.
+
+     This function is a cancelation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `system' is called.  If the thread gets canceled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `system' should be protected using cancelation handlers.
+
+     The `system' function is declared in the header file `stdlib.h'.
+
+   *Portability Note:* Some C implementations may not have any notion
+of a command processor that can execute other programs.  You can
+determine whether a command processor exists by executing
+`system (NULL)'; if the return value is nonzero, a command processor is
+available.
+
+   The `popen' and `pclose' functions (*note Pipe to a Subprocess::)
+are closely related to the `system' function.  They allow the parent
+process to communicate with the standard input and output channels of
+the command being executed.
+
+
+File: libc.info,  Node: Process Creation Concepts,  Next: Process Identification,  Prev: Running a Command,  Up: Processes
+
+Process Creation Concepts
+=========================
+
+   This section gives an overview of processes and of the steps
+involved in creating a process and making it run another program.
+
+   Each process is named by a "process ID" number.  A unique process ID
+is allocated to each process when it is created.  The "lifetime" of a
+process ends when its termination is reported to its parent process; at
+that time, all of the process resources, including its process ID, are
+freed.
+
+   Processes are created with the `fork' system call (so the operation
+of creating a new process is sometimes called "forking" a process).
+The "child process" created by `fork' is a copy of the original "parent
+process", except that it has its own process ID.
+
+   After forking a child process, both the parent and child processes
+continue to execute normally.  If you want your program to wait for a
+child process to finish executing before continuing, you must do this
+explicitly after the fork operation, by calling `wait' or `waitpid'
+(*note Process Completion::).  These functions give you limited
+information about why the child terminated--for example, its exit
+status code.
+
+   A newly forked child process continues to execute the same program as
+its parent process, at the point where the `fork' call returns.  You
+can use the return value from `fork' to tell whether the program is
+running in the parent process or the child.
+
+   Having several processes run the same program is only occasionally
+useful.  But the child can execute another program using one of the
+`exec' functions; see *Note Executing a File::.  The program that the
+process is executing is called its "process image".  Starting execution
+of a new program causes the process to forget all about its previous
+process image; when the new program exits, the process exits too,
+instead of returning to the previous process image.
+
+
+File: libc.info,  Node: Process Identification,  Next: Creating a Process,  Prev: Process Creation Concepts,  Up: Processes
+
+Process Identification
+======================
+
+   The `pid_t' data type represents process IDs.  You can get the
+process ID of a process by calling `getpid'.  The function `getppid'
+returns the process ID of the parent of the current process (this is
+also known as the "parent process ID").  Your program should include
+the header files `unistd.h' and `sys/types.h' to use these functions.
+
+ - Data Type: pid_t
+     The `pid_t' data type is a signed integer type which is capable of
+     representing a process ID.  In the GNU library, this is an `int'.
+
+ - Function: pid_t getpid (void)
+     The `getpid' function returns the process ID of the current
+     process.
+
+ - Function: pid_t getppid (void)
+     The `getppid' function returns the process ID of the parent of the
+     current process.
+
+
+File: libc.info,  Node: Creating a Process,  Next: Executing a File,  Prev: Process Identification,  Up: Processes
+
+Creating a Process
+==================
+
+   The `fork' function is the primitive for creating a process.  It is
+declared in the header file `unistd.h'.
+
+ - Function: pid_t fork (void)
+     The `fork' function creates a new process.
+
+     If the operation is successful, there are then both parent and
+     child processes and both see `fork' return, but with different
+     values: it returns a value of `0' in the child process and returns
+     the child's process ID in the parent process.
+
+     If process creation failed, `fork' returns a value of `-1' in the
+     parent process.  The following `errno' error conditions are
+     defined for `fork':
+
+    `EAGAIN'
+          There aren't enough system resources to create another
+          process, or the user already has too many processes running.
+          This means exceeding the `RLIMIT_NPROC' resource limit, which
+          can usually be increased; *note Limits on Resources::.
+
+    `ENOMEM'
+          The process requires more space than the system can supply.
+
+   The specific attributes of the child process that differ from the
+parent process are:
+
+   * The child process has its own unique process ID.
+
+   * The parent process ID of the child process is the process ID of its
+     parent process.
+
+   * The child process gets its own copies of the parent process's open
+     file descriptors.  Subsequently changing attributes of the file
+     descriptors in the parent process won't affect the file
+     descriptors in the child, and vice versa.  *Note Control
+     Operations::.  However, the file position associated with each
+     descriptor is shared by both processes; *note File Position::.
+
+   * The elapsed processor times for the child process are set to zero;
+     see *Note Processor Time::.
+
+   * The child doesn't inherit file locks set by the parent process.
+     *Note Control Operations::.
+
+   * The child doesn't inherit alarms set by the parent process.  *Note
+     Setting an Alarm::.
+
+   * The set of pending signals (*note Delivery of Signal::) for the
+     child process is cleared.  (The child process inherits its mask of
+     blocked signals and signal actions from the parent process.)
+
+ - Function: pid_t vfork (void)
+     The `vfork' function is similar to `fork' but on some systems it
+     is more efficient; however, there are restrictions you must follow
+     to use it safely.
+
+     While `fork' makes a complete copy of the calling process's address
+     space and allows both the parent and child to execute
+     independently, `vfork' does not make this copy.  Instead, the
+     child process created with `vfork' shares its parent's address
+     space until it calls `_exit' or one of the `exec' functions.  In
+     the meantime, the parent process suspends execution.
+
+     You must be very careful not to allow the child process created
+     with `vfork' to modify any global data or even local variables
+     shared with the parent.  Furthermore, the child process cannot
+     return from (or do a long jump out of) the function that called
+     `vfork'!  This would leave the parent process's control
+     information very confused.  If in doubt, use `fork' instead.
+
+     Some operating systems don't really implement `vfork'.  The GNU C
+     library permits you to use `vfork' on all systems, but actually
+     executes `fork' if `vfork' isn't available.  If you follow the
+     proper precautions for using `vfork', your program will still work
+     even if the system uses `fork' instead.
+

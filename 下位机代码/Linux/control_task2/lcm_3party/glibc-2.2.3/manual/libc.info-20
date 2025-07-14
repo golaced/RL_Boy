@@ -1,0 +1,959 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Opening and Closing Files,  Next: I/O Primitives,  Up: Low-Level I/O
+
+Opening and Closing Files
+=========================
+
+   This section describes the primitives for opening and closing files
+using file descriptors.  The `open' and `creat' functions are declared
+in the header file `fcntl.h', while `close' is declared in `unistd.h'.
+
+ - Function: int open (const char *FILENAME, int FLAGS[, mode_t MODE])
+     The `open' function creates and returns a new file descriptor for
+     the file named by FILENAME.  Initially, the file position
+     indicator for the file is at the beginning of the file.  The
+     argument MODE is used only when a file is created, but it doesn't
+     hurt to supply the argument in any case.
+
+     The FLAGS argument controls how the file is to be opened.  This is
+     a bit mask; you create the value by the bitwise OR of the
+     appropriate parameters (using the `|' operator in C).  *Note File
+     Status Flags::, for the parameters available.
+
+     The normal return value from `open' is a non-negative integer file
+     descriptor.  In the case of an error, a value of -1 is returned
+     instead.  In addition to the usual file name errors (*note File
+     Name Errors::), the following `errno' error conditions are defined
+     for this function:
+
+    `EACCES'
+          The file exists but is not readable/writeable as requested by
+          the FLAGS argument, the file does not exist and the directory
+          is unwriteable so it cannot be created.
+
+    `EEXIST'
+          Both `O_CREAT' and `O_EXCL' are set, and the named file
+          already exists.
+
+    `EINTR'
+          The `open' operation was interrupted by a signal.  *Note
+          Interrupted Primitives::.
+
+    `EISDIR'
+          The FLAGS argument specified write access, and the file is a
+          directory.
+
+    `EMFILE'
+          The process has too many files open.  The maximum number of
+          file descriptors is controlled by the `RLIMIT_NOFILE'
+          resource limit; *note Limits on Resources::.
+
+    `ENFILE'
+          The entire system, or perhaps the file system which contains
+          the directory, cannot support any additional open files at
+          the moment.  (This problem cannot happen on the GNU system.)
+
+    `ENOENT'
+          The named file does not exist, and `O_CREAT' is not specified.
+
+    `ENOSPC'
+          The directory or file system that would contain the new file
+          cannot be extended, because there is no disk space left.
+
+    `ENXIO'
+          `O_NONBLOCK' and `O_WRONLY' are both set in the FLAGS
+          argument, the file named by FILENAME is a FIFO (*note Pipes
+          and FIFOs::), and no process has the file open for reading.
+
+    `EROFS'
+          The file resides on a read-only file system and any of
+          `O_WRONLY', `O_RDWR', and `O_TRUNC' are set in the FLAGS
+          argument, or `O_CREAT' is set and the file does not already
+          exist.
+
+     If on a 32 bit machine the sources are translated with
+     `_FILE_OFFSET_BITS == 64' the function `open' returns a file
+     descriptor opened in the large file mode which enables the file
+     handling functions to use files up to 2^63 bytes in size and
+     offset from -2^63 to 2^63.  This happens transparently for the user
+     since all of the lowlevel file handling functions are equally
+     replaced.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `open' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `open' should be protected using cancellation handlers.
+
+     The `open' function is the underlying primitive for the `fopen'
+     and `freopen' functions, that create streams.
+
+ - Function: int open64 (const char *FILENAME, int FLAGS[, mode_t MODE])
+     This function is similar to `open'.  It returns a file descriptor
+     which can be used to access the file named by FILENAME.  The only
+     difference is that on 32 bit systems the file is opened in the
+     large file mode.  I.e., file length and file offsets can exceed 31
+     bits.
+
+     When the sources are translated with `_FILE_OFFSET_BITS == 64' this
+     function is actually available under the name `open'.  I.e., the
+     new, extended API using 64 bit file sizes and offsets transparently
+     replaces the old API.
+
+ - Obsolete function: int creat (const char *FILENAME, mode_t MODE)
+     This function is obsolete.  The call:
+
+          creat (FILENAME, MODE)
+
+     is equivalent to:
+
+          open (FILENAME, O_WRONLY | O_CREAT | O_TRUNC, MODE)
+
+     If on a 32 bit machine the sources are translated with
+     `_FILE_OFFSET_BITS == 64' the function `creat' returns a file
+     descriptor opened in the large file mode which enables the file
+     handling functions to use files up to 2^63 in size and offset from
+     -2^63 to 2^63.  This happens transparently for the user since all
+     of the lowlevel file handling functions are equally replaced.
+
+ - Obsolete function: int creat64 (const char *FILENAME, mode_t MODE)
+     This function is similar to `creat'.  It returns a file descriptor
+     which can be used to access the file named by FILENAME.  The only
+     the difference is that on 32 bit systems the file is opened in the
+     large file mode.  I.e., file length and file offsets can exceed 31
+     bits.
+
+     To use this file descriptor one must not use the normal operations
+     but instead the counterparts named `*64', e.g., `read64'.
+
+     When the sources are translated with `_FILE_OFFSET_BITS == 64' this
+     function is actually available under the name `open'.  I.e., the
+     new, extended API using 64 bit file sizes and offsets transparently
+     replaces the old API.
+
+ - Function: int close (int FILEDES)
+     The function `close' closes the file descriptor FILEDES.  Closing
+     a file has the following consequences:
+
+        * The file descriptor is deallocated.
+
+        * Any record locks owned by the process on the file are
+          unlocked.
+
+        * When all file descriptors associated with a pipe or FIFO have
+          been closed, any unread data is discarded.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `close' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this, calls to
+     `close' should be protected using cancellation handlers.
+
+     The normal return value from `close' is 0; a value of -1 is
+     returned in case of failure.  The following `errno' error
+     conditions are defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `EINTR'
+          The `close' call was interrupted by a signal.  *Note
+          Interrupted Primitives::.  Here is an example of how to
+          handle `EINTR' properly:
+
+               TEMP_FAILURE_RETRY (close (desc));
+
+    `ENOSPC'
+    `EIO'
+    `EDQUOT'
+          When the file is accessed by NFS, these errors from `write'
+          can sometimes not be detected until `close'.  *Note I/O
+          Primitives::, for details on their meaning.
+
+     Please note that there is _no_ separate `close64' function.  This
+     is not necessary since this function does not determine nor depend
+     on the mode of the file.  The kernel which performs the `close'
+     operation knows which mode the descriptor is used for and can
+     handle this situation.
+
+   To close a stream, call `fclose' (*note Closing Streams::) instead
+of trying to close its underlying file descriptor with `close'.  This
+flushes any buffered output and updates the stream object to indicate
+that it is closed.
+
+
+File: libc.info,  Node: I/O Primitives,  Next: File Position Primitive,  Prev: Opening and Closing Files,  Up: Low-Level I/O
+
+Input and Output Primitives
+===========================
+
+   This section describes the functions for performing primitive input
+and output operations on file descriptors: `read', `write', and
+`lseek'.  These functions are declared in the header file `unistd.h'.
+
+ - Data Type: ssize_t
+     This data type is used to represent the sizes of blocks that can be
+     read or written in a single operation.  It is similar to `size_t',
+     but must be a signed type.
+
+ - Function: ssize_t read (int FILEDES, void *BUFFER, size_t SIZE)
+     The `read' function reads up to SIZE bytes from the file with
+     descriptor FILEDES, storing the results in the BUFFER.  (This is
+     not necessarily a character string, and no terminating null
+     character is added.)
+
+     The return value is the number of bytes actually read.  This might
+     be less than SIZE; for example, if there aren't that many bytes
+     left in the file or if there aren't that many bytes immediately
+     available.  The exact behavior depends on what kind of file it is.
+     Note that reading less than SIZE bytes is not an error.
+
+     A value of zero indicates end-of-file (except if the value of the
+     SIZE argument is also zero).  This is not considered an error.  If
+     you keep calling `read' while at end-of-file, it will keep
+     returning zero and doing nothing else.
+
+     If `read' returns at least one character, there is no way you can
+     tell whether end-of-file was reached.  But if you did reach the
+     end, the next read will return zero.
+
+     In case of an error, `read' returns -1.  The following `errno'
+     error conditions are defined for this function:
+
+    `EAGAIN'
+          Normally, when no input is immediately available, `read'
+          waits for some input.  But if the `O_NONBLOCK' flag is set
+          for the file (*note File Status Flags::), `read' returns
+          immediately without reading any data, and reports this error.
+
+          *Compatibility Note:* Most versions of BSD Unix use a
+          different error code for this: `EWOULDBLOCK'.  In the GNU
+          library, `EWOULDBLOCK' is an alias for `EAGAIN', so it
+          doesn't matter which name you use.
+
+          On some systems, reading a large amount of data from a
+          character special file can also fail with `EAGAIN' if the
+          kernel cannot find enough physical memory to lock down the
+          user's pages.  This is limited to devices that transfer with
+          direct memory access into the user's memory, which means it
+          does not include terminals, since they always use separate
+          buffers inside the kernel.  This problem never happens in the
+          GNU system.
+
+          Any condition that could result in `EAGAIN' can instead
+          result in a successful `read' which returns fewer bytes than
+          requested.  Calling `read' again immediately would result in
+          `EAGAIN'.
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor, or is
+          not open for reading.
+
+    `EINTR'
+          `read' was interrupted by a signal while it was waiting for
+          input.  *Note Interrupted Primitives::.  A signal will not
+          necessary cause `read' to return `EINTR'; it may instead
+          result in a successful `read' which returns fewer bytes than
+          requested.
+
+    `EIO'
+          For many devices, and for disk files, this error code
+          indicates a hardware error.
+
+          `EIO' also occurs when a background process tries to read
+          from the controlling terminal, and the normal action of
+          stopping the process by sending it a `SIGTTIN' signal isn't
+          working.  This might happen if the signal is being blocked or
+          ignored, or because the process group is orphaned.  *Note Job
+          Control::, for more information about job control, and *Note
+          Signal Handling::, for information about signals.
+
+     Please note that there is no function named `read64'.  This is not
+     necessary since this function does not directly modify or handle
+     the possibly wide file offset.  Since the kernel handles this state
+     internally, the `read' function can be used for all cases.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `read' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this, calls to
+     `read' should be protected using cancellation handlers.
+
+     The `read' function is the underlying primitive for all of the
+     functions that read from streams, such as `fgetc'.
+
+ - Function: ssize_t pread (int FILEDES, void *BUFFER, size_t SIZE,
+          off_t OFFSET)
+     The `pread' function is similar to the `read' function.  The first
+     three arguments are identical, and the return values and error
+     codes also correspond.
+
+     The difference is the fourth argument and its handling.  The data
+     block is not read from the current position of the file descriptor
+     `filedes'.  Instead the data is read from the file starting at
+     position OFFSET.  The position of the file descriptor itself is
+     not affected by the operation.  The value is the same as before
+     the call.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' the
+     `pread' function is in fact `pread64' and the type `off_t' has 64
+     bits, which makes it possible to handle files up to 2^63 bytes in
+     length.
+
+     The return value of `pread' describes the number of bytes read.
+     In the error case it returns -1 like `read' does and the error
+     codes are also the same, with these additions:
+
+    `EINVAL'
+          The value given for OFFSET is negative and therefore illegal.
+
+    `ESPIPE'
+          The file descriptor FILEDES is associate with a pipe or a
+          FIFO and this device does not allow positioning of the file
+          pointer.
+
+     The function is an extension defined in the Unix Single
+     Specification version 2.
+
+ - Function: ssize_t pread64 (int FILEDES, void *BUFFER, size_t SIZE,
+          off64_t OFFSET)
+     This function is similar to the `pread' function.  The difference
+     is that the OFFSET parameter is of type `off64_t' instead of
+     `off_t' which makes it possible on 32 bit machines to address
+     files larger than 2^31 bytes and up to 2^63 bytes.  The file
+     descriptor `filedes' must be opened using `open64' since otherwise
+     the large offsets possible with `off64_t' will lead to errors with
+     a descriptor in small file mode.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' on
+     a 32 bit machine this function is actually available under the name
+     `pread' and so transparently replaces the 32 bit interface.
+
+ - Function: ssize_t write (int FILEDES, const void *BUFFER, size_t
+          SIZE)
+     The `write' function writes up to SIZE bytes from BUFFER to the
+     file with descriptor FILEDES.  The data in BUFFER is not
+     necessarily a character string and a null character is output like
+     any other character.
+
+     The return value is the number of bytes actually written.  This
+     may be SIZE, but can always be smaller.  Your program should
+     always call `write' in a loop, iterating until all the data is
+     written.
+
+     Once `write' returns, the data is enqueued to be written and can be
+     read back right away, but it is not necessarily written out to
+     permanent storage immediately.  You can use `fsync' when you need
+     to be sure your data has been permanently stored before
+     continuing.  (It is more efficient for the system to batch up
+     consecutive writes and do them all at once when convenient.
+     Normally they will always be written to disk within a minute or
+     less.)  Modern systems provide another function `fdatasync' which
+     guarantees integrity only for the file data and is therefore
+     faster.  You can use the `O_FSYNC' open mode to make `write' always
+     store the data to disk before returning; *note Operating Modes::.
+
+     In the case of an error, `write' returns -1.  The following
+     `errno' error conditions are defined for this function:
+
+    `EAGAIN'
+          Normally, `write' blocks until the write operation is
+          complete.  But if the `O_NONBLOCK' flag is set for the file
+          (*note Control Operations::), it returns immediately without
+          writing any data and reports this error.  An example of a
+          situation that might cause the process to block on output is
+          writing to a terminal device that supports flow control,
+          where output has been suspended by receipt of a STOP
+          character.
+
+          *Compatibility Note:* Most versions of BSD Unix use a
+          different error code for this: `EWOULDBLOCK'.  In the GNU
+          library, `EWOULDBLOCK' is an alias for `EAGAIN', so it
+          doesn't matter which name you use.
+
+          On some systems, writing a large amount of data from a
+          character special file can also fail with `EAGAIN' if the
+          kernel cannot find enough physical memory to lock down the
+          user's pages.  This is limited to devices that transfer with
+          direct memory access into the user's memory, which means it
+          does not include terminals, since they always use separate
+          buffers inside the kernel.  This problem does not arise in the
+          GNU system.
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor, or is
+          not open for writing.
+
+    `EFBIG'
+          The size of the file would become larger than the
+          implementation can support.
+
+    `EINTR'
+          The `write' operation was interrupted by a signal while it was
+          blocked waiting for completion.  A signal will not
+          necessarily cause `write' to return `EINTR'; it may instead
+          result in a successful `write' which writes fewer bytes than
+          requested.  *Note Interrupted Primitives::.
+
+    `EIO'
+          For many devices, and for disk files, this error code
+          indicates a hardware error.
+
+    `ENOSPC'
+          The device containing the file is full.
+
+    `EPIPE'
+          This error is returned when you try to write to a pipe or
+          FIFO that isn't open for reading by any process.  When this
+          happens, a `SIGPIPE' signal is also sent to the process; see
+          *Note Signal Handling::.
+
+     Unless you have arranged to prevent `EINTR' failures, you should
+     check `errno' after each failing call to `write', and if the error
+     was `EINTR', you should simply repeat the call.  *Note Interrupted
+     Primitives::.  The easy way to do this is with the macro
+     `TEMP_FAILURE_RETRY', as follows:
+
+          nbytes = TEMP_FAILURE_RETRY (write (desc, buffer, count));
+
+     Please note that there is no function named `write64'.  This is not
+     necessary since this function does not directly modify or handle
+     the possibly wide file offset.  Since the kernel handles this state
+     internally the `write' function can be used for all cases.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `write' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this, calls to
+     `write' should be protected using cancellation handlers.
+
+     The `write' function is the underlying primitive for all of the
+     functions that write to streams, such as `fputc'.
+
+ - Function: ssize_t pwrite (int FILEDES, const void *BUFFER, size_t
+          SIZE, off_t OFFSET)
+     The `pwrite' function is similar to the `write' function.  The
+     first three arguments are identical, and the return values and
+     error codes also correspond.
+
+     The difference is the fourth argument and its handling.  The data
+     block is not written to the current position of the file descriptor
+     `filedes'.  Instead the data is written to the file starting at
+     position OFFSET.  The position of the file descriptor itself is
+     not affected by the operation.  The value is the same as before
+     the call.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' the
+     `pwrite' function is in fact `pwrite64' and the type `off_t' has
+     64 bits, which makes it possible to handle files up to 2^63 bytes
+     in length.
+
+     The return value of `pwrite' describes the number of written bytes.
+     In the error case it returns -1 like `write' does and the error
+     codes are also the same, with these additions:
+
+    `EINVAL'
+          The value given for OFFSET is negative and therefore illegal.
+
+    `ESPIPE'
+          The file descriptor FILEDES is associated with a pipe or a
+          FIFO and this device does not allow positioning of the file
+          pointer.
+
+     The function is an extension defined in the Unix Single
+     Specification version 2.
+
+ - Function: ssize_t pwrite64 (int FILEDES, const void *BUFFER, size_t
+          SIZE, off64_t OFFSET)
+     This function is similar to the `pwrite' function.  The difference
+     is that the OFFSET parameter is of type `off64_t' instead of
+     `off_t' which makes it possible on 32 bit machines to address
+     files larger than 2^31 bytes and up to 2^63 bytes.  The file
+     descriptor `filedes' must be opened using `open64' since otherwise
+     the large offsets possible with `off64_t' will lead to errors with
+     a descriptor in small file mode.
+
+     When the source file is compiled using `_FILE_OFFSET_BITS == 64'
+     on a 32 bit machine this function is actually available under the
+     name `pwrite' and so transparently replaces the 32 bit interface.
+
+
+File: libc.info,  Node: File Position Primitive,  Next: Descriptors and Streams,  Prev: I/O Primitives,  Up: Low-Level I/O
+
+Setting the File Position of a Descriptor
+=========================================
+
+   Just as you can set the file position of a stream with `fseek', you
+can set the file position of a descriptor with `lseek'.  This specifies
+the position in the file for the next `read' or `write' operation.
+*Note File Positioning::, for more information on the file position and
+what it means.
+
+   To read the current file position value from a descriptor, use
+`lseek (DESC, 0, SEEK_CUR)'.
+
+ - Function: off_t lseek (int FILEDES, off_t OFFSET, int WHENCE)
+     The `lseek' function is used to change the file position of the
+     file with descriptor FILEDES.
+
+     The WHENCE argument specifies how the OFFSET should be
+     interpreted, in the same way as for the `fseek' function, and it
+     must be one of the symbolic constants `SEEK_SET', `SEEK_CUR', or
+     `SEEK_END'.
+
+    `SEEK_SET'
+          Specifies that WHENCE is a count of characters from the
+          beginning of the file.
+
+    `SEEK_CUR'
+          Specifies that WHENCE is a count of characters from the
+          current file position.  This count may be positive or
+          negative.
+
+    `SEEK_END'
+          Specifies that WHENCE is a count of characters from the end of
+          the file.  A negative count specifies a position within the
+          current extent of the file; a positive count specifies a
+          position past the current end.  If you set the position past
+          the current end, and actually write data, you will extend the
+          file with zeros up to that position.
+
+     The return value from `lseek' is normally the resulting file
+     position, measured in bytes from the beginning of the file.  You
+     can use this feature together with `SEEK_CUR' to read the current
+     file position.
+
+     If you want to append to the file, setting the file position to the
+     current end of file with `SEEK_END' is not sufficient.  Another
+     process may write more data after you seek but before you write,
+     extending the file so the position you write onto clobbers their
+     data.  Instead, use the `O_APPEND' operating mode; *note Operating
+     Modes::.
+
+     You can set the file position past the current end of the file.
+     This does not by itself make the file longer; `lseek' never
+     changes the file.  But subsequent output at that position will
+     extend the file.  Characters between the previous end of file and
+     the new position are filled with zeros.  Extending the file in
+     this way can create a "hole": the blocks of zeros are not actually
+     allocated on disk, so the file takes up less space than it appears
+     to; it is then called a "sparse file".
+
+     If the file position cannot be changed, or the operation is in
+     some way invalid, `lseek' returns a value of -1.  The following
+     `errno' error conditions are defined for this function:
+
+    `EBADF'
+          The FILEDES is not a valid file descriptor.
+
+    `EINVAL'
+          The WHENCE argument value is not valid, or the resulting file
+          offset is not valid.  A file offset is invalid.
+
+    `ESPIPE'
+          The FILEDES corresponds to an object that cannot be
+          positioned, such as a pipe, FIFO or terminal device.
+          (POSIX.1 specifies this error only for pipes and FIFOs, but
+          in the GNU system, you always get `ESPIPE' if the object is
+          not seekable.)
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' the
+     `lseek' function is in fact `lseek64' and the type `off_t' has 64
+     bits which makes it possible to handle files up to 2^63 bytes in
+     length.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `lseek' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `lseek' should be protected using cancellation handlers.
+
+     The `lseek' function is the underlying primitive for the `fseek',
+     `fseeko', `ftell', `ftello' and `rewind' functions, which operate
+     on streams instead of file descriptors.
+
+ - Function: off64_t lseek64 (int FILEDES, off64_t OFFSET, int WHENCE)
+     This function is similar to the `lseek' function.  The difference
+     is that the OFFSET parameter is of type `off64_t' instead of
+     `off_t' which makes it possible on 32 bit machines to address
+     files larger than 2^31 bytes and up to 2^63 bytes.  The file
+     descriptor `filedes' must be opened using `open64' since otherwise
+     the large offsets possible with `off64_t' will lead to errors with
+     a descriptor in small file mode.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' on
+     a 32 bits machine this function is actually available under the
+     name `lseek' and so transparently replaces the 32 bit interface.
+
+   You can have multiple descriptors for the same file if you open the
+file more than once, or if you duplicate a descriptor with `dup'.
+Descriptors that come from separate calls to `open' have independent
+file positions; using `lseek' on one descriptor has no effect on the
+other.  For example,
+
+     {
+       int d1, d2;
+       char buf[4];
+       d1 = open ("foo", O_RDONLY);
+       d2 = open ("foo", O_RDONLY);
+       lseek (d1, 1024, SEEK_SET);
+       read (d2, buf, 4);
+     }
+
+will read the first four characters of the file `foo'.  (The
+error-checking code necessary for a real program has been omitted here
+for brevity.)
+
+   By contrast, descriptors made by duplication share a common file
+position with the original descriptor that was duplicated.  Anything
+which alters the file position of one of the duplicates, including
+reading or writing data, affects all of them alike.  Thus, for example,
+
+     {
+       int d1, d2, d3;
+       char buf1[4], buf2[4];
+       d1 = open ("foo", O_RDONLY);
+       d2 = dup (d1);
+       d3 = dup (d2);
+       lseek (d3, 1024, SEEK_SET);
+       read (d1, buf1, 4);
+       read (d2, buf2, 4);
+     }
+
+will read four characters starting with the 1024'th character of `foo',
+and then four more characters starting with the 1028'th character.
+
+ - Data Type: off_t
+     This is an arithmetic data type used to represent file sizes.  In
+     the GNU system, this is equivalent to `fpos_t' or `long int'.
+
+     If the source is compiled with `_FILE_OFFSET_BITS == 64' this type
+     is transparently replaced by `off64_t'.
+
+ - Data Type: off64_t
+     This type is used similar to `off_t'.  The difference is that even
+     on 32 bit machines, where the `off_t' type would have 32 bits,
+     `off64_t' has 64 bits and so is able to address files up to 2^63
+     bytes in length.
+
+     When compiling with `_FILE_OFFSET_BITS == 64' this type is
+     available under the name `off_t'.
+
+   These aliases for the `SEEK_...' constants exist for the sake of
+compatibility with older BSD systems.  They are defined in two
+different header files: `fcntl.h' and `sys/file.h'.
+
+`L_SET'
+     An alias for `SEEK_SET'.
+
+`L_INCR'
+     An alias for `SEEK_CUR'.
+
+`L_XTND'
+     An alias for `SEEK_END'.
+
+
+File: libc.info,  Node: Descriptors and Streams,  Next: Stream/Descriptor Precautions,  Prev: File Position Primitive,  Up: Low-Level I/O
+
+Descriptors and Streams
+=======================
+
+   Given an open file descriptor, you can create a stream for it with
+the `fdopen' function.  You can get the underlying file descriptor for
+an existing stream with the `fileno' function.  These functions are
+declared in the header file `stdio.h'.
+
+ - Function: FILE * fdopen (int FILEDES, const char *OPENTYPE)
+     The `fdopen' function returns a new stream for the file descriptor
+     FILEDES.
+
+     The OPENTYPE argument is interpreted in the same way as for the
+     `fopen' function (*note Opening Streams::), except that the `b'
+     option is not permitted; this is because GNU makes no distinction
+     between text and binary files.  Also, `"w"' and `"w+"' do not
+     cause truncation of the file; these have an effect only when
+     opening a file, and in this case the file has already been opened.
+     You must make sure that the OPENTYPE argument matches the actual
+     mode of the open file descriptor.
+
+     The return value is the new stream.  If the stream cannot be
+     created (for example, if the modes for the file indicated by the
+     file descriptor do not permit the access specified by the OPENTYPE
+     argument), a null pointer is returned instead.
+
+     In some other systems, `fdopen' may fail to detect that the modes
+     for file descriptor do not permit the access specified by
+     `opentype'.  The GNU C library always checks for this.
+
+   For an example showing the use of the `fdopen' function, see *Note
+Creating a Pipe::.
+
+ - Function: int fileno (FILE *STREAM)
+     This function returns the file descriptor associated with the
+     stream STREAM.  If an error is detected (for example, if the STREAM
+     is not valid) or if STREAM does not do I/O to a file, `fileno'
+     returns -1.
+
+ - Function: int fileno_unlocked (FILE *STREAM)
+     The `fileno_unlocked' function is equivalent to the `fileno'
+     function except that it does not implicitly lock the stream if the
+     state is `FSETLOCKING_INTERNAL'.
+
+     This function is a GNU extension.
+
+   There are also symbolic constants defined in `unistd.h' for the file
+descriptors belonging to the standard streams `stdin', `stdout', and
+`stderr'; see *Note Standard Streams::.
+
+`STDIN_FILENO'
+     This macro has value `0', which is the file descriptor for
+     standard input.
+
+`STDOUT_FILENO'
+     This macro has value `1', which is the file descriptor for
+     standard output.
+
+`STDERR_FILENO'
+     This macro has value `2', which is the file descriptor for
+     standard error output.
+
+
+File: libc.info,  Node: Stream/Descriptor Precautions,  Next: Scatter-Gather,  Prev: Descriptors and Streams,  Up: Low-Level I/O
+
+Dangers of Mixing Streams and Descriptors
+=========================================
+
+   You can have multiple file descriptors and streams (let's call both
+streams and descriptors "channels" for short) connected to the same
+file, but you must take care to avoid confusion between channels.  There
+are two cases to consider: "linked" channels that share a single file
+position value, and "independent" channels that have their own file
+positions.
+
+   It's best to use just one channel in your program for actual data
+transfer to any given file, except when all the access is for input.
+For example, if you open a pipe (something you can only do at the file
+descriptor level), either do all I/O with the descriptor, or construct a
+stream from the descriptor with `fdopen' and then do all I/O with the
+stream.
+
+* Menu:
+
+* Linked Channels::	   Dealing with channels sharing a file position.
+* Independent Channels::   Dealing with separately opened, unlinked channels.
+* Cleaning Streams::	   Cleaning a stream makes it safe to use
+                            another channel.
+
+
+File: libc.info,  Node: Linked Channels,  Next: Independent Channels,  Up: Stream/Descriptor Precautions
+
+Linked Channels
+---------------
+
+   Channels that come from a single opening share the same file
+position; we call them "linked" channels.  Linked channels result when
+you make a stream from a descriptor using `fdopen', when you get a
+descriptor from a stream with `fileno', when you copy a descriptor with
+`dup' or `dup2', and when descriptors are inherited during `fork'.  For
+files that don't support random access, such as terminals and pipes,
+_all_ channels are effectively linked.  On random-access files, all
+append-type output streams are effectively linked to each other.
+
+   If you have been using a stream for I/O, and you want to do I/O using
+another channel (either a stream or a descriptor) that is linked to it,
+you must first "clean up" the stream that you have been using.  *Note
+Cleaning Streams::.
+
+   Terminating a process, or executing a new program in the process,
+destroys all the streams in the process.  If descriptors linked to these
+streams persist in other processes, their file positions become
+undefined as a result.  To prevent this, you must clean up the streams
+before destroying them.
+
+
+File: libc.info,  Node: Independent Channels,  Next: Cleaning Streams,  Prev: Linked Channels,  Up: Stream/Descriptor Precautions
+
+Independent Channels
+--------------------
+
+   When you open channels (streams or descriptors) separately on a
+seekable file, each channel has its own file position.  These are called
+"independent channels".
+
+   The system handles each channel independently.  Most of the time,
+this is quite predictable and natural (especially for input): each
+channel can read or write sequentially at its own place in the file.
+However, if some of the channels are streams, you must take these
+precautions:
+
+   * You should clean an output stream after use, before doing anything
+     else that might read or write from the same part of the file.
+
+   * You should clean an input stream before reading data that may have
+     been modified using an independent channel.  Otherwise, you might
+     read obsolete data that had been in the stream's buffer.
+
+   If you do output to one channel at the end of the file, this will
+certainly leave the other independent channels positioned somewhere
+before the new end.  You cannot reliably set their file positions to the
+new end of file before writing, because the file can always be extended
+by another process between when you set the file position and when you
+write the data.  Instead, use an append-type descriptor or stream; they
+always output at the current end of the file.  In order to make the
+end-of-file position accurate, you must clean the output channel you
+were using, if it is a stream.
+
+   It's impossible for two channels to have separate file pointers for a
+file that doesn't support random access.  Thus, channels for reading or
+writing such files are always linked, never independent.  Append-type
+channels are also always linked.  For these channels, follow the rules
+for linked channels; see *Note Linked Channels::.
+
+
+File: libc.info,  Node: Cleaning Streams,  Prev: Independent Channels,  Up: Stream/Descriptor Precautions
+
+Cleaning Streams
+----------------
+
+   On the GNU system, you can clean up any stream with `fclean':
+
+ - Function: int fclean (FILE *STREAM)
+     Clean up the stream STREAM so that its buffer is empty.  If STREAM
+     is doing output, force it out.  If STREAM is doing input, give the
+     data in the buffer back to the system, arranging to reread it.
+
+   On other systems, you can use `fflush' to clean a stream in most
+cases.
+
+   You can skip the `fclean' or `fflush' if you know the stream is
+already clean.  A stream is clean whenever its buffer is empty.  For
+example, an unbuffered stream is always clean.  An input stream that is
+at end-of-file is clean.  A line-buffered stream is clean when the last
+character output was a newline.
+
+   There is one case in which cleaning a stream is impossible on most
+systems.  This is when the stream is doing input from a file that is not
+random-access.  Such streams typically read ahead, and when the file is
+not random access, there is no way to give back the excess data already
+read.  When an input stream reads from a random-access file, `fflush'
+does clean the stream, but leaves the file pointer at an unpredictable
+place; you must set the file pointer before doing any further I/O.  On
+the GNU system, using `fclean' avoids both of these problems.
+
+   Closing an output-only stream also does `fflush', so this is a valid
+way of cleaning an output stream.  On the GNU system, closing an input
+stream does `fclean'.
+
+   You need not clean a stream before using its descriptor for control
+operations such as setting terminal modes; these operations don't affect
+the file position and are not affected by it.  You can use any
+descriptor for these operations, and all channels are affected
+simultaneously.  However, text already "output" to a stream but still
+buffered by the stream will be subject to the new terminal modes when
+subsequently flushed.  To make sure "past" output is covered by the
+terminal settings that were in effect at the time, flush the output
+streams for that terminal before setting the modes.  *Note Terminal
+Modes::.
+
+
+File: libc.info,  Node: Scatter-Gather,  Next: Memory-mapped I/O,  Prev: Stream/Descriptor Precautions,  Up: Low-Level I/O
+
+Fast Scatter-Gather I/O
+=======================
+
+   Some applications may need to read or write data to multiple buffers,
+which are separated in memory.  Although this can be done easily enough
+with multiple calls to `read' and `write', it is inefficent because
+there is overhead associated with each kernel call.
+
+   Instead, many platforms provide special high-speed primitives to
+perform these "scatter-gather" operations in a single kernel call.  The
+GNU C library will provide an emulation on any system that lacks these
+primitives, so they are not a portability threat.  They are defined in
+`sys/uio.h'.
+
+   These functions are controlled with arrays of `iovec' structures,
+which describe the location and size of each buffer.
+
+ - Data Type: struct iovec
+     The `iovec' structure describes a buffer. It contains two fields:
+
+    `void *iov_base'
+          Contains the address of a buffer.
+
+    `size_t iov_len'
+          Contains the length of the buffer.
+
+
+ - Function: ssize_t readv (int FILEDES, const struct iovec *VECTOR,
+          int COUNT)
+     The `readv' function reads data from FILEDES and scatters it into
+     the buffers described in VECTOR, which is taken to be COUNT
+     structures long.  As each buffer is filled, data is sent to the
+     next.
+
+     Note that `readv' is not guaranteed to fill all the buffers.  It
+     may stop at any point, for the same reasons `read' would.
+
+     The return value is a count of bytes (_not_ buffers) read, 0
+     indicating end-of-file, or -1 indicating an error.  The possible
+     errors are the same as in `read'.
+
+
+ - Function: ssize_t writev (int FILEDES, const struct iovec *VECTOR,
+          int COUNT)
+     The `writev' function gathers data from the buffers described in
+     VECTOR, which is taken to be COUNT structures long, and writes
+     them to `filedes'.  As each buffer is written, it moves on to the
+     next.
+
+     Like `readv', `writev' may stop midstream under the same
+     conditions `write' would.
+
+     The return value is a count of bytes written, or -1 indicating an
+     error.  The possible errors are the same as in `write'.
+
+
+   Note that if the buffers are small (under about 1kB), high-level
+streams may be easier to use than these functions.  However, `readv' and
+`writev' are more efficient when the individual buffers themselves (as
+opposed to the total output), are large.  In that case, a high-level
+stream would not be able to cache the data effectively.
+

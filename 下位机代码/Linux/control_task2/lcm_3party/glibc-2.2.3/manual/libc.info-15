@@ -1,0 +1,1125 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Calling Wordexp,  Next: Flags for Wordexp,  Prev: Expansion Stages,  Up: Word Expansion
+
+Calling `wordexp'
+-----------------
+
+   All the functions, constants and data types for word expansion are
+declared in the header file `wordexp.h'.
+
+   Word expansion produces a vector of words (strings).  To return this
+vector, `wordexp' uses a special data type, `wordexp_t', which is a
+structure.  You pass `wordexp' the address of the structure, and it
+fills in the structure's fields to tell you about the results.
+
+ - Data Type: wordexp_t
+     This data type holds a pointer to a word vector.  More precisely,
+     it records both the address of the word vector and its size.
+
+    `we_wordc'
+          The number of elements in the vector.
+
+    `we_wordv'
+          The address of the vector.  This field has type `char **'.
+
+    `we_offs'
+          The offset of the first real element of the vector, from its
+          nominal address in the `we_wordv' field.  Unlike the other
+          fields, this is always an input to `wordexp', rather than an
+          output from it.
+
+          If you use a nonzero offset, then that many elements at the
+          beginning of the vector are left empty.  (The `wordexp'
+          function fills them with null pointers.)
+
+          The `we_offs' field is meaningful only if you use the
+          `WRDE_DOOFFS' flag.  Otherwise, the offset is always zero
+          regardless of what is in this field, and the first real
+          element comes at the beginning of the vector.
+
+ - Function: int wordexp (const char *WORDS, wordexp_t
+          *WORD-VECTOR-PTR, int FLAGS)
+     Perform word expansion on the string WORDS, putting the result in
+     a newly allocated vector, and store the size and address of this
+     vector into `*WORD-VECTOR-PTR'.  The argument FLAGS is a
+     combination of bit flags; see *Note Flags for Wordexp::, for
+     details of the flags.
+
+     You shouldn't use any of the characters `|&;<>' in the string
+     WORDS unless they are quoted; likewise for newline.  If you use
+     these characters unquoted, you will get the `WRDE_BADCHAR' error
+     code.  Don't use parentheses or braces unless they are quoted or
+     part of a word expansion construct.  If you use quotation
+     characters `'"`', they should come in pairs that balance.
+
+     The results of word expansion are a sequence of words.  The
+     function `wordexp' allocates a string for each resulting word, then
+     allocates a vector of type `char **' to store the addresses of
+     these strings.  The last element of the vector is a null pointer.
+     This vector is called the "word vector".
+
+     To return this vector, `wordexp' stores both its address and its
+     length (number of elements, not counting the terminating null
+     pointer) into `*WORD-VECTOR-PTR'.
+
+     If `wordexp' succeeds, it returns 0.  Otherwise, it returns one of
+     these error codes:
+
+    `WRDE_BADCHAR'
+          The input string WORDS contains an unquoted invalid character
+          such as `|'.
+
+    `WRDE_BADVAL'
+          The input string refers to an undefined shell variable, and
+          you used the flag `WRDE_UNDEF' to forbid such references.
+
+    `WRDE_CMDSUB'
+          The input string uses command substitution, and you used the
+          flag `WRDE_NOCMD' to forbid command substitution.
+
+    `WRDE_NOSPACE'
+          It was impossible to allocate memory to hold the result.  In
+          this case, `wordexp' can store part of the results--as much
+          as it could allocate room for.
+
+    `WRDE_SYNTAX'
+          There was a syntax error in the input string.  For example,
+          an unmatched quoting character is a syntax error.
+
+ - Function: void wordfree (wordexp_t *WORD-VECTOR-PTR)
+     Free the storage used for the word-strings and vector that
+     `*WORD-VECTOR-PTR' points to.  This does not free the structure
+     `*WORD-VECTOR-PTR' itself--only the other data it points to.
+
+
+File: libc.info,  Node: Flags for Wordexp,  Next: Wordexp Example,  Prev: Calling Wordexp,  Up: Word Expansion
+
+Flags for Word Expansion
+------------------------
+
+   This section describes the flags that you can specify in the FLAGS
+argument to `wordexp'.  Choose the flags you want, and combine them
+with the C operator `|'.
+
+`WRDE_APPEND'
+     Append the words from this expansion to the vector of words
+     produced by previous calls to `wordexp'.  This way you can
+     effectively expand several words as if they were concatenated with
+     spaces between them.
+
+     In order for appending to work, you must not modify the contents
+     of the word vector structure between calls to `wordexp'.  And, if
+     you set `WRDE_DOOFFS' in the first call to `wordexp', you must also
+     set it when you append to the results.
+
+`WRDE_DOOFFS'
+     Leave blank slots at the beginning of the vector of words.  The
+     `we_offs' field says how many slots to leave.  The blank slots
+     contain null pointers.
+
+`WRDE_NOCMD'
+     Don't do command substitution; if the input requests command
+     substitution, report an error.
+
+`WRDE_REUSE'
+     Reuse a word vector made by a previous call to `wordexp'.  Instead
+     of allocating a new vector of words, this call to `wordexp' will
+     use the vector that already exists (making it larger if necessary).
+
+     Note that the vector may move, so it is not safe to save an old
+     pointer and use it again after calling `wordexp'.  You must fetch
+     `we_pathv' anew after each call.
+
+`WRDE_SHOWERR'
+     Do show any error messages printed by commands run by command
+     substitution.  More precisely, allow these commands to inherit the
+     standard error output stream of the current process.  By default,
+     `wordexp' gives these commands a standard error stream that
+     discards all output.
+
+`WRDE_UNDEF'
+     If the input refers to a shell variable that is not defined,
+     report an error.
+
+
+File: libc.info,  Node: Wordexp Example,  Next: Tilde Expansion,  Prev: Flags for Wordexp,  Up: Word Expansion
+
+`wordexp' Example
+-----------------
+
+   Here is an example of using `wordexp' to expand several strings and
+use the results to run a shell command.  It also shows the use of
+`WRDE_APPEND' to concatenate the expansions and of `wordfree' to free
+the space allocated by `wordexp'.
+
+     int
+     expand_and_execute (const char *program, const char *options)
+     {
+       wordexp_t result;
+       pid_t pid
+       int status, i;
+     
+       /* Expand the string for the program to run.  */
+       switch (wordexp (program, &result, 0))
+         {
+         case 0:			/* Successful.  */
+           break;
+         case WRDE_NOSPACE:
+           /* If the error was `WRDE_NOSPACE',
+              then perhaps part of the result was allocated.  */
+           wordfree (&result);
+         default:                    /* Some other error.  */
+           return -1;
+         }
+     
+       /* Expand the strings specified for the arguments.  */
+       for (i = 0; args[i]; i++)
+         {
+           if (wordexp (options, &result, WRDE_APPEND))
+             {
+               wordfree (&result);
+               return -1;
+             }
+         }
+     
+       pid = fork ();
+       if (pid == 0)
+         {
+           /* This is the child process.  Execute the command. */
+           execv (result.we_wordv[0], result.we_wordv);
+           exit (EXIT_FAILURE);
+         }
+       else if (pid < 0)
+         /* The fork failed.  Report failure.  */
+         status = -1;
+       else
+         /* This is the parent process.  Wait for the child to complete.  */
+         if (waitpid (pid, &status, 0) != pid)
+           status = -1;
+     
+       wordfree (&result);
+       return status;
+     }
+
+
+File: libc.info,  Node: Tilde Expansion,  Next: Variable Substitution,  Prev: Wordexp Example,  Up: Word Expansion
+
+Details of Tilde Expansion
+--------------------------
+
+   It's a standard part of shell syntax that you can use `~' at the
+beginning of a file name to stand for your own home directory.  You can
+use `~USER' to stand for USER's home directory.
+
+   "Tilde expansion" is the process of converting these abbreviations
+to the directory names that they stand for.
+
+   Tilde expansion applies to the `~' plus all following characters up
+to whitespace or a slash.  It takes place only at the beginning of a
+word, and only if none of the characters to be transformed is quoted in
+any way.
+
+   Plain `~' uses the value of the environment variable `HOME' as the
+proper home directory name.  `~' followed by a user name uses
+`getpwname' to look up that user in the user database, and uses
+whatever directory is recorded there.  Thus, `~' followed by your own
+name can give different results from plain `~', if the value of `HOME'
+is not really your home directory.
+
+
+File: libc.info,  Node: Variable Substitution,  Prev: Tilde Expansion,  Up: Word Expansion
+
+Details of Variable Substitution
+--------------------------------
+
+   Part of ordinary shell syntax is the use of `$VARIABLE' to
+substitute the value of a shell variable into a command.  This is called
+"variable substitution", and it is one part of doing word expansion.
+
+   There are two basic ways you can write a variable reference for
+substitution:
+
+`${VARIABLE}'
+     If you write braces around the variable name, then it is completely
+     unambiguous where the variable name ends.  You can concatenate
+     additional letters onto the end of the variable value by writing
+     them immediately after the close brace.  For example, `${foo}s'
+     expands into `tractors'.
+
+`$VARIABLE'
+     If you do not put braces around the variable name, then the
+     variable name consists of all the alphanumeric characters and
+     underscores that follow the `$'.  The next punctuation character
+     ends the variable name.  Thus, `$foo-bar' refers to the variable
+     `foo' and expands into `tractor-bar'.
+
+   When you use braces, you can also use various constructs to modify
+the value that is substituted, or test it in various ways.
+
+`${VARIABLE:-DEFAULT}'
+     Substitute the value of VARIABLE, but if that is empty or
+     undefined, use DEFAULT instead.
+
+`${VARIABLE:=DEFAULT}'
+     Substitute the value of VARIABLE, but if that is empty or
+     undefined, use DEFAULT instead and set the variable to DEFAULT.
+
+`${VARIABLE:?MESSAGE}'
+     If VARIABLE is defined and not empty, substitute its value.
+
+     Otherwise, print MESSAGE as an error message on the standard error
+     stream, and consider word expansion a failure.
+
+`${VARIABLE:+REPLACEMENT}'
+     Substitute REPLACEMENT, but only if VARIABLE is defined and
+     nonempty.  Otherwise, substitute nothing for this construct.
+
+`${#VARIABLE}'
+     Substitute a numeral which expresses in base ten the number of
+     characters in the value of VARIABLE.  `${#foo}' stands for `7',
+     because `tractor' is seven characters.
+
+   These variants of variable substitution let you remove part of the
+variable's value before substituting it.  The PREFIX and SUFFIX are not
+mere strings; they are wildcard patterns, just like the patterns that
+you use to match multiple file names.  But in this context, they match
+against parts of the variable value rather than against file names.
+
+`${VARIABLE%%SUFFIX}'
+     Substitute the value of VARIABLE, but first discard from that
+     variable any portion at the end that matches the pattern SUFFIX.
+
+     If there is more than one alternative for how to match against
+     SUFFIX, this construct uses the longest possible match.
+
+     Thus, `${foo%%r*}' substitutes `t', because the largest match for
+     `r*' at the end of `tractor' is `ractor'.
+
+`${VARIABLE%SUFFIX}'
+     Substitute the value of VARIABLE, but first discard from that
+     variable any portion at the end that matches the pattern SUFFIX.
+
+     If there is more than one alternative for how to match against
+     SUFFIX, this construct uses the shortest possible alternative.
+
+     Thus, `${foo%%r*}' substitutes `tracto', because the shortest
+     match for `r*' at the end of `tractor' is just `r'.
+
+`${VARIABLE##PREFIX}'
+     Substitute the value of VARIABLE, but first discard from that
+     variable any portion at the beginning that matches the pattern
+     PREFIX.
+
+     If there is more than one alternative for how to match against
+     PREFIX, this construct uses the longest possible match.
+
+     Thus, `${foo%%r*}' substitutes `t', because the largest match for
+     `r*' at the end of `tractor' is `ractor'.
+
+`${VARIABLE#PREFIX}'
+     Substitute the value of VARIABLE, but first discard from that
+     variable any portion at the beginning that matches the pattern
+     PREFIX.
+
+     If there is more than one alternative for how to match against
+     PREFIX, this construct uses the shortest possible alternative.
+
+     Thus, `${foo%%r*}' substitutes `tracto', because the shortest
+     match for `r*' at the end of `tractor' is just `r'.
+
+
+File: libc.info,  Node: I/O Overview,  Next: I/O on Streams,  Prev: Pattern Matching,  Up: Top
+
+Input/Output Overview
+*********************
+
+   Most programs need to do either input (reading data) or output
+(writing data), or most frequently both, in order to do anything
+useful.  The GNU C library provides such a large selection of input and
+output functions that the hardest part is often deciding which function
+is most appropriate!
+
+   This chapter introduces concepts and terminology relating to input
+and output.  Other chapters relating to the GNU I/O facilities are:
+
+   * *Note I/O on Streams::, which covers the high-level functions that
+     operate on streams, including formatted input and output.
+
+   * *Note Low-Level I/O::, which covers the basic I/O and control
+     functions on file descriptors.
+
+   * *Note File System Interface::, which covers functions for
+     operating on directories and for manipulating file attributes such
+     as access modes and ownership.
+
+   * *Note Pipes and FIFOs::, which includes information on the basic
+     interprocess communication facilities.
+
+   * *Note Sockets::, which covers a more complicated interprocess
+     communication facility with support for networking.
+
+   * *Note Low-Level Terminal Interface::, which covers functions for
+     changing how input and output to terminals or other serial devices
+     are processed.
+
+* Menu:
+
+* I/O Concepts::       Some basic information and terminology.
+* File Names::         How to refer to a file.
+
+
+File: libc.info,  Node: I/O Concepts,  Next: File Names,  Up: I/O Overview
+
+Input/Output Concepts
+=====================
+
+   Before you can read or write the contents of a file, you must
+establish a connection or communications channel to the file.  This
+process is called "opening" the file.  You can open a file for reading,
+writing, or both.
+
+   The connection to an open file is represented either as a stream or
+as a file descriptor.  You pass this as an argument to the functions
+that do the actual read or write operations, to tell them which file to
+operate on.  Certain functions expect streams, and others are designed
+to operate on file descriptors.
+
+   When you have finished reading to or writing from the file, you can
+terminate the connection by "closing" the file.  Once you have closed a
+stream or file descriptor, you cannot do any more input or output
+operations on it.
+
+* Menu:
+
+* Streams and File Descriptors::    The GNU Library provides two ways
+			             to access the contents of files.
+* File Position::                   The number of bytes from the
+                                     beginning of the file.
+
+
+File: libc.info,  Node: Streams and File Descriptors,  Next: File Position,  Up: I/O Concepts
+
+Streams and File Descriptors
+----------------------------
+
+   When you want to do input or output to a file, you have a choice of
+two basic mechanisms for representing the connection between your
+program and the file: file descriptors and streams.  File descriptors
+are represented as objects of type `int', while streams are represented
+as `FILE *' objects.
+
+   File descriptors provide a primitive, low-level interface to input
+and output operations.  Both file descriptors and streams can represent
+a connection to a device (such as a terminal), or a pipe or socket for
+communicating with another process, as well as a normal file.  But, if
+you want to do control operations that are specific to a particular kind
+of device, you must use a file descriptor; there are no facilities to
+use streams in this way.  You must also use file descriptors if your
+program needs to do input or output in special modes, such as
+nonblocking (or polled) input (*note File Status Flags::).
+
+   Streams provide a higher-level interface, layered on top of the
+primitive file descriptor facilities.  The stream interface treats all
+kinds of files pretty much alike--the sole exception being the three
+styles of buffering that you can choose (*note Stream Buffering::).
+
+   The main advantage of using the stream interface is that the set of
+functions for performing actual input and output operations (as opposed
+to control operations) on streams is much richer and more powerful than
+the corresponding facilities for file descriptors.  The file descriptor
+interface provides only simple functions for transferring blocks of
+characters, but the stream interface also provides powerful formatted
+input and output functions (`printf' and `scanf') as well as functions
+for character- and line-oriented input and output.
+
+   Since streams are implemented in terms of file descriptors, you can
+extract the file descriptor from a stream and perform low-level
+operations directly on the file descriptor.  You can also initially open
+a connection as a file descriptor and then make a stream associated with
+that file descriptor.
+
+   In general, you should stick with using streams rather than file
+descriptors, unless there is some specific operation you want to do that
+can only be done on a file descriptor.  If you are a beginning
+programmer and aren't sure what functions to use, we suggest that you
+concentrate on the formatted input functions (*note Formatted Input::)
+and formatted output functions (*note Formatted Output::).
+
+   If you are concerned about portability of your programs to systems
+other than GNU, you should also be aware that file descriptors are not
+as portable as streams.  You can expect any system running ISO C to
+support streams, but non-GNU systems may not support file descriptors at
+all, or may only implement a subset of the GNU functions that operate on
+file descriptors.  Most of the file descriptor functions in the GNU
+library are included in the POSIX.1 standard, however.
+
+
+File: libc.info,  Node: File Position,  Prev: Streams and File Descriptors,  Up: I/O Concepts
+
+File Position
+-------------
+
+   One of the attributes of an open file is its "file position" that
+keeps track of where in the file the next character is to be read or
+written.  In the GNU system, and all POSIX.1 systems, the file position
+is simply an integer representing the number of bytes from the beginning
+of the file.
+
+   The file position is normally set to the beginning of the file when
+it is opened, and each time a character is read or written, the file
+position is incremented.  In other words, access to the file is normally
+"sequential".
+
+   Ordinary files permit read or write operations at any position within
+the file.  Some other kinds of files may also permit this.  Files which
+do permit this are sometimes referred to as "random-access" files.  You
+can change the file position using the `fseek' function on a stream
+(*note File Positioning::) or the `lseek' function on a file descriptor
+(*note I/O Primitives::).  If you try to change the file position on a
+file that doesn't support random access, you get the `ESPIPE' error.
+
+   Streams and descriptors that are opened for "append access" are
+treated specially for output: output to such files is _always_ appended
+sequentially to the _end_ of the file, regardless of the file position.
+However, the file position is still used to control where in the file
+reading is done.
+
+   If you think about it, you'll realize that several programs can read
+a given file at the same time.  In order for each program to be able to
+read the file at its own pace, each program must have its own file
+pointer, which is not affected by anything the other programs do.
+
+   In fact, each opening of a file creates a separate file position.
+Thus, if you open a file twice even in the same program, you get two
+streams or descriptors with independent file positions.
+
+   By contrast, if you open a descriptor and then duplicate it to get
+another descriptor, these two descriptors share the same file position:
+changing the file position of one descriptor will affect the other.
+
+
+File: libc.info,  Node: File Names,  Prev: I/O Concepts,  Up: I/O Overview
+
+File Names
+==========
+
+   In order to open a connection to a file, or to perform other
+operations such as deleting a file, you need some way to refer to the
+file.  Nearly all files have names that are strings--even files which
+are actually devices such as tape drives or terminals.  These strings
+are called "file names".  You specify the file name to say which file
+you want to open or operate on.
+
+   This section describes the conventions for file names and how the
+operating system works with them.
+
+* Menu:
+
+* Directories::                 Directories contain entries for files.
+* File Name Resolution::        A file name specifies how to look up a file.
+* File Name Errors::            Error conditions relating to file names.
+* File Name Portability::       File name portability and syntax issues.
+
+
+File: libc.info,  Node: Directories,  Next: File Name Resolution,  Up: File Names
+
+Directories
+-----------
+
+   In order to understand the syntax of file names, you need to
+understand how the file system is organized into a hierarchy of
+directories.
+
+   A "directory" is a file that contains information to associate other
+files with names; these associations are called "links" or "directory
+entries".  Sometimes, people speak of "files in a directory", but in
+reality, a directory only contains pointers to files, not the files
+themselves.
+
+   The name of a file contained in a directory entry is called a "file
+name component".  In general, a file name consists of a sequence of one
+or more such components, separated by the slash character (`/').  A
+file name which is just one component names a file with respect to its
+directory.  A file name with multiple components names a directory, and
+then a file in that directory, and so on.
+
+   Some other documents, such as the POSIX standard, use the term
+"pathname" for what we call a file name, and either "filename" or
+"pathname component" for what this manual calls a file name component.
+We don't use this terminology because a "path" is something completely
+different (a list of directories to search), and we think that
+"pathname" used for something else will confuse users.  We always use
+"file name" and "file name component" (or sometimes just "component",
+where the context is obvious) in GNU documentation.  Some macros use
+the POSIX terminology in their names, such as `PATH_MAX'.  These macros
+are defined by the POSIX standard, so we cannot change their names.
+
+   You can find more detailed information about operations on
+directories in *Note File System Interface::.
+
+
+File: libc.info,  Node: File Name Resolution,  Next: File Name Errors,  Prev: Directories,  Up: File Names
+
+File Name Resolution
+--------------------
+
+   A file name consists of file name components separated by slash
+(`/') characters.  On the systems that the GNU C library supports,
+multiple successive `/' characters are equivalent to a single `/'
+character.
+
+   The process of determining what file a file name refers to is called
+"file name resolution".  This is performed by examining the components
+that make up a file name in left-to-right order, and locating each
+successive component in the directory named by the previous component.
+Of course, each of the files that are referenced as directories must
+actually exist, be directories instead of regular files, and have the
+appropriate permissions to be accessible by the process; otherwise the
+file name resolution fails.
+
+   If a file name begins with a `/', the first component in the file
+name is located in the "root directory" of the process (usually all
+processes on the system have the same root directory).  Such a file name
+is called an "absolute file name".
+
+   Otherwise, the first component in the file name is located in the
+current working directory (*note Working Directory::).  This kind of
+file name is called a "relative file name".
+
+   The file name components `.' ("dot") and `..' ("dot-dot") have
+special meanings.  Every directory has entries for these file name
+components.  The file name component `.' refers to the directory
+itself, while the file name component `..' refers to its "parent
+directory" (the directory that contains the link for the directory in
+question).  As a special case, `..' in the root directory refers to the
+root directory itself, since it has no parent; thus `/..' is the same
+as `/'.
+
+   Here are some examples of file names:
+
+`/a'
+     The file named `a', in the root directory.
+
+`/a/b'
+     The file named `b', in the directory named `a' in the root
+     directory.
+
+`a'
+     The file named `a', in the current working directory.
+
+`/a/./b'
+     This is the same as `/a/b'.
+
+`./a'
+     The file named `a', in the current working directory.
+
+`../a'
+     The file named `a', in the parent directory of the current working
+     directory.
+
+   A file name that names a directory may optionally end in a `/'.  You
+can specify a file name of `/' to refer to the root directory, but the
+empty string is not a meaningful file name.  If you want to refer to
+the current working directory, use a file name of `.' or `./'.
+
+   Unlike some other operating systems, the GNU system doesn't have any
+built-in support for file types (or extensions) or file versions as part
+of its file name syntax.  Many programs and utilities use conventions
+for file names--for example, files containing C source code usually
+have names suffixed with `.c'--but there is nothing in the file system
+itself that enforces this kind of convention.
+
+
+File: libc.info,  Node: File Name Errors,  Next: File Name Portability,  Prev: File Name Resolution,  Up: File Names
+
+File Name Errors
+----------------
+
+   Functions that accept file name arguments usually detect these
+`errno' error conditions relating to the file name syntax or trouble
+finding the named file.  These errors are referred to throughout this
+manual as the "usual file name errors".
+
+`EACCES'
+     The process does not have search permission for a directory
+     component of the file name.
+
+`ENAMETOOLONG'
+     This error is used when either the total length of a file name is
+     greater than `PATH_MAX', or when an individual file name component
+     has a length greater than `NAME_MAX'.  *Note Limits for Files::.
+
+     In the GNU system, there is no imposed limit on overall file name
+     length, but some file systems may place limits on the length of a
+     component.
+
+`ENOENT'
+     This error is reported when a file referenced as a directory
+     component in the file name doesn't exist, or when a component is a
+     symbolic link whose target file does not exist.  *Note Symbolic
+     Links::.
+
+`ENOTDIR'
+     A file that is referenced as a directory component in the file name
+     exists, but it isn't a directory.
+
+`ELOOP'
+     Too many symbolic links were resolved while trying to look up the
+     file name.  The system has an arbitrary limit on the number of
+     symbolic links that may be resolved in looking up a single file
+     name, as a primitive way to detect loops.  *Note Symbolic Links::.
+
+
+File: libc.info,  Node: File Name Portability,  Prev: File Name Errors,  Up: File Names
+
+Portability of File Names
+-------------------------
+
+   The rules for the syntax of file names discussed in *Note File
+Names::, are the rules normally used by the GNU system and by other
+POSIX systems.  However, other operating systems may use other
+conventions.
+
+   There are two reasons why it can be important for you to be aware of
+file name portability issues:
+
+   * If your program makes assumptions about file name syntax, or
+     contains embedded literal file name strings, it is more difficult
+     to get it to run under other operating systems that use different
+     syntax conventions.
+
+   * Even if you are not concerned about running your program on
+     machines that run other operating systems, it may still be
+     possible to access files that use different naming conventions.
+     For example, you may be able to access file systems on another
+     computer running a different operating system over a network, or
+     read and write disks in formats used by other operating systems.
+
+   The ISO C standard says very little about file name syntax, only that
+file names are strings.  In addition to varying restrictions on the
+length of file names and what characters can validly appear in a file
+name, different operating systems use different conventions and syntax
+for concepts such as structured directories and file types or
+extensions.  Some concepts such as file versions might be supported in
+some operating systems and not by others.
+
+   The POSIX.1 standard allows implementations to put additional
+restrictions on file name syntax, concerning what characters are
+permitted in file names and on the length of file name and file name
+component strings.  However, in the GNU system, you do not need to worry
+about these restrictions; any character except the null character is
+permitted in a file name string, and there are no limits on the length
+of file name strings.
+
+
+File: libc.info,  Node: I/O on Streams,  Next: Low-Level I/O,  Prev: I/O Overview,  Up: Top
+
+Input/Output on Streams
+***********************
+
+   This chapter describes the functions for creating streams and
+performing input and output operations on them.  As discussed in *Note
+I/O Overview::, a stream is a fairly abstract, high-level concept
+representing a communications channel to a file, device, or process.
+
+* Menu:
+
+* Streams::                     About the data type representing a stream.
+* Standard Streams::            Streams to the standard input and output
+                                 devices are created for you.
+* Opening Streams::             How to create a stream to talk to a file.
+* Closing Streams::             Close a stream when you are finished with it.
+* Streams and Threads::         Issues with streams in threaded programs.
+* Streams and I18N::            Streams in internationalized applications.
+* Simple Output::               Unformatted output by characters and lines.
+* Character Input::             Unformatted input by characters and words.
+* Line Input::                  Reading a line or a record from a stream.
+* Unreading::                   Peeking ahead/pushing back input just read.
+* Block Input/Output::          Input and output operations on blocks of data.
+* Formatted Output::            `printf' and related functions.
+* Customizing Printf::          You can define new conversion specifiers for
+                                 `printf' and friends.
+* Formatted Input::             `scanf' and related functions.
+* EOF and Errors::              How you can tell if an I/O error happens.
+* Error Recovery::		What you can do about errors.
+* Binary Streams::              Some systems distinguish between text files
+                                 and binary files.
+* File Positioning::            About random-access streams.
+* Portable Positioning::        Random access on peculiar ISO C systems.
+* Stream Buffering::            How to control buffering of streams.
+* Other Kinds of Streams::      Streams that do not necessarily correspond
+                                 to an open file.
+* Formatted Messages::          Print strictly formatted messages.
+
+
+File: libc.info,  Node: Streams,  Next: Standard Streams,  Up: I/O on Streams
+
+Streams
+=======
+
+   For historical reasons, the type of the C data structure that
+represents a stream is called `FILE' rather than "stream".  Since most
+of the library functions deal with objects of type `FILE *', sometimes
+the term "file pointer" is also used to mean "stream".  This leads to
+unfortunate confusion over terminology in many books on C.  This
+manual, however, is careful to use the terms "file" and "stream" only
+in the technical sense.
+
+   The `FILE' type is declared in the header file `stdio.h'.
+
+ - Data Type: FILE
+     This is the data type used to represent stream objects.  A `FILE'
+     object holds all of the internal state information about the
+     connection to the associated file, including such things as the
+     file position indicator and buffering information.  Each stream
+     also has error and end-of-file status indicators that can be
+     tested with the `ferror' and `feof' functions; see *Note EOF and
+     Errors::.
+
+   `FILE' objects are allocated and managed internally by the
+input/output library functions.  Don't try to create your own objects of
+type `FILE'; let the library do it.  Your programs should deal only
+with pointers to these objects (that is, `FILE *' values) rather than
+the objects themselves.
+
+
+File: libc.info,  Node: Standard Streams,  Next: Opening Streams,  Prev: Streams,  Up: I/O on Streams
+
+Standard Streams
+================
+
+   When the `main' function of your program is invoked, it already has
+three predefined streams open and available for use.  These represent
+the "standard" input and output channels that have been established for
+the process.
+
+   These streams are declared in the header file `stdio.h'.
+
+ - Variable: FILE * stdin
+     The "standard input" stream, which is the normal source of input
+     for the program.
+
+ - Variable: FILE * stdout
+     The "standard output" stream, which is used for normal output from
+     the program.
+
+ - Variable: FILE * stderr
+     The "standard error" stream, which is used for error messages and
+     diagnostics issued by the program.
+
+   In the GNU system, you can specify what files or processes
+correspond to these streams using the pipe and redirection facilities
+provided by the shell.  (The primitives shells use to implement these
+facilities are described in *Note File System Interface::.)  Most other
+operating systems provide similar mechanisms, but the details of how to
+use them can vary.
+
+   In the GNU C library, `stdin', `stdout', and `stderr' are normal
+variables which you can set just like any others.  For example, to
+redirect the standard output to a file, you could do:
+
+     fclose (stdout);
+     stdout = fopen ("standard-output-file", "w");
+
+   Note however, that in other systems `stdin', `stdout', and `stderr'
+are macros that you cannot assign to in the normal way.  But you can
+use `freopen' to get the effect of closing one and reopening it.  *Note
+Opening Streams::.
+
+   The three streams `stdin', `stdout', and `stderr' are not unoriented
+at program start (*note Streams and I18N::).
+
+
+File: libc.info,  Node: Opening Streams,  Next: Closing Streams,  Prev: Standard Streams,  Up: I/O on Streams
+
+Opening Streams
+===============
+
+   Opening a file with the `fopen' function creates a new stream and
+establishes a connection between the stream and a file.  This may
+involve creating a new file.
+
+   Everything described in this section is declared in the header file
+`stdio.h'.
+
+ - Function: FILE * fopen (const char *FILENAME, const char *OPENTYPE)
+     The `fopen' function opens a stream for I/O to the file FILENAME,
+     and returns a pointer to the stream.
+
+     The OPENTYPE argument is a string that controls how the file is
+     opened and specifies attributes of the resulting stream.  It must
+     begin with one of the following sequences of characters:
+
+    `r'
+          Open an existing file for reading only.
+
+    `w'
+          Open the file for writing only.  If the file already exists,
+          it is truncated to zero length.  Otherwise a new file is
+          created.
+
+    `a'
+          Open a file for append access; that is, writing at the end of
+          file only.  If the file already exists, its initial contents
+          are unchanged and output to the stream is appended to the end
+          of the file.  Otherwise, a new, empty file is created.
+
+    `r+'
+          Open an existing file for both reading and writing.  The
+          initial contents of the file are unchanged and the initial
+          file position is at the beginning of the file.
+
+    `w+'
+          Open a file for both reading and writing.  If the file
+          already exists, it is truncated to zero length.  Otherwise, a
+          new file is created.
+
+    `a+'
+          Open or create file for both reading and appending.  If the
+          file exists, its initial contents are unchanged.  Otherwise,
+          a new file is created.  The initial file position for reading
+          is at the beginning of the file, but output is always
+          appended to the end of the file.
+
+     As you can see, `+' requests a stream that can do both input and
+     output.  The ISO standard says that when using such a stream, you
+     must call `fflush' (*note Stream Buffering::) or a file positioning
+     function such as `fseek' (*note File Positioning::) when switching
+     from reading to writing or vice versa.  Otherwise, internal buffers
+     might not be emptied properly.  The GNU C library does not have
+     this limitation; you can do arbitrary reading and writing
+     operations on a stream in whatever order.
+
+     Additional characters may appear after these to specify flags for
+     the call.  Always put the mode (`r', `w+', etc.) first; that is
+     the only part you are guaranteed will be understood by all systems.
+
+     The GNU C library defines one additional character for use in
+     OPENTYPE: the character `x' insists on creating a new file--if a
+     file FILENAME already exists, `fopen' fails rather than opening
+     it.  If you use `x' you are guaranteed that you will not clobber
+     an existing file.  This is equivalent to the `O_EXCL' option to
+     the `open' function (*note Opening and Closing Files::).
+
+     The character `b' in OPENTYPE has a standard meaning; it requests
+     a binary stream rather than a text stream.  But this makes no
+     difference in POSIX systems (including the GNU system).  If both
+     `+' and `b' are specified, they can appear in either order.  *Note
+     Binary Streams::.
+
+     If the OPENTYPE string contains the sequence `,ccs=STRING' then
+     STRING is taken as the name of a coded character set and `fopen'
+     will mark the stream as wide-oriented which appropriate conversion
+     functions in place to convert from and to the character set STRING
+     is place.  Any other stream is opened initially unoriented and the
+     orientation is decided with the first file operation.  If the
+     first operation is a wide character operation, the stream is not
+     only marked as wide-oriented, also the conversion functions to
+     convert to the coded character set used for the current locale are
+     loaded.  This will not change anymore from this point on even if
+     the locale selected for the `LC_CTYPE' category is changed.
+
+     Any other characters in OPENTYPE are simply ignored.  They may be
+     meaningful in other systems.
+
+     If the open fails, `fopen' returns a null pointer.
+
+     When the sources are compiling with `_FILE_OFFSET_BITS == 64' on a
+     32 bit machine this function is in fact `fopen64' since the LFS
+     interface replaces transparently the old interface.
+
+   You can have multiple streams (or file descriptors) pointing to the
+same file open at the same time.  If you do only input, this works
+straightforwardly, but you must be careful if any output streams are
+included.  *Note Stream/Descriptor Precautions::.  This is equally true
+whether the streams are in one program (not usual) or in several
+programs (which can easily happen).  It may be advantageous to use the
+file locking facilities to avoid simultaneous access.  *Note File
+Locks::.
+
+ - Function: FILE * fopen64 (const char *FILENAME, const char *OPENTYPE)
+     This function is similar to `fopen' but the stream it returns a
+     pointer for is opened using `open64'.  Therefore this stream can be
+     used even on files larger then 2^31 bytes on 32 bit machines.
+
+     Please note that the return type is still `FILE *'.  There is no
+     special `FILE' type for the LFS interface.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `fopen' and
+     so transparently replaces the old interface.
+
+ - Macro: int FOPEN_MAX
+     The value of this macro is an integer constant expression that
+     represents the minimum number of streams that the implementation
+     guarantees can be open simultaneously.  You might be able to open
+     more than this many streams, but that is not guaranteed.  The
+     value of this constant is at least eight, which includes the three
+     standard streams `stdin', `stdout', and `stderr'.  In POSIX.1
+     systems this value is determined by the `OPEN_MAX' parameter;
+     *note General Limits::.  In BSD and GNU, it is controlled by the
+     `RLIMIT_NOFILE' resource limit; *note Limits on Resources::.
+
+ - Function: FILE * freopen (const char *FILENAME, const char
+          *OPENTYPE, FILE *STREAM)
+     This function is like a combination of `fclose' and `fopen'.  It
+     first closes the stream referred to by STREAM, ignoring any errors
+     that are detected in the process.  (Because errors are ignored,
+     you should not use `freopen' on an output stream if you have
+     actually done any output using the stream.)  Then the file named by
+     FILENAME is opened with mode OPENTYPE as for `fopen', and
+     associated with the same stream object STREAM.
+
+     If the operation fails, a null pointer is returned; otherwise,
+     `freopen' returns STREAM.
+
+     `freopen' has traditionally been used to connect a standard stream
+     such as `stdin' with a file of your own choice.  This is useful in
+     programs in which use of a standard stream for certain purposes is
+     hard-coded.  In the GNU C library, you can simply close the
+     standard streams and open new ones with `fopen'.  But other
+     systems lack this ability, so using `freopen' is more portable.
+
+     When the sources are compiling with `_FILE_OFFSET_BITS == 64' on a
+     32 bit machine this function is in fact `freopen64' since the LFS
+     interface replaces transparently the old interface.
+
+ - Function: FILE * freopen64 (const char *FILENAME, const char
+          *OPENTYPE, FILE *STREAM)
+     This function is similar to `freopen'.  The only difference is that
+     on 32 bit machine the stream returned is able to read beyond the
+     2^31 bytes limits imposed by the normal interface.  It should be
+     noted that the stream pointed to by STREAM need not be opened
+     using `fopen64' or `freopen64' since its mode is not important for
+     this function.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `freopen'
+     and so transparently replaces the old interface.
+
+   In some situations it is useful to know whether a given stream is
+available for reading or writing.  This information is normally not
+available and would have to be remembered separately.  Solaris
+introduced a few functions to get this information from the stream
+descriptor and these functions are also available in the GNU C library.
+
+ - Function: int __freadable (FILE *STREAM)
+     The `__freadable' function determines whether the stream STREAM
+     was opened to allow reading.  In this case the return value is
+     nonzero.  For write-only streams the function returns zero.
+
+     This function is declared in `stdio_ext.h'.
+
+ - Function: int __fwritable (FILE *STREAM)
+     The `__fwritable' function determines whether the stream STREAM
+     was opened to allow writing.  In this case the return value is
+     nonzero.  For read-only streams the function returns zero.
+
+     This function is declared in `stdio_ext.h'.
+
+   For slightly different kind of problems there are two more functions.
+They provide even finer-grained information.
+
+ - Function: int __freading (FILE *STREAM)
+     The `__freading' function determines whether the stream STREAM was
+     last read from or whether it is opened read-only.  In this case
+     the return value is nonzero, otherwise it is zero.  Determining
+     whether a stream opened for reading and writing was last used for
+     writing allows to draw conclusions about the content about the
+     buffer, among other things.
+
+     This function is declared in `stdio_ext.h'.
+
+ - Function: int __fwriting (FILE *STREAM)
+     The `__fwriting' function determines whether the stream STREAM was
+     last written to or whether it is opened write-only.  In this case
+     the return value is nonzero, otherwise it is zero.
+
+     This function is declared in `stdio_ext.h'.
+
+
+File: libc.info,  Node: Closing Streams,  Next: Streams and Threads,  Prev: Opening Streams,  Up: I/O on Streams
+
+Closing Streams
+===============
+
+   When a stream is closed with `fclose', the connection between the
+stream and the file is cancelled.  After you have closed a stream, you
+cannot perform any additional operations on it.
+
+ - Function: int fclose (FILE *STREAM)
+     This function causes STREAM to be closed and the connection to the
+     corresponding file to be broken.  Any buffered output is written
+     and any buffered input is discarded.  The `fclose' function returns
+     a value of `0' if the file was closed successfully, and `EOF' if
+     an error was detected.
+
+     It is important to check for errors when you call `fclose' to close
+     an output stream, because real, everyday errors can be detected at
+     this time.  For example, when `fclose' writes the remaining
+     buffered output, it might get an error because the disk is full.
+     Even if you know the buffer is empty, errors can still occur when
+     closing a file if you are using NFS.
+
+     The function `fclose' is declared in `stdio.h'.
+
+   To close all streams currently available the GNU C Library provides
+another function.
+
+ - Function: int fcloseall (void)
+     This function causes all open streams of the process to be closed
+     and the connection to corresponding files to be broken.  All
+     buffered data is written and any buffered input is discarded.  The
+     `fcloseall' function returns a value of `0' if all the files were
+     closed successfully, and `EOF' if an error was detected.
+
+     This function should be used only in special situations, e.g.,
+     when an error occurred and the program must be aborted.  Normally
+     each single stream should be closed separately so that problems
+     with individual streams can be identified.  It is also problematic
+     since the standard streams (*note Standard Streams::) will also be
+     closed.
+
+     The function `fcloseall' is declared in `stdio.h'.
+
+   If the `main' function to your program returns, or if you call the
+`exit' function (*note Normal Termination::), all open streams are
+automatically closed properly.  If your program terminates in any other
+manner, such as by calling the `abort' function (*note Aborting a
+Program::) or from a fatal signal (*note Signal Handling::), open
+streams might not be closed properly.  Buffered output might not be
+flushed and files may be incomplete.  For more information on buffering
+of streams, see *Note Stream Buffering::.
+

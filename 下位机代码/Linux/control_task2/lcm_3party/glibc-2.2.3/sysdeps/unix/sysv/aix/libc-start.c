@@ -1,0 +1,1 @@
+/* stub libc-start.c */

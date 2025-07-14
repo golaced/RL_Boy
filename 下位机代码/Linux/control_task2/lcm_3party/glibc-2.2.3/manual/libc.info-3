@@ -1,0 +1,1302 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Error Codes,  Next: Error Messages,  Prev: Checking for Errors,  Up: Error Reporting
+
+Error Codes
+===========
+
+   The error code macros are defined in the header file `errno.h'.  All
+of them expand into integer constant values.  Some of these error codes
+can't occur on the GNU system, but they can occur using the GNU library
+on other systems.
+
+ - Macro: int EPERM
+     Operation not permitted; only the owner of the file (or other
+     resource) or processes with special privileges can perform the
+     operation.
+
+ - Macro: int ENOENT
+     No such file or directory.  This is a "file doesn't exist" error
+     for ordinary files that are referenced in contexts where they are
+     expected to already exist.
+
+ - Macro: int ESRCH
+     No process matches the specified process ID.
+
+ - Macro: int EINTR
+     Interrupted function call; an asynchronous signal occurred and
+     prevented completion of the call.  When this happens, you should
+     try the call again.
+
+     You can choose to have functions resume after a signal that is
+     handled, rather than failing with `EINTR'; see *Note Interrupted
+     Primitives::.
+
+ - Macro: int EIO
+     Input/output error; usually used for physical read or write errors.
+
+ - Macro: int ENXIO
+     No such device or address.  The system tried to use the device
+     represented by a file you specified, and it couldn't find the
+     device.  This can mean that the device file was installed
+     incorrectly, or that the physical device is missing or not
+     correctly attached to the computer.
+
+ - Macro: int E2BIG
+     Argument list too long; used when the arguments passed to a new
+     program being executed with one of the `exec' functions (*note
+     Executing a File::) occupy too much memory space.  This condition
+     never arises in the GNU system.
+
+ - Macro: int ENOEXEC
+     Invalid executable file format.  This condition is detected by the
+     `exec' functions; see *Note Executing a File::.
+
+ - Macro: int EBADF
+     Bad file descriptor; for example, I/O on a descriptor that has been
+     closed or reading from a descriptor open only for writing (or vice
+     versa).
+
+ - Macro: int ECHILD
+     There are no child processes.  This error happens on operations
+     that are supposed to manipulate child processes, when there aren't
+     any processes to manipulate.
+
+ - Macro: int EDEADLK
+     Deadlock avoided; allocating a system resource would have resulted
+     in a deadlock situation.  The system does not guarantee that it
+     will notice all such situations.  This error means you got lucky
+     and the system noticed; it might just hang.  *Note File Locks::,
+     for an example.
+
+ - Macro: int ENOMEM
+     No memory available.  The system cannot allocate more virtual
+     memory because its capacity is full.
+
+ - Macro: int EACCES
+     Permission denied; the file permissions do not allow the attempted
+     operation.
+
+ - Macro: int EFAULT
+     Bad address; an invalid pointer was detected.  In the GNU system,
+     this error never happens; you get a signal instead.
+
+ - Macro: int ENOTBLK
+     A file that isn't a block special file was given in a situation
+     that requires one.  For example, trying to mount an ordinary file
+     as a file system in Unix gives this error.
+
+ - Macro: int EBUSY
+     Resource busy; a system resource that can't be shared is already
+     in use.  For example, if you try to delete a file that is the root
+     of a currently mounted filesystem, you get this error.
+
+ - Macro: int EEXIST
+     File exists; an existing file was specified in a context where it
+     only makes sense to specify a new file.
+
+ - Macro: int EXDEV
+     An attempt to make an improper link across file systems was
+     detected.  This happens not only when you use `link' (*note Hard
+     Links::) but also when you rename a file with `rename' (*note
+     Renaming Files::).
+
+ - Macro: int ENODEV
+     The wrong type of device was given to a function that expects a
+     particular sort of device.
+
+ - Macro: int ENOTDIR
+     A file that isn't a directory was specified when a directory is
+     required.
+
+ - Macro: int EISDIR
+     File is a directory; you cannot open a directory for writing, or
+     create or remove hard links to it.
+
+ - Macro: int EINVAL
+     Invalid argument.  This is used to indicate various kinds of
+     problems with passing the wrong argument to a library function.
+
+ - Macro: int EMFILE
+     The current process has too many files open and can't open any
+     more.  Duplicate descriptors do count toward this limit.
+
+     In BSD and GNU, the number of open files is controlled by a
+     resource limit that can usually be increased.  If you get this
+     error, you might want to increase the `RLIMIT_NOFILE' limit or
+     make it unlimited; *note Limits on Resources::.
+
+ - Macro: int ENFILE
+     There are too many distinct file openings in the entire system.
+     Note that any number of linked channels count as just one file
+     opening; see *Note Linked Channels::.  This error never occurs in
+     the GNU system.
+
+ - Macro: int ENOTTY
+     Inappropriate I/O control operation, such as trying to set terminal
+     modes on an ordinary file.
+
+ - Macro: int ETXTBSY
+     An attempt to execute a file that is currently open for writing, or
+     write to a file that is currently being executed.  Often using a
+     debugger to run a program is considered having it open for writing
+     and will cause this error.  (The name stands for "text file
+     busy".)  This is not an error in the GNU system; the text is
+     copied as necessary.
+
+ - Macro: int EFBIG
+     File too big; the size of a file would be larger than allowed by
+     the system.
+
+ - Macro: int ENOSPC
+     No space left on device; write operation on a file failed because
+     the disk is full.
+
+ - Macro: int ESPIPE
+     Invalid seek operation (such as on a pipe).
+
+ - Macro: int EROFS
+     An attempt was made to modify something on a read-only file system.
+
+ - Macro: int EMLINK
+     Too many links; the link count of a single file would become too
+     large.  `rename' can cause this error if the file being renamed
+     already has as many links as it can take (*note Renaming Files::).
+
+ - Macro: int EPIPE
+     Broken pipe; there is no process reading from the other end of a
+     pipe.  Every library function that returns this error code also
+     generates a `SIGPIPE' signal; this signal terminates the program
+     if not handled or blocked.  Thus, your program will never actually
+     see `EPIPE' unless it has handled or blocked `SIGPIPE'.
+
+ - Macro: int EDOM
+     Domain error; used by mathematical functions when an argument
+     value does not fall into the domain over which the function is
+     defined.
+
+ - Macro: int ERANGE
+     Range error; used by mathematical functions when the result value
+     is not representable because of overflow or underflow.
+
+ - Macro: int EAGAIN
+     Resource temporarily unavailable; the call might work if you try
+     again later.  The macro `EWOULDBLOCK' is another name for `EAGAIN';
+     they are always the same in the GNU C library.
+
+     This error can happen in a few different situations:
+
+        * An operation that would block was attempted on an object that
+          has non-blocking mode selected.  Trying the same operation
+          again will block until some external condition makes it
+          possible to read, write, or connect (whatever the operation).
+          You can use `select' to find out when the operation will be
+          possible; *note Waiting for I/O::.
+
+          *Portability Note:* In many older Unix systems, this condition
+          was indicated by `EWOULDBLOCK', which was a distinct error
+          code different from `EAGAIN'.  To make your program portable,
+          you should check for both codes and treat them the same.
+
+        * A temporary resource shortage made an operation impossible.
+          `fork' can return this error.  It indicates that the shortage
+          is expected to pass, so your program can try the call again
+          later and it may succeed.  It is probably a good idea to
+          delay for a few seconds before trying it again, to allow time
+          for other processes to release scarce resources.  Such
+          shortages are usually fairly serious and affect the whole
+          system, so usually an interactive program should report the
+          error to the user and return to its command loop.
+
+ - Macro: int EWOULDBLOCK
+     In the GNU C library, this is another name for `EAGAIN' (above).
+     The values are always the same, on every operating system.
+
+     C libraries in many older Unix systems have `EWOULDBLOCK' as a
+     separate error code.
+
+ - Macro: int EINPROGRESS
+     An operation that cannot complete immediately was initiated on an
+     object that has non-blocking mode selected.  Some functions that
+     must always block (such as `connect'; *note Connecting::) never
+     return `EAGAIN'.  Instead, they return `EINPROGRESS' to indicate
+     that the operation has begun and will take some time.  Attempts to
+     manipulate the object before the call completes return `EALREADY'.
+     You can use the `select' function to find out when the pending
+     operation has completed; *note Waiting for I/O::.
+
+ - Macro: int EALREADY
+     An operation is already in progress on an object that has
+     non-blocking mode selected.
+
+ - Macro: int ENOTSOCK
+     A file that isn't a socket was specified when a socket is required.
+
+ - Macro: int EMSGSIZE
+     The size of a message sent on a socket was larger than the
+     supported maximum size.
+
+ - Macro: int EPROTOTYPE
+     The socket type does not support the requested communications
+     protocol.
+
+ - Macro: int ENOPROTOOPT
+     You specified a socket option that doesn't make sense for the
+     particular protocol being used by the socket.  *Note Socket
+     Options::.
+
+ - Macro: int EPROTONOSUPPORT
+     The socket domain does not support the requested communications
+     protocol (perhaps because the requested protocol is completely
+     invalid).  *Note Creating a Socket::.
+
+ - Macro: int ESOCKTNOSUPPORT
+     The socket type is not supported.
+
+ - Macro: int EOPNOTSUPP
+     The operation you requested is not supported.  Some socket
+     functions don't make sense for all types of sockets, and others
+     may not be implemented for all communications protocols.  In the
+     GNU system, this error can happen for many calls when the object
+     does not support the particular operation; it is a generic
+     indication that the server knows nothing to do for that call.
+
+ - Macro: int EPFNOSUPPORT
+     The socket communications protocol family you requested is not
+     supported.
+
+ - Macro: int EAFNOSUPPORT
+     The address family specified for a socket is not supported; it is
+     inconsistent with the protocol being used on the socket.  *Note
+     Sockets::.
+
+ - Macro: int EADDRINUSE
+     The requested socket address is already in use.  *Note Socket
+     Addresses::.
+
+ - Macro: int EADDRNOTAVAIL
+     The requested socket address is not available; for example, you
+     tried to give a socket a name that doesn't match the local host
+     name.  *Note Socket Addresses::.
+
+ - Macro: int ENETDOWN
+     A socket operation failed because the network was down.
+
+ - Macro: int ENETUNREACH
+     A socket operation failed because the subnet containing the remote
+     host was unreachable.
+
+ - Macro: int ENETRESET
+     A network connection was reset because the remote host crashed.
+
+ - Macro: int ECONNABORTED
+     A network connection was aborted locally.
+
+ - Macro: int ECONNRESET
+     A network connection was closed for reasons outside the control of
+     the local host, such as by the remote machine rebooting or an
+     unrecoverable protocol violation.
+
+ - Macro: int ENOBUFS
+     The kernel's buffers for I/O operations are all in use.  In GNU,
+     this error is always synonymous with `ENOMEM'; you may get one or
+     the other from network operations.
+
+ - Macro: int EISCONN
+     You tried to connect a socket that is already connected.  *Note
+     Connecting::.
+
+ - Macro: int ENOTCONN
+     The socket is not connected to anything.  You get this error when
+     you try to transmit data over a socket, without first specifying a
+     destination for the data.  For a connectionless socket (for
+     datagram protocols, such as UDP), you get `EDESTADDRREQ' instead.
+
+ - Macro: int EDESTADDRREQ
+     No default destination address was set for the socket.  You get
+     this error when you try to transmit data over a connectionless
+     socket, without first specifying a destination for the data with
+     `connect'.
+
+ - Macro: int ESHUTDOWN
+     The socket has already been shut down.
+
+ - Macro: int ETOOMANYREFS
+     ???
+
+ - Macro: int ETIMEDOUT
+     A socket operation with a specified timeout received no response
+     during the timeout period.
+
+ - Macro: int ECONNREFUSED
+     A remote host refused to allow the network connection (typically
+     because it is not running the requested service).
+
+ - Macro: int ELOOP
+     Too many levels of symbolic links were encountered in looking up a
+     file name.  This often indicates a cycle of symbolic links.
+
+ - Macro: int ENAMETOOLONG
+     Filename too long (longer than `PATH_MAX'; *note Limits for
+     Files::) or host name too long (in `gethostname' or `sethostname';
+     *note Host Identification::).
+
+ - Macro: int EHOSTDOWN
+     The remote host for a requested network connection is down.
+
+ - Macro: int EHOSTUNREACH
+     The remote host for a requested network connection is not
+     reachable.
+
+ - Macro: int ENOTEMPTY
+     Directory not empty, where an empty directory was expected.
+     Typically, this error occurs when you are trying to delete a
+     directory.
+
+ - Macro: int EPROCLIM
+     This means that the per-user limit on new process would be
+     exceeded by an attempted `fork'.  *Note Limits on Resources::, for
+     details on the `RLIMIT_NPROC' limit.
+
+ - Macro: int EUSERS
+     The file quota system is confused because there are too many users.
+
+ - Macro: int EDQUOT
+     The user's disk quota was exceeded.
+
+ - Macro: int ESTALE
+     Stale NFS file handle.  This indicates an internal confusion in
+     the NFS system which is due to file system rearrangements on the
+     server host.  Repairing this condition usually requires unmounting
+     and remounting the NFS file system on the local host.
+
+ - Macro: int EREMOTE
+     An attempt was made to NFS-mount a remote file system with a file
+     name that already specifies an NFS-mounted file.  (This is an
+     error on some operating systems, but we expect it to work properly
+     on the GNU system, making this error code impossible.)
+
+ - Macro: int EBADRPC
+     ???
+
+ - Macro: int ERPCMISMATCH
+     ???
+
+ - Macro: int EPROGUNAVAIL
+     ???
+
+ - Macro: int EPROGMISMATCH
+     ???
+
+ - Macro: int EPROCUNAVAIL
+     ???
+
+ - Macro: int ENOLCK
+     No locks available.  This is used by the file locking facilities;
+     see *Note File Locks::.  This error is never generated by the GNU
+     system, but it can result from an operation to an NFS server
+     running another operating system.
+
+ - Macro: int EFTYPE
+     Inappropriate file type or format.  The file was the wrong type
+     for the operation, or a data file had the wrong format.
+
+     On some systems `chmod' returns this error if you try to set the
+     sticky bit on a non-directory file; *note Setting Permissions::.
+
+ - Macro: int EAUTH
+     ???
+
+ - Macro: int ENEEDAUTH
+     ???
+
+ - Macro: int ENOSYS
+     Function not implemented.  This indicates that the function called
+     is not implemented at all, either in the C library itself or in the
+     operating system.  When you get this error, you can be sure that
+     this particular function will always fail with `ENOSYS' unless you
+     install a new version of the C library or the operating system.
+
+ - Macro: int ENOTSUP
+     Not supported.  A function returns this error when certain
+     parameter values are valid, but the functionality they request is
+     not available.  This can mean that the function does not implement
+     a particular command or option value or flag bit at all.  For
+     functions that operate on some object given in a parameter, such
+     as a file descriptor or a port, it might instead mean that only
+     _that specific object_ (file descriptor, port, etc.) is unable to
+     support the other parameters given; different file descriptors
+     might support different ranges of parameter values.
+
+     If the entire function is not available at all in the
+     implementation, it returns `ENOSYS' instead.
+
+ - Macro: int EILSEQ
+     While decoding a multibyte character the function came along an
+     invalid or an incomplete sequence of bytes or the given wide
+     character is invalid.
+
+ - Macro: int EBACKGROUND
+     In the GNU system, servers supporting the `term' protocol return
+     this error for certain operations when the caller is not in the
+     foreground process group of the terminal.  Users do not usually
+     see this error because functions such as `read' and `write'
+     translate it into a `SIGTTIN' or `SIGTTOU' signal.  *Note Job
+     Control::, for information on process groups and these signals.
+
+ - Macro: int EDIED
+     In the GNU system, opening a file returns this error when the file
+     is translated by a program and the translator program dies while
+     starting up, before it has connected to the file.
+
+ - Macro: int ED
+     The experienced user will know what is wrong.
+
+ - Macro: int EGREGIOUS
+     You did *what*?
+
+ - Macro: int EIEIO
+     Go home and have a glass of warm, dairy-fresh milk.
+
+ - Macro: int EGRATUITOUS
+     This error code has no purpose.
+
+ - Macro: int EBADMSG
+
+ - Macro: int EIDRM
+
+ - Macro: int EMULTIHOP
+
+ - Macro: int ENODATA
+
+ - Macro: int ENOLINK
+
+ - Macro: int ENOMSG
+
+ - Macro: int ENOSR
+
+ - Macro: int ENOSTR
+
+ - Macro: int EOVERFLOW
+
+ - Macro: int EPROTO
+
+ - Macro: int ETIME
+
+   _The following error codes are defined by the Linux/i386 kernel.
+They are not yet documented._
+
+ - Macro: int ERESTART
+
+ - Macro: int ECHRNG
+
+ - Macro: int EL2NSYNC
+
+ - Macro: int EL3HLT
+
+ - Macro: int EL3RST
+
+ - Macro: int ELNRNG
+
+ - Macro: int EUNATCH
+
+ - Macro: int ENOCSI
+
+ - Macro: int EL2HLT
+
+ - Macro: int EBADE
+
+ - Macro: int EBADR
+
+ - Macro: int EXFULL
+
+ - Macro: int ENOANO
+
+ - Macro: int EBADRQC
+
+ - Macro: int EBADSLT
+
+ - Macro: int EDEADLOCK
+
+ - Macro: int EBFONT
+
+ - Macro: int ENONET
+
+ - Macro: int ENOPKG
+
+ - Macro: int EADV
+
+ - Macro: int ESRMNT
+
+ - Macro: int ECOMM
+
+ - Macro: int EDOTDOT
+
+ - Macro: int ENOTUNIQ
+
+ - Macro: int EBADFD
+
+ - Macro: int EREMCHG
+
+ - Macro: int ELIBACC
+
+ - Macro: int ELIBBAD
+
+ - Macro: int ELIBSCN
+
+ - Macro: int ELIBMAX
+
+ - Macro: int ELIBEXEC
+
+ - Macro: int ESTRPIPE
+
+ - Macro: int EUCLEAN
+
+ - Macro: int ENOTNAM
+
+ - Macro: int ENAVAIL
+
+ - Macro: int EISNAM
+
+ - Macro: int EREMOTEIO
+
+ - Macro: int ENOMEDIUM
+
+ - Macro: int EMEDIUMTYPE
+
+
+File: libc.info,  Node: Error Messages,  Prev: Error Codes,  Up: Error Reporting
+
+Error Messages
+==============
+
+   The library has functions and variables designed to make it easy for
+your program to report informative error messages in the customary
+format about the failure of a library call.  The functions `strerror'
+and `perror' give you the standard error message for a given error
+code; the variable `program_invocation_short_name' gives you convenient
+access to the name of the program that encountered the error.
+
+ - Function: char * strerror (int ERRNUM)
+     The `strerror' function maps the error code (*note Checking for
+     Errors::) specified by the ERRNUM argument to a descriptive error
+     message string.  The return value is a pointer to this string.
+
+     The value ERRNUM normally comes from the variable `errno'.
+
+     You should not modify the string returned by `strerror'.  Also, if
+     you make subsequent calls to `strerror', the string might be
+     overwritten.  (But it's guaranteed that no library function ever
+     calls `strerror' behind your back.)
+
+     The function `strerror' is declared in `string.h'.
+
+ - Function: char * strerror_r (int ERRNUM, char *BUF, size_t N)
+     The `strerror_r' function works like `strerror' but instead of
+     returning the error message in a statically allocated buffer
+     shared by all threads in the process, it returns a private copy
+     for the thread. This might be either some permanent global data or
+     a message string in the user supplied buffer starting at BUF with
+     the length of N bytes.
+
+     At most N characters are written (including the NUL byte) so it is
+     up to the user to select the buffer large enough.
+
+     This function should always be used in multi-threaded programs
+     since there is no way to guarantee the string returned by
+     `strerror' really belongs to the last call of the current thread.
+
+     This function `strerror_r' is a GNU extension and it is declared in
+     `string.h'.
+
+ - Function: void perror (const char *MESSAGE)
+     This function prints an error message to the stream `stderr'; see
+     *Note Standard Streams::.
+
+     If you call `perror' with a MESSAGE that is either a null pointer
+     or an empty string, `perror' just prints the error message
+     corresponding to `errno', adding a trailing newline.
+
+     If you supply a non-null MESSAGE argument, then `perror' prefixes
+     its output with this string.  It adds a colon and a space
+     character to separate the MESSAGE from the error string
+     corresponding to `errno'.
+
+     The function `perror' is declared in `stdio.h'.
+
+   `strerror' and `perror' produce the exact same message for any given
+error code; the precise text varies from system to system.  On the GNU
+system, the messages are fairly short; there are no multi-line messages
+or embedded newlines.  Each error message begins with a capital letter
+and does not include any terminating punctuation.
+
+   *Compatibility Note:*  The `strerror' function is a new feature of
+ISO C.  Many older C systems do not support this function yet.
+
+   Many programs that don't read input from the terminal are designed to
+exit if any system call fails.  By convention, the error message from
+such a program should start with the program's name, sans directories.
+You can find that name in the variable `program_invocation_short_name';
+the full file name is stored the variable `program_invocation_name'.
+
+ - Variable: char * program_invocation_name
+     This variable's value is the name that was used to invoke the
+     program running in the current process.  It is the same as
+     `argv[0]'.  Note that this is not necessarily a useful file name;
+     often it contains no directory names.  *Note Program Arguments::.
+
+ - Variable: char * program_invocation_short_name
+     This variable's value is the name that was used to invoke the
+     program running in the current process, with directory names
+     removed.  (That is to say, it is the same as
+     `program_invocation_name' minus everything up to the last slash,
+     if any.)
+
+   The library initialization code sets up both of these variables
+before calling `main'.
+
+   *Portability Note:* These two variables are GNU extensions.  If you
+want your program to work with non-GNU libraries, you must save the
+value of `argv[0]' in `main', and then strip off the directory names
+yourself.  We added these extensions to make it possible to write
+self-contained error-reporting subroutines that require no explicit
+cooperation from `main'.
+
+   Here is an example showing how to handle failure to open a file
+correctly.  The function `open_sesame' tries to open the named file for
+reading and returns a stream if successful.  The `fopen' library
+function returns a null pointer if it couldn't open the file for some
+reason.  In that situation, `open_sesame' constructs an appropriate
+error message using the `strerror' function, and terminates the
+program.  If we were going to make some other library calls before
+passing the error code to `strerror', we'd have to save it in a local
+variable instead, because those other library functions might overwrite
+`errno' in the meantime.
+
+     #include <errno.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <string.h>
+     
+     FILE *
+     open_sesame (char *name)
+     {
+       FILE *stream;
+     
+       errno = 0;
+       stream = fopen (name, "r");
+       if (stream == NULL)
+         {
+           fprintf (stderr, "%s: Couldn't open file %s; %s\n",
+                    program_invocation_short_name, name, strerror (errno));
+           exit (EXIT_FAILURE);
+         }
+       else
+         return stream;
+     }
+
+
+File: libc.info,  Node: Memory,  Next: Character Handling,  Prev: Error Reporting,  Up: Top
+
+Virtual Memory Allocation And Paging
+************************************
+
+   This chapter describes how processes manage and use memory in a
+system that uses the GNU C library.
+
+   The GNU C Library has several functions for dynamically allocating
+virtual memory in various ways.  They vary in generality and in
+efficiency.  The library also provides functions for controlling paging
+and allocation of real memory.
+
+* Menu:
+
+* Memory Concepts::             An introduction to concepts and terminology.
+* Memory Allocation::           Allocating storage for your program data
+* Locking Pages::               Preventing page faults
+* Resizing the Data Segment::   `brk', `sbrk'
+
+   Memory mapped I/O is not discussed in this chapter.  *Note
+Memory-mapped I/O::.
+
+
+File: libc.info,  Node: Memory Concepts,  Next: Memory Allocation,  Up: Memory
+
+Process Memory Concepts
+=======================
+
+   One of the most basic resources a process has available to it is
+memory.  There are a lot of different ways systems organize memory, but
+in a typical one, each process has one linear virtual address space,
+with addresses running from zero to some huge maximum.  It need not be
+contiguous; i.e.  not all of these addresses actually can be used to
+store data.
+
+   The virtual memory is divided into pages (4 kilobytes is typical).
+Backing each page of virtual memory is a page of real memory (called a
+"frame") or some secondary storage, usually disk space.  The disk space
+might be swap space or just some ordinary disk file.  Actually, a page
+of all zeroes sometimes has nothing at all backing it - there's just a
+flag saying it is all zeroes.
+
+   The same frame of real memory or backing store can back multiple
+virtual pages belonging to multiple processes.  This is normally the
+case, for example, with virtual memory occupied by GNU C library code.
+The same real memory frame containing the `printf' function backs a
+virtual memory page in each of the existing processes that has a
+`printf' call in its program.
+
+   In order for a program to access any part of a virtual page, the page
+must at that moment be backed by ("connected to") a real frame.  But
+because there is usually a lot more virtual memory than real memory, the
+pages must move back and forth between real memory and backing store
+regularly, coming into real memory when a process needs to access them
+and then retreating to backing store when not needed anymore.  This
+movement is called "paging".
+
+   When a program attempts to access a page which is not at that moment
+backed by real memory, this is known as a "page fault".  When a page
+fault occurs, the kernel suspends the process, places the page into a
+real page frame (this is called "paging in" or "faulting in"), then
+resumes the process so that from the process' point of view, the page
+was in real memory all along.  In fact, to the process, all pages always
+seem to be in real memory.  Except for one thing: the elapsed execution
+time of an instruction that would normally be a few nanoseconds is
+suddenly much, much, longer (because the kernel normally has to do I/O
+to complete the page-in).  For programs sensitive to that, the functions
+described in *Note Locking Pages:: can control it.
+
+   Within each virtual address space, a process has to keep track of
+what is at which addresses, and that process is called memory
+allocation.  Allocation usually brings to mind meting out scarce
+resources, but in the case of virtual memory, that's not a major goal,
+because there is generally much more of it than anyone needs.  Memory
+allocation within a process is mainly just a matter of making sure that
+the same byte of memory isn't used to store two different things.
+
+   Processes allocate memory in two major ways: by exec and
+programmatically.  Actually, forking is a third way, but it's not very
+interesting.  *Note Creating a Process::.
+
+   Exec is the operation of creating a virtual address space for a
+process, loading its basic program into it, and executing the program.
+It is done by the "exec" family of functions (e.g. `execl').  The
+operation takes a program file (an executable), it allocates space to
+load all the data in the executable, loads it, and transfers control to
+it.  That data is most notably the instructions of the program (the
+"text"), but also literals and constants in the program and even some
+variables: C variables with the static storage class (*note Memory
+Allocation and C::).
+
+   Once that program begins to execute, it uses programmatic allocation
+to gain additional memory.  In a C program with the GNU C library, there
+are two kinds of programmatic allocation: automatic and dynamic.  *Note
+Memory Allocation and C::.
+
+   Memory-mapped I/O is another form of dynamic virtual memory
+allocation.  Mapping memory to a file means declaring that the contents
+of certain range of a process' addresses shall be identical to the
+contents of a specified regular file.  The system makes the virtual
+memory initially contain the contents of the file, and if you modify
+the memory, the system writes the same modification to the file.  Note
+that due to the magic of virtual memory and page faults, there is no
+reason for the system to do I/O to read the file, or allocate real
+memory for its contents, until the program accesses the virtual memory.
+*Note Memory-mapped I/O::.
+
+   Just as it programmatically allocates memory, the program can
+programmatically deallocate ("free") it.  You can't free the memory
+that was allocated by exec.  When the program exits or execs, you might
+say that all its memory gets freed, but since in both cases the address
+space ceases to exist, the point is really moot.  *Note Program
+Termination::.
+
+   A process' virtual address space is divided into segments.  A
+segment is a contiguous range of virtual addresses.  Three important
+segments are:
+
+   *  The "text segment" contains a program's instructions and literals
+     and static constants.  It is allocated by exec and stays the same
+     size for the life of the virtual address space.
+
+   * The "data segment" is working storage for the program.  It can be
+     preallocated and preloaded by exec and the process can extend or
+     shrink it by calling functions as described in *Note Resizing the
+     Data Segment::.  Its lower end is fixed.
+
+   * The "stack segment" contains a program stack.  It grows as the
+     stack grows, but doesn't shrink when the stack shrinks.
+
+
+
+File: libc.info,  Node: Memory Allocation,  Next: Locking Pages,  Prev: Memory Concepts,  Up: Memory
+
+Allocating Storage For Program Data
+===================================
+
+   This section covers how ordinary programs manage storage for their
+data, including the famous `malloc' function and some fancier facilities
+special the GNU C library and GNU Compiler.
+
+* Menu:
+
+* Memory Allocation and C::     How to get different kinds of allocation in C.
+* Unconstrained Allocation::    The `malloc' facility allows fully general
+		 		 dynamic allocation.
+* Allocation Debugging::        Finding memory leaks and not freed memory.
+* Obstacks::                    Obstacks are less general than malloc
+				 but more efficient and convenient.
+* Variable Size Automatic::     Allocation of variable-sized blocks
+				 of automatic storage that are freed when the
+				 calling function returns.
+
+
+File: libc.info,  Node: Memory Allocation and C,  Next: Unconstrained Allocation,  Up: Memory Allocation
+
+Memory Allocation in C Programs
+-------------------------------
+
+   The C language supports two kinds of memory allocation through the
+variables in C programs:
+
+   * "Static allocation" is what happens when you declare a static or
+     global variable.  Each static or global variable defines one block
+     of space, of a fixed size.  The space is allocated once, when your
+     program is started (part of the exec operation), and is never
+     freed.
+
+   * "Automatic allocation" happens when you declare an automatic
+     variable, such as a function argument or a local variable.  The
+     space for an automatic variable is allocated when the compound
+     statement containing the declaration is entered, and is freed when
+     that compound statement is exited.
+
+     In GNU C, the size of the automatic storage can be an expression
+     that varies.  In other C implementations, it must be a constant.
+
+   A third important kind of memory allocation, "dynamic allocation",
+is not supported by C variables but is available via GNU C library
+functions.
+
+Dynamic Memory Allocation
+.........................
+
+   "Dynamic memory allocation" is a technique in which programs
+determine as they are running where to store some information.  You need
+dynamic allocation when the amount of memory you need, or how long you
+continue to need it, depends on factors that are not known before the
+program runs.
+
+   For example, you may need a block to store a line read from an input
+file; since there is no limit to how long a line can be, you must
+allocate the memory dynamically and make it dynamically larger as you
+read more of the line.
+
+   Or, you may need a block for each record or each definition in the
+input data; since you can't know in advance how many there will be, you
+must allocate a new block for each record or definition as you read it.
+
+   When you use dynamic allocation, the allocation of a block of memory
+is an action that the program requests explicitly.  You call a function
+or macro when you want to allocate space, and specify the size with an
+argument.  If you want to free the space, you do so by calling another
+function or macro.  You can do these things whenever you want, as often
+as you want.
+
+   Dynamic allocation is not supported by C variables; there is no
+storage class "dynamic", and there can never be a C variable whose
+value is stored in dynamically allocated space.  The only way to get
+dynamically allocated memory is via a system call (which is generally
+via a GNU C library function call), and the only way to refer to
+dynamically allocated space is through a pointer.  Because it is less
+convenient, and because the actual process of dynamic allocation
+requires more computation time, programmers generally use dynamic
+allocation only when neither static nor automatic allocation will serve.
+
+   For example, if you want to allocate dynamically some space to hold a
+`struct foobar', you cannot declare a variable of type `struct foobar'
+whose contents are the dynamically allocated space.  But you can
+declare a variable of pointer type `struct foobar *' and assign it the
+address of the space.  Then you can use the operators `*' and `->' on
+this pointer variable to refer to the contents of the space:
+
+     {
+       struct foobar *ptr
+          = (struct foobar *) malloc (sizeof (struct foobar));
+       ptr->name = x;
+       ptr->next = current_foobar;
+       current_foobar = ptr;
+     }
+
+
+File: libc.info,  Node: Unconstrained Allocation,  Next: Allocation Debugging,  Prev: Memory Allocation and C,  Up: Memory Allocation
+
+Unconstrained Allocation
+------------------------
+
+   The most general dynamic allocation facility is `malloc'.  It allows
+you to allocate blocks of memory of any size at any time, make them
+bigger or smaller at any time, and free the blocks individually at any
+time (or never).
+
+* Menu:
+
+* Basic Allocation::            Simple use of `malloc'.
+* Malloc Examples::             Examples of `malloc'.  `xmalloc'.
+* Freeing after Malloc::        Use `free' to free a block you
+				 got with `malloc'.
+* Changing Block Size::         Use `realloc' to make a block
+				 bigger or smaller.
+* Allocating Cleared Space::    Use `calloc' to allocate a
+				 block and clear it.
+* Efficiency and Malloc::       Efficiency considerations in use of
+				 these functions.
+* Aligned Memory Blocks::       Allocating specially aligned memory.
+* Malloc Tunable Parameters::   Use `mallopt' to adjust allocation
+                                 parameters.
+* Heap Consistency Checking::   Automatic checking for errors.
+* Hooks for Malloc::            You can use these hooks for debugging
+				 programs that use `malloc'.
+* Statistics of Malloc::        Getting information about how much
+				 memory your program is using.
+* Summary of Malloc::           Summary of `malloc' and related functions.
+
+
+File: libc.info,  Node: Basic Allocation,  Next: Malloc Examples,  Up: Unconstrained Allocation
+
+Basic Memory Allocation
+.......................
+
+   To allocate a block of memory, call `malloc'.  The prototype for
+this function is in `stdlib.h'.
+
+ - Function: void * malloc (size_t SIZE)
+     This function returns a pointer to a newly allocated block SIZE
+     bytes long, or a null pointer if the block could not be allocated.
+
+   The contents of the block are undefined; you must initialize it
+yourself (or use `calloc' instead; *note Allocating Cleared Space::).
+Normally you would cast the value as a pointer to the kind of object
+that you want to store in the block.  Here we show an example of doing
+so, and of initializing the space with zeros using the library function
+`memset' (*note Copying and Concatenation::):
+
+     struct foo *ptr;
+     ...
+     ptr = (struct foo *) malloc (sizeof (struct foo));
+     if (ptr == 0) abort ();
+     memset (ptr, 0, sizeof (struct foo));
+
+   You can store the result of `malloc' into any pointer variable
+without a cast, because ISO C automatically converts the type `void *'
+to another type of pointer when necessary.  But the cast is necessary
+in contexts other than assignment operators or if you might want your
+code to run in traditional C.
+
+   Remember that when allocating space for a string, the argument to
+`malloc' must be one plus the length of the string.  This is because a
+string is terminated with a null character that doesn't count in the
+"length" of the string but does need space.  For example:
+
+     char *ptr;
+     ...
+     ptr = (char *) malloc (length + 1);
+
+*Note Representation of Strings::, for more information about this.
+
+
+File: libc.info,  Node: Malloc Examples,  Next: Freeing after Malloc,  Prev: Basic Allocation,  Up: Unconstrained Allocation
+
+Examples of `malloc'
+....................
+
+   If no more space is available, `malloc' returns a null pointer.  You
+should check the value of _every_ call to `malloc'.  It is useful to
+write a subroutine that calls `malloc' and reports an error if the
+value is a null pointer, returning only if the value is nonzero.  This
+function is conventionally called `xmalloc'.  Here it is:
+
+     void *
+     xmalloc (size_t size)
+     {
+       register void *value = malloc (size);
+       if (value == 0)
+         fatal ("virtual memory exhausted");
+       return value;
+     }
+
+   Here is a real example of using `malloc' (by way of `xmalloc').  The
+function `savestring' will copy a sequence of characters into a newly
+allocated null-terminated string:
+
+     char *
+     savestring (const char *ptr, size_t len)
+     {
+       register char *value = (char *) xmalloc (len + 1);
+       value[len] = '\0';
+       return (char *) memcpy (value, ptr, len);
+     }
+
+   The block that `malloc' gives you is guaranteed to be aligned so
+that it can hold any type of data.  In the GNU system, the address is
+always a multiple of eight on most systems, and a multiple of 16 on
+64-bit systems.  Only rarely is any higher boundary (such as a page
+boundary) necessary; for those cases, use `memalign', `posix_memalign'
+or `valloc' (*note Aligned Memory Blocks::).
+
+   Note that the memory located after the end of the block is likely to
+be in use for something else; perhaps a block already allocated by
+another call to `malloc'.  If you attempt to treat the block as longer
+than you asked for it to be, you are liable to destroy the data that
+`malloc' uses to keep track of its blocks, or you may destroy the
+contents of another block.  If you have already allocated a block and
+discover you want it to be bigger, use `realloc' (*note Changing Block
+Size::).
+
+
+File: libc.info,  Node: Freeing after Malloc,  Next: Changing Block Size,  Prev: Malloc Examples,  Up: Unconstrained Allocation
+
+Freeing Memory Allocated with `malloc'
+......................................
+
+   When you no longer need a block that you got with `malloc', use the
+function `free' to make the block available to be allocated again.  The
+prototype for this function is in `stdlib.h'.
+
+ - Function: void free (void *PTR)
+     The `free' function deallocates the block of memory pointed at by
+     PTR.
+
+ - Function: void cfree (void *PTR)
+     This function does the same thing as `free'.  It's provided for
+     backward compatibility with SunOS; you should use `free' instead.
+
+   Freeing a block alters the contents of the block.  *Do not expect to
+find any data (such as a pointer to the next block in a chain of
+blocks) in the block after freeing it.*  Copy whatever you need out of
+the block before freeing it!  Here is an example of the proper way to
+free all the blocks in a chain, and the strings that they point to:
+
+     struct chain
+       {
+         struct chain *next;
+         char *name;
+       }
+     
+     void
+     free_chain (struct chain *chain)
+     {
+       while (chain != 0)
+         {
+           struct chain *next = chain->next;
+           free (chain->name);
+           free (chain);
+           chain = next;
+         }
+     }
+
+   Occasionally, `free' can actually return memory to the operating
+system and make the process smaller.  Usually, all it can do is allow a
+later call to `malloc' to reuse the space.  In the meantime, the space
+remains in your program as part of a free-list used internally by
+`malloc'.
+
+   There is no point in freeing blocks at the end of a program, because
+all of the program's space is given back to the system when the process
+terminates.
+
+
+File: libc.info,  Node: Changing Block Size,  Next: Allocating Cleared Space,  Prev: Freeing after Malloc,  Up: Unconstrained Allocation
+
+Changing the Size of a Block
+............................
+
+   Often you do not know for certain how big a block you will
+ultimately need at the time you must begin to use the block.  For
+example, the block might be a buffer that you use to hold a line being
+read from a file; no matter how long you make the buffer initially, you
+may encounter a line that is longer.
+
+   You can make the block longer by calling `realloc'.  This function
+is declared in `stdlib.h'.
+
+ - Function: void * realloc (void *PTR, size_t NEWSIZE)
+     The `realloc' function changes the size of the block whose address
+     is PTR to be NEWSIZE.
+
+     Since the space after the end of the block may be in use, `realloc'
+     may find it necessary to copy the block to a new address where
+     more free space is available.  The value of `realloc' is the new
+     address of the block.  If the block needs to be moved, `realloc'
+     copies the old contents.
+
+     If you pass a null pointer for PTR, `realloc' behaves just like
+     `malloc (NEWSIZE)'.  This can be convenient, but beware that older
+     implementations (before ISO C) may not support this behavior, and
+     will probably crash when `realloc' is passed a null pointer.
+
+   Like `malloc', `realloc' may return a null pointer if no memory
+space is available to make the block bigger.  When this happens, the
+original block is untouched; it has not been modified or relocated.
+
+   In most cases it makes no difference what happens to the original
+block when `realloc' fails, because the application program cannot
+continue when it is out of memory, and the only thing to do is to give
+a fatal error message.  Often it is convenient to write and use a
+subroutine, conventionally called `xrealloc', that takes care of the
+error message as `xmalloc' does for `malloc':
+
+     void *
+     xrealloc (void *ptr, size_t size)
+     {
+       register void *value = realloc (ptr, size);
+       if (value == 0)
+         fatal ("Virtual memory exhausted");
+       return value;
+     }
+
+   You can also use `realloc' to make a block smaller.  The reason you
+would do this is to avoid tying up a lot of memory space when only a
+little is needed.  In several allocation implementations, making a
+block smaller sometimes necessitates copying it, so it can fail if no
+other space is available.
+
+   If the new size you specify is the same as the old size, `realloc'
+is guaranteed to change nothing and return the same address that you
+gave.
+
+
+File: libc.info,  Node: Allocating Cleared Space,  Next: Efficiency and Malloc,  Prev: Changing Block Size,  Up: Unconstrained Allocation
+
+Allocating Cleared Space
+........................
+
+   The function `calloc' allocates memory and clears it to zero.  It is
+declared in `stdlib.h'.
+
+ - Function: void * calloc (size_t COUNT, size_t ELTSIZE)
+     This function allocates a block long enough to contain a vector of
+     COUNT elements, each of size ELTSIZE.  Its contents are cleared to
+     zero before `calloc' returns.
+
+   You could define `calloc' as follows:
+
+     void *
+     calloc (size_t count, size_t eltsize)
+     {
+       size_t size = count * eltsize;
+       void *value = malloc (size);
+       if (value != 0)
+         memset (value, 0, size);
+       return value;
+     }
+
+   But in general, it is not guaranteed that `calloc' calls `malloc'
+internally.  Therefore, if an application provides its own
+`malloc'/`realloc'/`free' outside the C library, it should always
+define `calloc', too.
+
+
+File: libc.info,  Node: Efficiency and Malloc,  Next: Aligned Memory Blocks,  Prev: Allocating Cleared Space,  Up: Unconstrained Allocation
+
+Efficiency Considerations for `malloc'
+......................................
+
+   As opposed to other versions, the `malloc' in the GNU C Library does
+not round up block sizes to powers of two, neither for large nor for
+small sizes.  Neighboring chunks can be coalesced on a `free' no matter
+what their size is.  This makes the implementation suitable for all
+kinds of allocation patterns without generally incurring high memory
+waste through fragmentation.
+
+   Very large blocks (much larger than a page) are allocated with
+`mmap' (anonymous or via `/dev/zero') by this implementation.  This has
+the great advantage that these chunks are returned to the system
+immediately when they are freed.  Therefore, it cannot happen that a
+large chunk becomes "locked" in between smaller ones and even after
+calling `free' wastes memory.  The size threshold for `mmap' to be used
+can be adjusted with `mallopt'.  The use of `mmap' can also be disabled
+completely.
+
+
+File: libc.info,  Node: Aligned Memory Blocks,  Next: Malloc Tunable Parameters,  Prev: Efficiency and Malloc,  Up: Unconstrained Allocation
+
+Allocating Aligned Memory Blocks
+................................
+
+   The address of a block returned by `malloc' or `realloc' in the GNU
+system is always a multiple of eight (or sixteen on 64-bit systems).
+If you need a block whose address is a multiple of a higher power of
+two than that, use `memalign', `posix_memalign', or `valloc'.  These
+functions are declared in `stdlib.h'.
+
+   With the GNU library, you can use `free' to free the blocks that
+`memalign', `posix_memalign', and `valloc' return.  That does not work
+in BSD, however--BSD does not provide any way to free such blocks.
+
+ - Function: void * memalign (size_t BOUNDARY, size_t SIZE)
+     The `memalign' function allocates a block of SIZE bytes whose
+     address is a multiple of BOUNDARY.  The BOUNDARY must be a power
+     of two!  The function `memalign' works by allocating a somewhat
+     larger block, and then returning an address within the block that
+     is on the specified boundary.
+
+ - Function: int posix_memalign (void **MEMPTR, size_t ALIGNMENT,
+          size_t SIZE)
+     The `posix_memalign' function is similar to the `memalign'
+     function in that it returns a buffer of SIZE bytes aligned to a
+     multiple of ALIGNMENT.  But it adds one requirement to the
+     parameter ALIGNMENT: the value must be a power of two multiple of
+     `sizeof (void *)'.
+
+     If the function succeeds in allocation memory a pointer to the
+     allocated memory is returned in `*MEMPTR' and the return value is
+     zero.  Otherwise the function returns an error value indicating
+     the problem.
+
+     This function was introduced in POSIX 1003.1d.
+
+ - Function: void * valloc (size_t SIZE)
+     Using `valloc' is like using `memalign' and passing the page size
+     as the value of the second argument.  It is implemented like this:
+
+          void *
+          valloc (size_t size)
+          {
+            return memalign (getpagesize (), size);
+          }
+
+     *Note Query Memory Parameters:: for more information about the
+     memory subsystem.
+

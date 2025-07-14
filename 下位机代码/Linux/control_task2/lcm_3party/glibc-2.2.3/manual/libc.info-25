@@ -1,0 +1,1232 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: File Times,  Next: File Size,  Prev: Testing File Access,  Up: File Attributes
+
+File Times
+----------
+
+   Each file has three time stamps associated with it:  its access time,
+its modification time, and its attribute modification time.  These
+correspond to the `st_atime', `st_mtime', and `st_ctime' members of the
+`stat' structure; see *Note File Attributes::.
+
+   All of these times are represented in calendar time format, as
+`time_t' objects.  This data type is defined in `time.h'.  For more
+information about representation and manipulation of time values, see
+*Note Calendar Time::.
+
+   Reading from a file updates its access time attribute, and writing
+updates its modification time.  When a file is created, all three time
+stamps for that file are set to the current time.  In addition, the
+attribute change time and modification time fields of the directory that
+contains the new entry are updated.
+
+   Adding a new name for a file with the `link' function updates the
+attribute change time field of the file being linked, and both the
+attribute change time and modification time fields of the directory
+containing the new name.  These same fields are affected if a file name
+is deleted with `unlink', `remove' or `rmdir'.  Renaming a file with
+`rename' affects only the attribute change time and modification time
+fields of the two parent directories involved, and not the times for
+the file being renamed.
+
+   Changing the attributes of a file (for example, with `chmod')
+updates its attribute change time field.
+
+   You can also change some of the time stamps of a file explicitly
+using the `utime' function--all except the attribute change time.  You
+need to include the header file `utime.h' to use this facility.
+
+ - Data Type: struct utimbuf
+     The `utimbuf' structure is used with the `utime' function to
+     specify new access and modification times for a file.  It contains
+     the following members:
+
+    `time_t actime'
+          This is the access time for the file.
+
+    `time_t modtime'
+          This is the modification time for the file.
+
+ - Function: int utime (const char *FILENAME, const struct utimbuf
+          *TIMES)
+     This function is used to modify the file times associated with the
+     file named FILENAME.
+
+     If TIMES is a null pointer, then the access and modification times
+     of the file are set to the current time.  Otherwise, they are set
+     to the values from the `actime' and `modtime' members
+     (respectively) of the `utimbuf' structure pointed to by TIMES.
+
+     The attribute modification time for the file is set to the current
+     time in either case (since changing the time stamps is itself a
+     modification of the file attributes).
+
+     The `utime' function returns `0' if successful and `-1' on
+     failure.  In addition to the usual file name errors (*note File
+     Name Errors::), the following `errno' error conditions are defined
+     for this function:
+
+    `EACCES'
+          There is a permission problem in the case where a null
+          pointer was passed as the TIMES argument.  In order to update
+          the time stamp on the file, you must either be the owner of
+          the file, have write permission for the file, or be a
+          privileged user.
+
+    `ENOENT'
+          The file doesn't exist.
+
+    `EPERM'
+          If the TIMES argument is not a null pointer, you must either
+          be the owner of the file or be a privileged user.
+
+    `EROFS'
+          The file lives on a read-only file system.
+
+   Each of the three time stamps has a corresponding microsecond part,
+which extends its resolution.  These fields are called `st_atime_usec',
+`st_mtime_usec', and `st_ctime_usec'; each has a value between 0 and
+999,999, which indicates the time in microseconds.  They correspond to
+the `tv_usec' field of a `timeval' structure; see *Note High-Resolution
+Calendar::.
+
+   The `utimes' function is like `utime', but also lets you specify the
+fractional part of the file times.  The prototype for this function is
+in the header file `sys/time.h'.
+
+ - Function: int utimes (const char *FILENAME, struct timeval TVP[2])
+     This function sets the file access and modification times of the
+     file FILENAME.  The new file access time is specified by `TVP[0]',
+     and the new modification time by `TVP[1]'.  This function comes
+     from BSD.
+
+     The return values and error conditions are the same as for the
+     `utime' function.
+
+
+File: libc.info,  Node: File Size,  Prev: File Times,  Up: File Attributes
+
+File Size
+---------
+
+   Normally file sizes are maintained automatically.  A file begins
+with a size of 0 and is automatically extended when data is written past
+its end.  It is also possible to empty a file completely by an `open'
+or `fopen' call.
+
+   However, sometimes it is necessary to _reduce_ the size of a file.
+This can be done with the `truncate' and `ftruncate' functions.  They
+were introduced in BSD Unix.  `ftruncate' was later added to POSIX.1.
+
+   Some systems allow you to extend a file (creating holes) with these
+functions.  This is useful when using memory-mapped I/O (*note
+Memory-mapped I/O::), where files are not automatically extended.
+However, it is not portable but must be implemented if `mmap' allows
+mapping of files (i.e., `_POSIX_MAPPED_FILES' is defined).
+
+   Using these functions on anything other than a regular file gives
+_undefined_ results.  On many systems, such a call will appear to
+succeed, without actually accomplishing anything.
+
+ - Function: int truncate (const char *FILENAME, off_t LENGTH)
+     The `truncate' function changes the size of FILENAME to LENGTH.
+     If LENGTH is shorter than the previous length, data at the end
+     will be lost.  The file must be writable by the user to perform
+     this operation.
+
+     If LENGTH is longer, holes will be added to the end.  However, some
+     systems do not support this feature and will leave the file
+     unchanged.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' the
+     `truncate' function is in fact `truncate64' and the type `off_t'
+     has 64 bits which makes it possible to handle files up to 2^63
+     bytes in length.
+
+     The return value is 0 for success, or -1 for an error.  In
+     addition to the usual file name errors, the following errors may
+     occur:
+
+    `EACCES'
+          The file is a directory or not writable.
+
+    `EINVAL'
+          LENGTH is negative.
+
+    `EFBIG'
+          The operation would extend the file beyond the limits of the
+          operating system.
+
+    `EIO'
+          A hardware I/O error occurred.
+
+    `EPERM'
+          The file is "append-only" or "immutable".
+
+    `EINTR'
+          The operation was interrupted by a signal.
+
+
+ - Function: int truncate64 (const char *NAME, off64_t LENGTH)
+     This function is similar to the `truncate' function.  The
+     difference is that the LENGTH argument is 64 bits wide even on 32
+     bits machines, which allows the handling of files with sizes up to
+     2^63 bytes.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' on
+     a 32 bits machine this function is actually available under the
+     name `truncate' and so transparently replaces the 32 bits
+     interface.
+
+ - Function: int ftruncate (int FD, off_t LENGTH)
+     This is like `truncate', but it works on a file descriptor FD for
+     an opened file instead of a file name to identify the object.  The
+     file must be opened for writing to successfully carry out the
+     operation.
+
+     The POSIX standard leaves it implementation defined what happens
+     if the specified new LENGTH of the file is bigger than the
+     original size.  The `ftruncate' function might simply leave the
+     file alone and do nothing or it can increase the size to the
+     desired size.  In this later case the extended area should be
+     zero-filled.  So using `ftruncate' is no reliable way to increase
+     the file size but if it is possible it is probably the fastest
+     way.  The function also operates on POSIX shared memory segments
+     if these are implemented by the system.
+
+     `ftruncate' is especially useful in combination with `mmap'.
+     Since the mapped region must have a fixed size one cannot enlarge
+     the file by writing something beyond the last mapped page.
+     Instead one has to enlarge the file itself and then remap the file
+     with the new size.  The example below shows how this works.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' the
+     `ftruncate' function is in fact `ftruncate64' and the type `off_t'
+     has 64 bits which makes it possible to handle files up to 2^63
+     bytes in length.
+
+     The return value is 0 for success, or -1 for an error.  The
+     following errors may occur:
+
+    `EBADF'
+          FD does not correspond to an open file.
+
+    `EACCES'
+          FD is a directory or not open for writing.
+
+    `EINVAL'
+          LENGTH is negative.
+
+    `EFBIG'
+          The operation would extend the file beyond the limits of the
+          operating system.
+
+    `EIO'
+          A hardware I/O error occurred.
+
+    `EPERM'
+          The file is "append-only" or "immutable".
+
+    `EINTR'
+          The operation was interrupted by a signal.
+
+
+ - Function: int ftruncate64 (int ID, off64_t LENGTH)
+     This function is similar to the `ftruncate' function.  The
+     difference is that the LENGTH argument is 64 bits wide even on 32
+     bits machines which allows the handling of files with sizes up to
+     2^63 bytes.
+
+     When the source file is compiled with `_FILE_OFFSET_BITS == 64' on
+     a 32 bits machine this function is actually available under the
+     name `ftruncate' and so transparently replaces the 32 bits
+     interface.
+
+   As announced here is a little example of how to use `ftruncate' in
+combination with `mmap':
+
+     int fd;
+     void *start;
+     size_t len;
+     
+     int
+     add (off_t at, void *block, size_t size)
+     {
+       if (at + size > len)
+         {
+           /* Resize the file and remap.  */
+           size_t ps = sysconf (_SC_PAGESIZE);
+           size_t ns = (at + size + ps - 1) & ~(ps - 1);
+           void *np;
+           if (ftruncate (fd, ns) < 0)
+             return -1;
+           np = mmap (NULL, ns, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+           if (np == MAP_FAILED)
+             return -1;
+           start = np;
+           len = ns;
+         }
+       memcpy ((char *) start + at, block, size);
+       return 0;
+     }
+
+   The function `add' writes a block of memory at an arbitrary position
+in the file.  If the current size of the file is too small it is
+extended.  Note the it is extended by a round number of pages.  This is
+a requirement of `mmap'.  The program has to keep track of the real
+size, and when it has finished a final `ftruncate' call should set the
+real size of the file.
+
+
+File: libc.info,  Node: Making Special Files,  Next: Temporary Files,  Prev: File Attributes,  Up: File System Interface
+
+Making Special Files
+====================
+
+   The `mknod' function is the primitive for making special files, such
+as files that correspond to devices.  The GNU library includes this
+function for compatibility with BSD.
+
+   The prototype for `mknod' is declared in `sys/stat.h'.
+
+ - Function: int mknod (const char *FILENAME, int MODE, int DEV)
+     The `mknod' function makes a special file with name FILENAME.  The
+     MODE specifies the mode of the file, and may include the various
+     special file bits, such as `S_IFCHR' (for a character special file)
+     or `S_IFBLK' (for a block special file).  *Note Testing File
+     Type::.
+
+     The DEV argument specifies which device the special file refers to.
+     Its exact interpretation depends on the kind of special file being
+     created.
+
+     The return value is `0' on success and `-1' on error.  In addition
+     to the usual file name errors (*note File Name Errors::), the
+     following `errno' error conditions are defined for this function:
+
+    `EPERM'
+          The calling process is not privileged.  Only the superuser
+          can create special files.
+
+    `ENOSPC'
+          The directory or file system that would contain the new file
+          is full and cannot be extended.
+
+    `EROFS'
+          The directory containing the new file can't be modified
+          because it's on a read-only file system.
+
+    `EEXIST'
+          There is already a file named FILENAME.  If you want to
+          replace this file, you must remove the old file explicitly
+          first.
+
+
+File: libc.info,  Node: Temporary Files,  Prev: Making Special Files,  Up: File System Interface
+
+Temporary Files
+===============
+
+   If you need to use a temporary file in your program, you can use the
+`tmpfile' function to open it.  Or you can use the `tmpnam' (better:
+`tmpnam_r') function to provide a name for a temporary file and then
+you can open it in the usual way with `fopen'.
+
+   The `tempnam' function is like `tmpnam' but lets you choose what
+directory temporary files will go in, and something about what their
+file names will look like.  Important for multi-threaded programs is
+that `tempnam' is reentrant, while `tmpnam' is not since it returns a
+pointer to a static buffer.
+
+   These facilities are declared in the header file `stdio.h'.
+
+ - Function: FILE * tmpfile (void)
+     This function creates a temporary binary file for update mode, as
+     if by calling `fopen' with mode `"wb+"'.  The file is deleted
+     automatically when it is closed or when the program terminates.
+     (On some other ISO C systems the file may fail to be deleted if
+     the program terminates abnormally).
+
+     This function is reentrant.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32-bit system this function is in fact `tmpfile64', i.e. the LFS
+     interface transparently replaces the old interface.
+
+ - Function: FILE * tmpfile64 (void)
+     This function is similar to `tmpfile', but the stream it returns a
+     pointer to was opened using `tmpfile64'.  Therefore this stream can
+     be used for files larger then 2^31 bytes on 32-bit machines.
+
+     Please note that the return type is still `FILE *'.  There is no
+     special `FILE' type for the LFS interface.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `tmpfile'
+     and so transparently replaces the old interface.
+
+ - Function: char * tmpnam (char *RESULT)
+     This function constructs and returns a valid file name that does
+     not refer to any existing file.  If the RESULT argument is a null
+     pointer, the return value is a pointer to an internal static
+     string, which might be modified by subsequent calls and therefore
+     makes this function non-reentrant.  Otherwise, the RESULT argument
+     should be a pointer to an array of at least `L_tmpnam' characters,
+     and the result is written into that array.
+
+     It is possible for `tmpnam' to fail if you call it too many times
+     without removing previously-created files.  This is because the
+     limited length of the temporary file names gives room for only a
+     finite number of different names.  If `tmpnam' fails it returns a
+     null pointer.
+
+     *Warning:* Between the time the pathname is constructed and the
+     file is created another process might have created a file with the
+     same name using `tmpnam', leading to a possible security hole.  The
+     implementation generates names which can hardly be predicted, but
+     when opening the file you should use the `O_EXCL' flag.  Using
+     `tmpfile' or `mkstemp' is a safe way to avoid this problem.
+
+ - Function: char * tmpnam_r (char *RESULT)
+     This function is nearly identical to the `tmpnam' function, except
+     that if RESULT is a null pointer it returns a null pointer.
+
+     This guarantees reentrancy because the non-reentrant situation of
+     `tmpnam' cannot happen here.
+
+     *Warning*: This function has the same security problems as
+     `tmpnam'.
+
+ - Macro: int L_tmpnam
+     The value of this macro is an integer constant expression that
+     represents the minimum size of a string large enough to hold a
+     file name generated by the `tmpnam' function.
+
+ - Macro: int TMP_MAX
+     The macro `TMP_MAX' is a lower bound for how many temporary names
+     you can create with `tmpnam'.  You can rely on being able to call
+     `tmpnam' at least this many times before it might fail saying you
+     have made too many temporary file names.
+
+     With the GNU library, you can create a very large number of
+     temporary file names.  If you actually created the files, you
+     would probably run out of disk space before you ran out of names.
+     Some other systems have a fixed, small limit on the number of
+     temporary files.  The limit is never less than `25'.
+
+ - Function: char * tempnam (const char *DIR, const char *PREFIX)
+     This function generates a unique temporary file name.  If PREFIX
+     is not a null pointer, up to five characters of this string are
+     used as a prefix for the file name.  The return value is a string
+     newly allocated with `malloc', so you should release its storage
+     with `free' when it is no longer needed.
+
+     Because the string is dynamically allocated this function is
+     reentrant.
+
+     The directory prefix for the temporary file name is determined by
+     testing each of the following in sequence.  The directory must
+     exist and be writable.
+
+        * The environment variable `TMPDIR', if it is defined.  For
+          security reasons this only happens if the program is not SUID
+          or SGID enabled.
+
+        * The DIR argument, if it is not a null pointer.
+
+        * The value of the `P_tmpdir' macro.
+
+        * The directory `/tmp'.
+
+     This function is defined for SVID compatibility.
+
+     *Warning:* Between the time the pathname is constructed and the
+     file is created another process might have created a file with the
+     same name using `tempnam', leading to a possible security hole.
+     The implementation generates names which can hardly be predicted,
+     but when opening the file you should use the `O_EXCL' flag.  Using
+     `tmpfile' or `mkstemp' is a safe way to avoid this problem.
+
+ - SVID Macro: char * P_tmpdir
+     This macro is the name of the default directory for temporary
+     files.
+
+   Older Unix systems did not have the functions just described.
+Instead they used `mktemp' and `mkstemp'.  Both of these functions work
+by modifying a file name template string you pass.  The last six
+characters of this string must be `XXXXXX'.  These six `X's are
+replaced with six characters which make the whole string a unique file
+name.  Usually the template string is something like
+`/tmp/PREFIXXXXXXX', and each program uses a unique PREFIX.
+
+   *Note:* Because `mktemp' and `mkstemp' modify the template string,
+you _must not_ pass string constants to them.  String constants are
+normally in read-only storage, so your program would crash when
+`mktemp' or `mkstemp' tried to modify the string.
+
+ - Function: char * mktemp (char *TEMPLATE)
+     The `mktemp' function generates a unique file name by modifying
+     TEMPLATE as described above.  If successful, it returns TEMPLATE
+     as modified.  If `mktemp' cannot find a unique file name, it makes
+     TEMPLATE an empty string and returns that.  If TEMPLATE does not
+     end with `XXXXXX', `mktemp' returns a null pointer.
+
+     *Warning:* Between the time the pathname is constructed and the
+     file is created another process might have created a file with the
+     same name using `mktemp', leading to a possible security hole.  The
+     implementation generates names which can hardly be predicted, but
+     when opening the file you should use the `O_EXCL' flag.  Using
+     `mkstemp' is a safe way to avoid this problem.
+
+ - Function: int mkstemp (char *TEMPLATE)
+     The `mkstemp' function generates a unique file name just as
+     `mktemp' does, but it also opens the file for you with `open'
+     (*note Opening and Closing Files::).  If successful, it modifies
+     TEMPLATE in place and returns a file descriptor for that file open
+     for reading and writing.  If `mkstemp' cannot create a
+     uniquely-named file, it returns `-1'.  If TEMPLATE does not end
+     with `XXXXXX', `mkstemp' returns `-1' and does not modify TEMPLATE.
+
+     The file is opened using mode `0600'.  If the file is meant to be
+     used by other users this mode must be changed explicitly.
+
+   Unlike `mktemp', `mkstemp' is actually guaranteed to create a unique
+file that cannot possibly clash with any other program trying to create
+a temporary file.  This is because it works by calling `open' with the
+`O_EXCL' flag, which says you want to create a new file and get an
+error if the file already exists.
+
+ - Function: char * mkdtemp (char *TEMPLATE)
+     The `mkdtemp' function creates a directory with a unique name.  If
+     it succeeds, it overwrites TEMPLATE with the name of the
+     directory, and returns TEMPLATE.  As with `mktemp' and `mkstemp',
+     TEMPLATE should be a string ending with `XXXXXX'.
+
+     If `mkdtemp' cannot create an uniquely named directory, it returns
+     `NULL' and sets ERRNO appropriately.  If TEMPLATE does not end
+     with `XXXXXX', `mkdtemp' returns `NULL' and does not modify
+     TEMPLATE.  ERRNO will be set to `EINVAL' in this case.
+
+     The directory is created using mode `0700'.
+
+   The directory created by `mkdtemp' cannot clash with temporary files
+or directories created by other users.  This is because directory
+creation always works like `open' with `O_EXCL'.  *Note Creating
+Directories::.
+
+   The `mkdtemp' function comes from OpenBSD.
+
+
+File: libc.info,  Node: Pipes and FIFOs,  Next: Sockets,  Prev: File System Interface,  Up: Top
+
+Pipes and FIFOs
+***************
+
+   A "pipe" is a mechanism for interprocess communication; data written
+to the pipe by one process can be read by another process.  The data is
+handled in a first-in, first-out (FIFO) order.  The pipe has no name; it
+is created for one use and both ends must be inherited from the single
+process which created the pipe.
+
+   A "FIFO special file" is similar to a pipe, but instead of being an
+anonymous, temporary connection, a FIFO has a name or names like any
+other file.  Processes open the FIFO by name in order to communicate
+through it.
+
+   A pipe or FIFO has to be open at both ends simultaneously.  If you
+read from a pipe or FIFO file that doesn't have any processes writing
+to it (perhaps because they have all closed the file, or exited), the
+read returns end-of-file.  Writing to a pipe or FIFO that doesn't have a
+reading process is treated as an error condition; it generates a
+`SIGPIPE' signal, and fails with error code `EPIPE' if the signal is
+handled or blocked.
+
+   Neither pipes nor FIFO special files allow file positioning.  Both
+reading and writing operations happen sequentially; reading from the
+beginning of the file and writing at the end.
+
+* Menu:
+
+* Creating a Pipe::             Making a pipe with the `pipe' function.
+* Pipe to a Subprocess::        Using a pipe to communicate with a
+				 child process.
+* FIFO Special Files::          Making a FIFO special file.
+* Pipe Atomicity::		When pipe (or FIFO) I/O is atomic.
+
+
+File: libc.info,  Node: Creating a Pipe,  Next: Pipe to a Subprocess,  Up: Pipes and FIFOs
+
+Creating a Pipe
+===============
+
+   The primitive for creating a pipe is the `pipe' function.  This
+creates both the reading and writing ends of the pipe.  It is not very
+useful for a single process to use a pipe to talk to itself.  In typical
+use, a process creates a pipe just before it forks one or more child
+processes (*note Creating a Process::).  The pipe is then used for
+communication either between the parent or child processes, or between
+two sibling processes.
+
+   The `pipe' function is declared in the header file `unistd.h'.
+
+ - Function: int pipe (int FILEDES[2])
+     The `pipe' function creates a pipe and puts the file descriptors
+     for the reading and writing ends of the pipe (respectively) into
+     `FILEDES[0]' and `FILEDES[1]'.
+
+     An easy way to remember that the input end comes first is that file
+     descriptor `0' is standard input, and file descriptor `1' is
+     standard output.
+
+     If successful, `pipe' returns a value of `0'.  On failure, `-1' is
+     returned.  The following `errno' error conditions are defined for
+     this function:
+
+    `EMFILE'
+          The process has too many files open.
+
+    `ENFILE'
+          There are too many open files in the entire system.  *Note
+          Error Codes::, for more information about `ENFILE'.  This
+          error never occurs in the GNU system.
+
+   Here is an example of a simple program that creates a pipe.  This
+program uses the `fork' function (*note Creating a Process::) to create
+a child process.  The parent process writes data to the pipe, which is
+read by the child process.
+
+     #include <sys/types.h>
+     #include <unistd.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     
+     /* Read characters from the pipe and echo them to `stdout'. */
+     
+     void
+     read_from_pipe (int file)
+     {
+       FILE *stream;
+       int c;
+       stream = fdopen (file, "r");
+       while ((c = fgetc (stream)) != EOF)
+         putchar (c);
+       fclose (stream);
+     }
+     
+     /* Write some random text to the pipe. */
+     
+     void
+     write_to_pipe (int file)
+     {
+       FILE *stream;
+       stream = fdopen (file, "w");
+       fprintf (stream, "hello, world!\n");
+       fprintf (stream, "goodbye, world!\n");
+       fclose (stream);
+     }
+     
+     int
+     main (void)
+     {
+       pid_t pid;
+       int mypipe[2];
+     
+       /* Create the pipe. */
+       if (pipe (mypipe))
+         {
+           fprintf (stderr, "Pipe failed.\n");
+           return EXIT_FAILURE;
+         }
+     
+       /* Create the child process. */
+       pid = fork ();
+       if (pid == (pid_t) 0)
+         {
+           /* This is the child process.
+              Close other end first. */
+           close (mypipe[1]);
+           read_from_pipe (mypipe[0]);
+           return EXIT_SUCCESS;
+         }
+       else if (pid < (pid_t) 0)
+         {
+           /* The fork failed. */
+           fprintf (stderr, "Fork failed.\n");
+           return EXIT_FAILURE;
+         }
+       else
+         {
+           /* This is the parent process.
+              Close other end first. */
+           close (mypipe[0]);
+           write_to_pipe (mypipe[1]);
+           return EXIT_SUCCESS;
+         }
+     }
+
+
+File: libc.info,  Node: Pipe to a Subprocess,  Next: FIFO Special Files,  Prev: Creating a Pipe,  Up: Pipes and FIFOs
+
+Pipe to a Subprocess
+====================
+
+   A common use of pipes is to send data to or receive data from a
+program being run as a subprocess.  One way of doing this is by using a
+combination of `pipe' (to create the pipe), `fork' (to create the
+subprocess), `dup2' (to force the subprocess to use the pipe as its
+standard input or output channel), and `exec' (to execute the new
+program).  Or, you can use `popen' and `pclose'.
+
+   The advantage of using `popen' and `pclose' is that the interface is
+much simpler and easier to use.  But it doesn't offer as much
+flexibility as using the low-level functions directly.
+
+ - Function: FILE * popen (const char *COMMAND, const char *MODE)
+     The `popen' function is closely related to the `system' function;
+     see *Note Running a Command::.  It executes the shell command
+     COMMAND as a subprocess.  However, instead of waiting for the
+     command to complete, it creates a pipe to the subprocess and
+     returns a stream that corresponds to that pipe.
+
+     If you specify a MODE argument of `"r"', you can read from the
+     stream to retrieve data from the standard output channel of the
+     subprocess.  The subprocess inherits its standard input channel
+     from the parent process.
+
+     Similarly, if you specify a MODE argument of `"w"', you can write
+     to the stream to send data to the standard input channel of the
+     subprocess.  The subprocess inherits its standard output channel
+     from the parent process.
+
+     In the event of an error `popen' returns a null pointer.  This
+     might happen if the pipe or stream cannot be created, if the
+     subprocess cannot be forked, or if the program cannot be executed.
+
+ - Function: int pclose (FILE *STREAM)
+     The `pclose' function is used to close a stream created by `popen'.
+     It waits for the child process to terminate and returns its status
+     value, as for the `system' function.
+
+   Here is an example showing how to use `popen' and `pclose' to filter
+output through another program, in this case the paging program `more'.
+
+     #include <stdio.h>
+     #include <stdlib.h>
+     
+     void
+     write_data (FILE * stream)
+     {
+       int i;
+       for (i = 0; i < 100; i++)
+         fprintf (stream, "%d\n", i);
+       if (ferror (stream))
+         {
+           fprintf (stderr, "Output to stream failed.\n");
+           exit (EXIT_FAILURE);
+         }
+     }
+     
+     int
+     main (void)
+     {
+       FILE *output;
+     
+       output = popen ("more", "w");
+       if (!output)
+         {
+           fprintf (stderr,
+                    "incorrect parameters or too many files.\n");
+           return EXIT_FAILURE;
+         }
+       write_data (output);
+       if (pclose (output) != 0)
+         {
+           fprintf (stderr,
+                    "Could not run more or other error.\n");
+         }
+       return EXIT_SUCCESS;
+     }
+
+
+File: libc.info,  Node: FIFO Special Files,  Next: Pipe Atomicity,  Prev: Pipe to a Subprocess,  Up: Pipes and FIFOs
+
+FIFO Special Files
+==================
+
+   A FIFO special file is similar to a pipe, except that it is created
+in a different way.  Instead of being an anonymous communications
+channel, a FIFO special file is entered into the file system by calling
+`mkfifo'.
+
+   Once you have created a FIFO special file in this way, any process
+can open it for reading or writing, in the same way as an ordinary file.
+However, it has to be open at both ends simultaneously before you can
+proceed to do any input or output operations on it.  Opening a FIFO for
+reading normally blocks until some other process opens the same FIFO for
+writing, and vice versa.
+
+   The `mkfifo' function is declared in the header file `sys/stat.h'.
+
+ - Function: int mkfifo (const char *FILENAME, mode_t MODE)
+     The `mkfifo' function makes a FIFO special file with name
+     FILENAME.  The MODE argument is used to set the file's
+     permissions; see *Note Setting Permissions::.
+
+     The normal, successful return value from `mkfifo' is `0'.  In the
+     case of an error, `-1' is returned.  In addition to the usual file
+     name errors (*note File Name Errors::), the following `errno'
+     error conditions are defined for this function:
+
+    `EEXIST'
+          The named file already exists.
+
+    `ENOSPC'
+          The directory or file system cannot be extended.
+
+    `EROFS'
+          The directory that would contain the file resides on a
+          read-only file system.
+
+
+File: libc.info,  Node: Pipe Atomicity,  Prev: FIFO Special Files,  Up: Pipes and FIFOs
+
+Atomicity of Pipe I/O
+=====================
+
+   Reading or writing pipe data is "atomic" if the size of data written
+is not greater than `PIPE_BUF'.  This means that the data transfer
+seems to be an instantaneous unit, in that nothing else in the system
+can observe a state in which it is partially complete.  Atomic I/O may
+not begin right away (it may need to wait for buffer space or for data),
+but once it does begin it finishes immediately.
+
+   Reading or writing a larger amount of data may not be atomic; for
+example, output data from other processes sharing the descriptor may be
+interspersed.  Also, once `PIPE_BUF' characters have been written,
+further writes will block until some characters are read.
+
+   *Note Limits for Files::, for information about the `PIPE_BUF'
+parameter.
+
+
+File: libc.info,  Node: Sockets,  Next: Low-Level Terminal Interface,  Prev: Pipes and FIFOs,  Up: Top
+
+Sockets
+*******
+
+   This chapter describes the GNU facilities for interprocess
+communication using sockets.
+
+   A "socket" is a generalized interprocess communication channel.
+Like a pipe, a socket is represented as a file descriptor.  Unlike pipes
+sockets support communication between unrelated processes, and even
+between processes running on different machines that communicate over a
+network.  Sockets are the primary means of communicating with other
+machines; `telnet', `rlogin', `ftp', `talk' and the other familiar
+network programs use sockets.
+
+   Not all operating systems support sockets.  In the GNU library, the
+header file `sys/socket.h' exists regardless of the operating system,
+and the socket functions always exist, but if the system does not
+really support sockets these functions always fail.
+
+   *Incomplete:* We do not currently document the facilities for
+broadcast messages or for configuring Internet interfaces.  The
+reentrant functions and some newer functions that are related to IPv6
+aren't documented either so far.
+
+* Menu:
+
+* Socket Concepts::	Basic concepts you need to know about.
+* Communication Styles::Stream communication, datagrams and other styles.
+* Socket Addresses::	How socket names (``addresses'') work.
+* Interface Naming::	Identifying specific network interfaces.
+* Local Namespace::	Details about the local namespace.
+* Internet Namespace::	Details about the Internet namespace.
+* Misc Namespaces::	Other namespaces not documented fully here.
+* Open/Close Sockets::  Creating sockets and destroying them.
+* Connections::		Operations on sockets with connection state.
+* Datagrams::		Operations on datagram sockets.
+* Inetd::		Inetd is a daemon that starts servers on request.
+			   The most convenient way to write a server
+			   is to make it work with Inetd.
+* Socket Options::	Miscellaneous low-level socket options.
+* Networks Database::   Accessing the database of network names.
+
+
+File: libc.info,  Node: Socket Concepts,  Next: Communication Styles,  Up: Sockets
+
+Socket Concepts
+===============
+
+   When you create a socket, you must specify the style of communication
+you want to use and the type of protocol that should implement it.  The
+"communication style" of a socket defines the user-level semantics of
+sending and receiving data on the socket.  Choosing a communication
+style specifies the answers to questions such as these:
+
+   * *What are the units of data transmission?*  Some communication
+     styles regard the data as a sequence of bytes with no larger
+     structure; others group the bytes into records (which are known in
+     this context as "packets").
+
+   * *Can data be lost during normal operation?*  Some communication
+     styles guarantee that all the data sent arrives in the order it was
+     sent (barring system or network crashes); other styles occasionally
+     lose data as a normal part of operation, and may sometimes deliver
+     packets more than once or in the wrong order.
+
+     Designing a program to use unreliable communication styles usually
+     involves taking precautions to detect lost or misordered packets
+     and to retransmit data as needed.
+
+   * *Is communication entirely with one partner?*  Some communication
+     styles are like a telephone call--you make a "connection" with one
+     remote socket and then exchange data freely.  Other styles are
+     like mailing letters--you specify a destination address for each
+     message you send.
+
+   You must also choose a "namespace" for naming the socket.  A socket
+name ("address") is meaningful only in the context of a particular
+namespace.  In fact, even the data type to use for a socket name may
+depend on the namespace.  Namespaces are also called "domains", but we
+avoid that word as it can be confused with other usage of the same
+term.  Each namespace has a symbolic name that starts with `PF_'.  A
+corresponding symbolic name starting with `AF_' designates the address
+format for that namespace.
+
+   Finally you must choose the "protocol" to carry out the
+communication.  The protocol determines what low-level mechanism is used
+to transmit and receive data.  Each protocol is valid for a particular
+namespace and communication style; a namespace is sometimes called a
+"protocol family" because of this, which is why the namespace names
+start with `PF_'.
+
+   The rules of a protocol apply to the data passing between two
+programs, perhaps on different computers; most of these rules are
+handled by the operating system and you need not know about them.  What
+you do need to know about protocols is this:
+
+   * In order to have communication between two sockets, they must
+     specify the _same_ protocol.
+
+   * Each protocol is meaningful with particular style/namespace
+     combinations and cannot be used with inappropriate combinations.
+     For example, the TCP protocol fits only the byte stream style of
+     communication and the Internet namespace.
+
+   * For each combination of style and namespace there is a "default
+     protocol", which you can request by specifying 0 as the protocol
+     number.  And that's what you should normally do--use the default.
+
+   Throughout the following description at various places
+variables/parameters to denote sizes are required.  And here the trouble
+starts.  In the first implementations the type of these variables was
+simply `int'.  On most machines at that time an `int' was 32 bits wide,
+which created a _de facto_ standard requiring 32-bit variables.  This
+is important since references to variables of this type are passed to
+the kernel.
+
+   Then the POSIX people came and unified the interface with the words
+"all size values are of type `size_t'".  On 64-bit machines `size_t' is
+64 bits wide, so pointers to variables were no longer possible.
+
+   The Unix98 specification provides a solution by introducing a type
+`socklen_t'.  This type is used in all of the cases that POSIX changed
+to use `size_t'.  The only requirement of this type is that it be an
+unsigned type of at least 32 bits.  Therefore, implementations which
+require that references to 32-bit variables be passed can be as happy
+as implementations which use 64-bit values.
+
+
+File: libc.info,  Node: Communication Styles,  Next: Socket Addresses,  Prev: Socket Concepts,  Up: Sockets
+
+Communication Styles
+====================
+
+   The GNU library includes support for several different kinds of
+sockets, each with different characteristics.  This section describes
+the supported socket types.  The symbolic constants listed here are
+defined in `sys/socket.h'.
+
+ - Macro: int SOCK_STREAM
+     The `SOCK_STREAM' style is like a pipe (*note Pipes and FIFOs::).
+     It operates over a connection with a particular remote socket and
+     transmits data reliably as a stream of bytes.
+
+     Use of this style is covered in detail in *Note Connections::.
+
+ - Macro: int SOCK_DGRAM
+     The `SOCK_DGRAM' style is used for sending individually-addressed
+     packets unreliably.  It is the diametrical opposite of
+     `SOCK_STREAM'.
+
+     Each time you write data to a socket of this kind, that data
+     becomes one packet.  Since `SOCK_DGRAM' sockets do not have
+     connections, you must specify the recipient address with each
+     packet.
+
+     The only guarantee that the system makes about your requests to
+     transmit data is that it will try its best to deliver each packet
+     you send.  It may succeed with the sixth packet after failing with
+     the fourth and fifth packets; the seventh packet may arrive before
+     the sixth, and may arrive a second time after the sixth.
+
+     The typical use for `SOCK_DGRAM' is in situations where it is
+     acceptable to simply re-send a packet if no response is seen in a
+     reasonable amount of time.
+
+     *Note Datagrams::, for detailed information about how to use
+     datagram sockets.
+
+ - Macro: int SOCK_RAW
+     This style provides access to low-level network protocols and
+     interfaces.  Ordinary user programs usually have no need to use
+     this style.
+
+
+File: libc.info,  Node: Socket Addresses,  Next: Interface Naming,  Prev: Communication Styles,  Up: Sockets
+
+Socket Addresses
+================
+
+   The name of a socket is normally called an "address".  The functions
+and symbols for dealing with socket addresses were named
+inconsistently, sometimes using the term "name" and sometimes using
+"address".  You can regard these terms as synonymous where sockets are
+concerned.
+
+   A socket newly created with the `socket' function has no address.
+Other processes can find it for communication only if you give it an
+address.  We call this "binding" the address to the socket, and the way
+to do it is with the `bind' function.
+
+   You need be concerned with the address of a socket if other processes
+are to find it and start communicating with it.  You can specify an
+address for other sockets, but this is usually pointless; the first time
+you send data from a socket, or use it to initiate a connection, the
+system assigns an address automatically if you have not specified one.
+
+   Occasionally a client needs to specify an address because the server
+discriminates based on address; for example, the rsh and rlogin
+protocols look at the client's socket address and only bypass password
+checking if it is less than `IPPORT_RESERVED' (*note Ports::).
+
+   The details of socket addresses vary depending on what namespace you
+are using.  *Note Local Namespace::, or *Note Internet Namespace::, for
+specific information.
+
+   Regardless of the namespace, you use the same functions `bind' and
+`getsockname' to set and examine a socket's address.  These functions
+use a phony data type, `struct sockaddr *', to accept the address.  In
+practice, the address lives in a structure of some other data type
+appropriate to the address format you are using, but you cast its
+address to `struct sockaddr *' when you pass it to `bind'.
+
+* Menu:
+
+* Address Formats::		About `struct sockaddr'.
+* Setting Address::		Binding an address to a socket.
+* Reading Address::		Reading the address of a socket.
+
+
+File: libc.info,  Node: Address Formats,  Next: Setting Address,  Up: Socket Addresses
+
+Address Formats
+---------------
+
+   The functions `bind' and `getsockname' use the generic data type
+`struct sockaddr *' to represent a pointer to a socket address.  You
+can't use this data type effectively to interpret an address or
+construct one; for that, you must use the proper data type for the
+socket's namespace.
+
+   Thus, the usual practice is to construct an address of the proper
+namespace-specific type, then cast a pointer to `struct sockaddr *'
+when you call `bind' or `getsockname'.
+
+   The one piece of information that you can get from the `struct
+sockaddr' data type is the "address format designator".  This tells you
+which data type to use to understand the address fully.
+
+   The symbols in this section are defined in the header file
+`sys/socket.h'.
+
+ - Data Type: struct sockaddr
+     The `struct sockaddr' type itself has the following members:
+
+    `short int sa_family'
+          This is the code for the address format of this address.  It
+          identifies the format of the data which follows.
+
+    `char sa_data[14]'
+          This is the actual socket address data, which is
+          format-dependent.  Its length also depends on the format, and
+          may well be more than 14.  The length 14 of `sa_data' is
+          essentially arbitrary.
+
+   Each address format has a symbolic name which starts with `AF_'.
+Each of them corresponds to a `PF_' symbol which designates the
+corresponding namespace.  Here is a list of address format names:
+
+`AF_LOCAL'
+     This designates the address format that goes with the local
+     namespace.  (`PF_LOCAL' is the name of that namespace.)  *Note
+     Local Namespace Details::, for information about this address
+     format.
+
+`AF_UNIX'
+     This is a synonym for `AF_LOCAL'.  Although `AF_LOCAL' is mandated
+     by POSIX.1g, `AF_UNIX' is portable to more systems.  `AF_UNIX' was
+     the traditional name stemming from BSD, so even most POSIX systems
+     support it.  It is also the name of choice in the Unix98
+     specification. (The same is true for `PF_UNIX' vs. `PF_LOCAL').
+
+`AF_FILE'
+     This is another synonym for `AF_LOCAL', for compatibility.
+     (`PF_FILE' is likewise a synonym for `PF_LOCAL'.)
+
+`AF_INET'
+     This designates the address format that goes with the Internet
+     namespace.  (`PF_INET' is the name of that namespace.)  *Note
+     Internet Address Formats::.
+
+`AF_INET6'
+     This is similar to `AF_INET', but refers to the IPv6 protocol.
+     (`PF_INET6' is the name of the corresponding namespace.)
+
+`AF_UNSPEC'
+     This designates no particular address format.  It is used only in
+     rare cases, such as to clear out the default destination address
+     of a "connected" datagram socket.  *Note Sending Datagrams::.
+
+     The corresponding namespace designator symbol `PF_UNSPEC' exists
+     for completeness, but there is no reason to use it in a program.
+
+   `sys/socket.h' defines symbols starting with `AF_' for many
+different kinds of networks, most or all of which are not actually
+implemented.  We will document those that really work as we receive
+information about how to use them.
+
+
+File: libc.info,  Node: Setting Address,  Next: Reading Address,  Prev: Address Formats,  Up: Socket Addresses
+
+Setting the Address of a Socket
+-------------------------------
+
+   Use the `bind' function to assign an address to a socket.  The
+prototype for `bind' is in the header file `sys/socket.h'.  For
+examples of use, see *Note Local Socket Example::, or see *Note Inet
+Example::.
+
+ - Function: int bind (int SOCKET, struct sockaddr *ADDR, socklen_t
+          LENGTH)
+     The `bind' function assigns an address to the socket SOCKET.  The
+     ADDR and LENGTH arguments specify the address; the detailed format
+     of the address depends on the namespace.  The first part of the
+     address is always the format designator, which specifies a
+     namespace, and says that the address is in the format of that
+     namespace.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `EADDRNOTAVAIL'
+          The specified address is not available on this machine.
+
+    `EADDRINUSE'
+          Some other socket is already using the specified address.
+
+    `EINVAL'
+          The socket SOCKET already has an address.
+
+    `EACCES'
+          You do not have permission to access the requested address.
+          (In the Internet domain, only the super-user is allowed to
+          specify a port number in the range 0 through
+          `IPPORT_RESERVED' minus one; see *Note Ports::.)
+
+     Additional conditions may be possible depending on the particular
+     namespace of the socket.
+
+
+File: libc.info,  Node: Reading Address,  Prev: Setting Address,  Up: Socket Addresses
+
+Reading the Address of a Socket
+-------------------------------
+
+   Use the function `getsockname' to examine the address of an Internet
+socket.  The prototype for this function is in the header file
+`sys/socket.h'.
+
+ - Function: int getsockname (int SOCKET, struct sockaddr *ADDR,
+          socklen_t *LENGTH-PTR)
+     The `getsockname' function returns information about the address
+     of the socket SOCKET in the locations specified by the ADDR and
+     LENGTH-PTR arguments.  Note that the LENGTH-PTR is a pointer; you
+     should initialize it to be the allocation size of ADDR, and on
+     return it contains the actual size of the address data.
+
+     The format of the address data depends on the socket namespace.
+     The length of the information is usually fixed for a given
+     namespace, so normally you can know exactly how much space is
+     needed and can provide that much.  The usual practice is to
+     allocate a place for the value using the proper data type for the
+     socket's namespace, then cast its address to `struct sockaddr *'
+     to pass it to `getsockname'.
+
+     The return value is `0' on success and `-1' on error.  The
+     following `errno' error conditions are defined for this function:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `ENOBUFS'
+          There are not enough internal buffers available for the
+          operation.
+
+   You can't read the address of a socket in the file namespace.  This
+is consistent with the rest of the system; in general, there's no way to
+find a file's name from a descriptor for that file.
+

@@ -1,0 +1,166 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Type Index,  Next: Function Index,  Prev: Concept Index,  Up: Top
+
+Type Index
+**********
+
+* Menu:
+
+* __ftw64_func_t:                        Working with Directory Trees.
+* __ftw_func_t:                          Working with Directory Trees.
+* __nftw64_func_t:                       Working with Directory Trees.
+* __nftw_func_t:                         Working with Directory Trees.
+* blkcnt64_t:                            Attribute Meanings.
+* blkcnt_t:                              Attribute Meanings.
+* cc_t:                                  Mode Data Types.
+* clock_t:                               CPU Time.
+* comparison_fn_t:                       Comparison Functions.
+* cookie_close_function:                 Hook Functions.
+* cookie_io_functions_t:                 Streams and Cookies.
+* cookie_read_function:                  Hook Functions.
+* cookie_seek_function:                  Hook Functions.
+* cookie_write_function:                 Hook Functions.
+* dev_t:                                 Attribute Meanings.
+* DIR:                                   Opening a Directory.
+* div_t:                                 Integer Division.
+* enum mcheck_status:                    Heap Consistency Checking.
+* fd_set:                                Waiting for I/O.
+* FILE:                                  Streams.
+* fpos64_t:                              Portable Positioning.
+* fpos_t:                                Portable Positioning.
+* gid_t:                                 Reading Persona.
+* glob64_t:                              Calling Glob.
+* glob_t:                                Calling Glob.
+* iconv_t:                               Generic Conversion Interface.
+* imaxdiv_t:                             Integer Division.
+* ino64_t:                               Attribute Meanings.
+* ino_t:                                 Attribute Meanings.
+* jmp_buf:                               Non-Local Details.
+* ldiv_t:                                Integer Division.
+* lldiv_t:                               Integer Division.
+* mbstate_t:                             Keeping the state.
+* mode_t:                                Attribute Meanings.
+* nlink_t:                               Attribute Meanings.
+* off64_t:                               File Position Primitive.
+* off_t:                                 File Position Primitive.
+* pid_t:                                 Process Identification.
+* printf_arginfo_function:               Defining the Output Handler.
+* printf_function:                       Defining the Output Handler.
+* ptrdiff_t:                             Important Data Types.
+* regex_t:                               POSIX Regexp Compilation.
+* regmatch_t:                            Regexp Subexpressions.
+* regoff_t:                              Regexp Subexpressions.
+* sig_atomic_t:                          Atomic Types.
+* sighandler_t:                          Basic Signal Handling.
+* sigjmp_buf:                            Non-Local Exits and Signals.
+* sigset_t:                              Signal Sets.
+* size_t:                                Important Data Types.
+* speed_t:                               Line Speed.
+* ssize_t:                               I/O Primitives.
+* stack_t:                               Signal Stack.
+* struct __gconv_step:                   glibc iconv Implementation.
+* struct __gconv_step_data:              glibc iconv Implementation.
+* struct aiocb:                          Asynchronous I/O.
+* struct aiocb64:                        Asynchronous I/O.
+* struct aioinit:                        Configuration of AIO.
+* struct argp:                           Argp Parsers.
+* struct argp_child:                     Argp Children.
+* struct argp_option:                    Argp Option Vectors.
+* struct argp_state:                     Argp Parsing State.
+* struct dirent:                         Directory Entries.
+* struct ENTRY:                          Hash Search Function.
+* struct exit_status:                    Manipulating the Database.
+* struct flock:                          File Locks.
+* struct fstab:                          fstab.
+* struct FTW:                            Working with Directory Trees.
+* struct group:                          Group Data Structure.
+* struct hostent:                        Host Names.
+* struct if_nameindex:                   Interface Naming.
+* struct in6_addr:                       Host Address Data Type.
+* struct in_addr:                        Host Address Data Type.
+* struct iovec:                          Scatter-Gather.
+* struct itimerval:                      Setting an Alarm.
+* struct lconv:                          The Lame Way to Locale Data.
+* struct linger:                         Socket-Level Options.
+* struct mallinfo:                       Statistics of Malloc.
+* struct mntent:                         mtab.
+* struct netent:                         Networks Database.
+* struct ntptimeval:                     High Accuracy Clock.
+* struct obstack:                        Creating Obstacks.
+* struct option:                         Getopt Long Options.
+* struct passwd:                         User Data Structure.
+* struct printf_info:                    Conversion Specifier Options.
+* struct protoent:                       Protocols Database.
+* struct random_data:                    BSD Random.
+* struct rlimit:                         Limits on Resources.
+* struct rlimit64:                       Limits on Resources.
+* struct rusage:                         Resource Usage.
+* struct sched_param:                    Basic Scheduling Functions.
+* struct servent:                        Services Database.
+* struct sgttyb:                         BSD Terminal Modes.
+* struct sigaction:                      Advanced Signal Handling.
+* struct sigstack:                       Signal Stack.
+* struct sigvec:                         BSD Handler.
+* struct sockaddr:                       Address Formats.
+* struct sockaddr_in:                    Internet Address Formats.
+* struct sockaddr_in6:                   Internet Address Formats.
+* struct sockaddr_un:                    Local Namespace Details.
+* struct stat:                           Attribute Meanings.
+* struct stat64:                         Attribute Meanings.
+* struct termios:                        Mode Data Types.
+* struct timespec:                       Elapsed Time.
+* struct timeval:                        Elapsed Time.
+* struct timex:                          High Accuracy Clock.
+* struct timezone:                       High-Resolution Calendar.
+* struct tm:                             Broken-down Time.
+* struct tms:                            Processor Time.
+* struct utimbuf:                        File Times.
+* struct utmp:                           Manipulating the Database.
+* struct utmpx:                          XPG Functions.
+* struct utsname:                        Platform Type.
+* struct vtimes:                         Resource Usage.
+* tcflag_t:                              Mode Data Types.
+* time_t:                                Simple Calendar Time.
+* ucontext_t:                            System V contexts.
+* uid_t:                                 Reading Persona.
+* union wait:                            BSD Wait Functions.
+* va_list:                               Argument Macros.
+* VISIT:                                 Tree Search Function.
+* wchar_t:                               Extended Char Intro.
+* wctrans_t:                             Wide Character Case Conversion.
+* wctype_t:                              Classification of Wide Characters.
+* wint_t:                                Extended Char Intro.
+* wordexp_t:                             Calling Wordexp.
+

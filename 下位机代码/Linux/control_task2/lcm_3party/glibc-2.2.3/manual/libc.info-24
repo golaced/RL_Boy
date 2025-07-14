@@ -1,0 +1,1161 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Deleting Files,  Next: Renaming Files,  Prev: Symbolic Links,  Up: File System Interface
+
+Deleting Files
+==============
+
+   You can delete a file with `unlink' or `remove'.
+
+   Deletion actually deletes a file name.  If this is the file's only
+name, then the file is deleted as well.  If the file has other
+remaining names (*note Hard Links::), it remains accessible under those
+names.
+
+ - Function: int unlink (const char *FILENAME)
+     The `unlink' function deletes the file name FILENAME.  If this is
+     a file's sole name, the file itself is also deleted.  (Actually,
+     if any process has the file open when this happens, deletion is
+     postponed until all processes have closed the file.)
+
+     The function `unlink' is declared in the header file `unistd.h'.
+
+     This function returns `0' on successful completion, and `-1' on
+     error.  In addition to the usual file name errors (*note File Name
+     Errors::), the following `errno' error conditions are defined for
+     this function:
+
+    `EACCES'
+          Write permission is denied for the directory from which the
+          file is to be removed, or the directory has the sticky bit
+          set and you do not own the file.
+
+    `EBUSY'
+          This error indicates that the file is being used by the
+          system in such a way that it can't be unlinked.  For example,
+          you might see this error if the file name specifies the root
+          directory or a mount point for a file system.
+
+    `ENOENT'
+          The file name to be deleted doesn't exist.
+
+    `EPERM'
+          On some systems `unlink' cannot be used to delete the name of
+          a directory, or at least can only be used this way by a
+          privileged user.  To avoid such problems, use `rmdir' to
+          delete directories.  (In the GNU system `unlink' can never
+          delete the name of a directory.)
+
+    `EROFS'
+          The directory containing the file name to be deleted is on a
+          read-only file system and can't be modified.
+
+ - Function: int rmdir (const char *FILENAME)
+     The `rmdir' function deletes a directory.  The directory must be
+     empty before it can be removed; in other words, it can only contain
+     entries for `.' and `..'.
+
+     In most other respects, `rmdir' behaves like `unlink'.  There are
+     two additional `errno' error conditions defined for `rmdir':
+
+    `ENOTEMPTY'
+    `EEXIST'
+          The directory to be deleted is not empty.
+
+     These two error codes are synonymous; some systems use one, and
+     some use the other.  The GNU system always uses `ENOTEMPTY'.
+
+     The prototype for this function is declared in the header file
+     `unistd.h'.
+
+ - Function: int remove (const char *FILENAME)
+     This is the ISO C function to remove a file.  It works like
+     `unlink' for files and like `rmdir' for directories.  `remove' is
+     declared in `stdio.h'.
+
+
+File: libc.info,  Node: Renaming Files,  Next: Creating Directories,  Prev: Deleting Files,  Up: File System Interface
+
+Renaming Files
+==============
+
+   The `rename' function is used to change a file's name.
+
+ - Function: int rename (const char *OLDNAME, const char *NEWNAME)
+     The `rename' function renames the file OLDNAME to NEWNAME.  The
+     file formerly accessible under the name OLDNAME is afterwards
+     accessible as NEWNAME instead.  (If the file had any other names
+     aside from OLDNAME, it continues to have those names.)
+
+     The directory containing the name NEWNAME must be on the same file
+     system as the directory containing the name OLDNAME.
+
+     One special case for `rename' is when OLDNAME and NEWNAME are two
+     names for the same file.  The consistent way to handle this case
+     is to delete OLDNAME.  However, in this case POSIX requires that
+     `rename' do nothing and report success--which is inconsistent.  We
+     don't know what your operating system will do.
+
+     If OLDNAME is not a directory, then any existing file named
+     NEWNAME is removed during the renaming operation.  However, if
+     NEWNAME is the name of a directory, `rename' fails in this case.
+
+     If OLDNAME is a directory, then either NEWNAME must not exist or
+     it must name a directory that is empty.  In the latter case, the
+     existing directory named NEWNAME is deleted first.  The name
+     NEWNAME must not specify a subdirectory of the directory `oldname'
+     which is being renamed.
+
+     One useful feature of `rename' is that the meaning of NEWNAME
+     changes "atomically" from any previously existing file by that
+     name to its new meaning (i.e. the file that was called OLDNAME).
+     There is no instant at which NEWNAME is non-existent "in between"
+     the old meaning and the new meaning.  If there is a system crash
+     during the operation, it is possible for both names to still
+     exist; but NEWNAME will always be intact if it exists at all.
+
+     If `rename' fails, it returns `-1'.  In addition to the usual file
+     name errors (*note File Name Errors::), the following `errno'
+     error conditions are defined for this function:
+
+    `EACCES'
+          One of the directories containing NEWNAME or OLDNAME refuses
+          write permission; or NEWNAME and OLDNAME are directories and
+          write permission is refused for one of them.
+
+    `EBUSY'
+          A directory named by OLDNAME or NEWNAME is being used by the
+          system in a way that prevents the renaming from working.
+          This includes directories that are mount points for
+          filesystems, and directories that are the current working
+          directories of processes.
+
+    `ENOTEMPTY'
+    `EEXIST'
+          The directory NEWNAME isn't empty.  The GNU system always
+          returns `ENOTEMPTY' for this, but some other systems return
+          `EEXIST'.
+
+    `EINVAL'
+          OLDNAME is a directory that contains NEWNAME.
+
+    `EISDIR'
+          NEWNAME is a directory but the OLDNAME isn't.
+
+    `EMLINK'
+          The parent directory of NEWNAME would have too many links
+          (entries).
+
+    `ENOENT'
+          The file OLDNAME doesn't exist.
+
+    `ENOSPC'
+          The directory that would contain NEWNAME has no room for
+          another entry, and there is no space left in the file system
+          to expand it.
+
+    `EROFS'
+          The operation would involve writing to a directory on a
+          read-only file system.
+
+    `EXDEV'
+          The two file names NEWNAME and OLDNAME are on different file
+          systems.
+
+
+File: libc.info,  Node: Creating Directories,  Next: File Attributes,  Prev: Renaming Files,  Up: File System Interface
+
+Creating Directories
+====================
+
+   Directories are created with the `mkdir' function.  (There is also a
+shell command `mkdir' which does the same thing.)
+
+ - Function: int mkdir (const char *FILENAME, mode_t MODE)
+     The `mkdir' function creates a new, empty directory with name
+     FILENAME.
+
+     The argument MODE specifies the file permissions for the new
+     directory file.  *Note Permission Bits::, for more information
+     about this.
+
+     A return value of `0' indicates successful completion, and `-1'
+     indicates failure.  In addition to the usual file name syntax
+     errors (*note File Name Errors::), the following `errno' error
+     conditions are defined for this function:
+
+    `EACCES'
+          Write permission is denied for the parent directory in which
+          the new directory is to be added.
+
+    `EEXIST'
+          A file named FILENAME already exists.
+
+    `EMLINK'
+          The parent directory has too many links (entries).
+
+          Well-designed file systems never report this error, because
+          they permit more links than your disk could possibly hold.
+          However, you must still take account of the possibility of
+          this error, as it could result from network access to a file
+          system on another machine.
+
+    `ENOSPC'
+          The file system doesn't have enough room to create the new
+          directory.
+
+    `EROFS'
+          The parent directory of the directory being created is on a
+          read-only file system and cannot be modified.
+
+     To use this function, your program should include the header file
+     `sys/stat.h'.
+
+
+File: libc.info,  Node: File Attributes,  Next: Making Special Files,  Prev: Creating Directories,  Up: File System Interface
+
+File Attributes
+===============
+
+   When you issue an `ls -l' shell command on a file, it gives you
+information about the size of the file, who owns it, when it was last
+modified, etc.  These are called the "file attributes", and are
+associated with the file itself and not a particular one of its names.
+
+   This section contains information about how you can inquire about and
+modify the attributes of a file.
+
+* Menu:
+
+* Attribute Meanings::          The names of the file attributes,
+                                 and what their values mean.
+* Reading Attributes::          How to read the attributes of a file.
+* Testing File Type::           Distinguishing ordinary files,
+                                 directories, links...
+* File Owner::                  How ownership for new files is determined,
+			         and how to change it.
+* Permission Bits::             How information about a file's access
+                                 mode is stored.
+* Access Permission::           How the system decides who can access a file.
+* Setting Permissions::         How permissions for new files are assigned,
+			         and how to change them.
+* Testing File Access::         How to find out if your process can
+                                 access a file.
+* File Times::                  About the time attributes of a file.
+* File Size::			Manually changing the size of a file.
+
+
+File: libc.info,  Node: Attribute Meanings,  Next: Reading Attributes,  Up: File Attributes
+
+The meaning of the File Attributes
+----------------------------------
+
+   When you read the attributes of a file, they come back in a structure
+called `struct stat'.  This section describes the names of the
+attributes, their data types, and what they mean.  For the functions to
+read the attributes of a file, see *Note Reading Attributes::.
+
+   The header file `sys/stat.h' declares all the symbols defined in
+this section.
+
+ - Data Type: struct stat
+     The `stat' structure type is used to return information about the
+     attributes of a file.  It contains at least the following members:
+
+    `mode_t st_mode'
+          Specifies the mode of the file.  This includes file type
+          information (*note Testing File Type::) and the file
+          permission bits (*note Permission Bits::).
+
+    `ino_t st_ino'
+          The file serial number, which distinguishes this file from
+          all other files on the same device.
+
+    `dev_t st_dev'
+          Identifies the device containing the file.  The `st_ino' and
+          `st_dev', taken together, uniquely identify the file.  The
+          `st_dev' value is not necessarily consistent across reboots or
+          system crashes, however.
+
+    `nlink_t st_nlink'
+          The number of hard links to the file.  This count keeps track
+          of how many directories have entries for this file.  If the
+          count is ever decremented to zero, then the file itself is
+          discarded as soon as no process still holds it open.
+          Symbolic links are not counted in the total.
+
+    `uid_t st_uid'
+          The user ID of the file's owner.  *Note File Owner::.
+
+    `gid_t st_gid'
+          The group ID of the file.  *Note File Owner::.
+
+    `off_t st_size'
+          This specifies the size of a regular file in bytes.  For
+          files that are really devices this field isn't usually
+          meaningful.  For symbolic links this specifies the length of
+          the file name the link refers to.
+
+    `time_t st_atime'
+          This is the last access time for the file.  *Note File
+          Times::.
+
+    `unsigned long int st_atime_usec'
+          This is the fractional part of the last access time for the
+          file.  *Note File Times::.
+
+    `time_t st_mtime'
+          This is the time of the last modification to the contents of
+          the file.  *Note File Times::.
+
+    `unsigned long int st_mtime_usec'
+          This is the fractional part of the time of the last
+          modification to the contents of the file.  *Note File Times::.
+
+    `time_t st_ctime'
+          This is the time of the last modification to the attributes
+          of the file.  *Note File Times::.
+
+    `unsigned long int st_ctime_usec'
+          This is the fractional part of the time of the last
+          modification to the attributes of the file.  *Note File
+          Times::.
+
+    `blkcnt_t st_blocks'
+          This is the amount of disk space that the file occupies,
+          measured in units of 512-byte blocks.
+
+          The number of disk blocks is not strictly proportional to the
+          size of the file, for two reasons: the file system may use
+          some blocks for internal record keeping; and the file may be
+          sparse--it may have "holes" which contain zeros but do not
+          actually take up space on the disk.
+
+          You can tell (approximately) whether a file is sparse by
+          comparing this value with `st_size', like this:
+
+               (st.st_blocks * 512 < st.st_size)
+
+          This test is not perfect because a file that is just slightly
+          sparse might not be detected as sparse at all.  For practical
+          applications, this is not a problem.
+
+    `unsigned int st_blksize'
+          The optimal block size for reading of writing this file, in
+          bytes.  You might use this size for allocating the buffer
+          space for reading of writing the file.  (This is unrelated to
+          `st_blocks'.)
+
+   The extensions for the Large File Support (LFS) require, even on
+32-bit machines, types which can handle file sizes up to 2^63.
+Therefore a new definition of `struct stat' is necessary.
+
+ - Data Type: struct stat64
+     The members of this type are the same and have the same names as
+     those in `struct stat'.  The only difference is that the members
+     `st_ino', `st_size', and `st_blocks' have a different type to
+     support larger values.
+
+    `mode_t st_mode'
+          Specifies the mode of the file.  This includes file type
+          information (*note Testing File Type::) and the file
+          permission bits (*note Permission Bits::).
+
+    `ino64_t st_ino'
+          The file serial number, which distinguishes this file from
+          all other files on the same device.
+
+    `dev_t st_dev'
+          Identifies the device containing the file.  The `st_ino' and
+          `st_dev', taken together, uniquely identify the file.  The
+          `st_dev' value is not necessarily consistent across reboots or
+          system crashes, however.
+
+    `nlink_t st_nlink'
+          The number of hard links to the file.  This count keeps track
+          of how many directories have entries for this file.  If the
+          count is ever decremented to zero, then the file itself is
+          discarded as soon as no process still holds it open.
+          Symbolic links are not counted in the total.
+
+    `uid_t st_uid'
+          The user ID of the file's owner.  *Note File Owner::.
+
+    `gid_t st_gid'
+          The group ID of the file.  *Note File Owner::.
+
+    `off64_t st_size'
+          This specifies the size of a regular file in bytes.  For
+          files that are really devices this field isn't usually
+          meaningful.  For symbolic links this specifies the length of
+          the file name the link refers to.
+
+    `time_t st_atime'
+          This is the last access time for the file.  *Note File
+          Times::.
+
+    `unsigned long int st_atime_usec'
+          This is the fractional part of the last access time for the
+          file.  *Note File Times::.
+
+    `time_t st_mtime'
+          This is the time of the last modification to the contents of
+          the file.  *Note File Times::.
+
+    `unsigned long int st_mtime_usec'
+          This is the fractional part of the time of the last
+          modification to the contents of the file.  *Note File Times::.
+
+    `time_t st_ctime'
+          This is the time of the last modification to the attributes
+          of the file.  *Note File Times::.
+
+    `unsigned long int st_ctime_usec'
+          This is the fractional part of the time of the last
+          modification to the attributes of the file.  *Note File
+          Times::.
+
+    `blkcnt64_t st_blocks'
+          This is the amount of disk space that the file occupies,
+          measured in units of 512-byte blocks.
+
+    `unsigned int st_blksize'
+          The optimal block size for reading of writing this file, in
+          bytes.  You might use this size for allocating the buffer
+          space for reading of writing the file.  (This is unrelated to
+          `st_blocks'.)
+
+   Some of the file attributes have special data type names which exist
+specifically for those attributes.  (They are all aliases for well-known
+integer types that you know and love.)  These typedef names are defined
+in the header file `sys/types.h' as well as in `sys/stat.h'.  Here is a
+list of them.
+
+ - Data Type: mode_t
+     This is an integer data type used to represent file modes.  In the
+     GNU system, this is equivalent to `unsigned int'.
+
+ - Data Type: ino_t
+     This is an arithmetic data type used to represent file serial
+     numbers.  (In Unix jargon, these are sometimes called "inode
+     numbers".)  In the GNU system, this type is equivalent to
+     `unsigned long int'.
+
+     If the source is compiled with `_FILE_OFFSET_BITS == 64' this type
+     is transparently replaced by `ino64_t'.
+
+ - Data Type: ino64_t
+     This is an arithmetic data type used to represent file serial
+     numbers for the use in LFS.  In the GNU system, this type is
+     equivalent to `unsigned long longint'.
+
+     When compiling with `_FILE_OFFSET_BITS == 64' this type is
+     available under the name `ino_t'.
+
+ - Data Type: dev_t
+     This is an arithmetic data type used to represent file device
+     numbers.  In the GNU system, this is equivalent to `int'.
+
+ - Data Type: nlink_t
+     This is an arithmetic data type used to represent file link counts.
+     In the GNU system, this is equivalent to `unsigned short int'.
+
+ - Data Type: blkcnt_t
+     This is an arithmetic data type used to represent block counts.
+     In the GNU system, this is equivalent to `unsigned long int'.
+
+     If the source is compiled with `_FILE_OFFSET_BITS == 64' this type
+     is transparently replaced by `blkcnt64_t'.
+
+ - Data Type: blkcnt64_t
+     This is an arithmetic data type used to represent block counts for
+     the use in LFS.  In the GNU system, this is equivalent to `unsigned
+     long long int'.
+
+     When compiling with `_FILE_OFFSET_BITS == 64' this type is
+     available under the name `blkcnt_t'.
+
+
+File: libc.info,  Node: Reading Attributes,  Next: Testing File Type,  Prev: Attribute Meanings,  Up: File Attributes
+
+Reading the Attributes of a File
+--------------------------------
+
+   To examine the attributes of files, use the functions `stat',
+`fstat' and `lstat'.  They return the attribute information in a
+`struct stat' object.  All three functions are declared in the header
+file `sys/stat.h'.
+
+ - Function: int stat (const char *FILENAME, struct stat *BUF)
+     The `stat' function returns information about the attributes of the
+     file named by FILENAME in the structure pointed to by BUF.
+
+     If FILENAME is the name of a symbolic link, the attributes you get
+     describe the file that the link points to.  If the link points to a
+     nonexistent file name, then `stat' fails reporting a nonexistent
+     file.
+
+     The return value is `0' if the operation is successful, or `-1' on
+     failure.  In addition to the usual file name errors (*note File
+     Name Errors::, the following `errno' error conditions are defined
+     for this function:
+
+    `ENOENT'
+          The file named by FILENAME doesn't exist.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `stat64' since the LFS interface transparently
+     replaces the normal implementation.
+
+ - Function: int stat64 (const char *FILENAME, struct stat64 *BUF)
+     This function is similar to `stat' but it is also able to work on
+     files larger then 2^31 bytes on 32-bit systems.  To be able to do
+     this the result is stored in a variable of type `struct stat64' to
+     which BUF must point.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `stat' and so transparently
+     replaces the interface for small files on 32-bit machines.
+
+ - Function: int fstat (int FILEDES, struct stat *BUF)
+     The `fstat' function is like `stat', except that it takes an open
+     file descriptor as an argument instead of a file name.  *Note
+     Low-Level I/O::.
+
+     Like `stat', `fstat' returns `0' on success and `-1' on failure.
+     The following `errno' error conditions are defined for `fstat':
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `fstat64' since the LFS interface transparently
+     replaces the normal implementation.
+
+ - Function: int fstat64 (int FILEDES, struct stat64 *BUF)
+     This function is similar to `fstat' but is able to work on large
+     files on 32-bit platforms.  For large files the file descriptor
+     FILEDES should be obtained by `open64' or `creat64'.  The BUF
+     pointer points to a variable of type `struct stat64' which is able
+     to represent the larger values.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `fstat' and so transparently
+     replaces the interface for small files on 32-bit machines.
+
+ - Function: int lstat (const char *FILENAME, struct stat *BUF)
+     The `lstat' function is like `stat', except that it does not
+     follow symbolic links.  If FILENAME is the name of a symbolic
+     link, `lstat' returns information about the link itself; otherwise
+     `lstat' works like `stat'.  *Note Symbolic Links::.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `lstat64' since the LFS interface transparently
+     replaces the normal implementation.
+
+ - Function: int lstat64 (const char *FILENAME, struct stat64 *BUF)
+     This function is similar to `lstat' but it is also able to work on
+     files larger then 2^31 bytes on 32-bit systems.  To be able to do
+     this the result is stored in a variable of type `struct stat64' to
+     which BUF must point.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `lstat' and so transparently
+     replaces the interface for small files on 32-bit machines.
+
+
+File: libc.info,  Node: Testing File Type,  Next: File Owner,  Prev: Reading Attributes,  Up: File Attributes
+
+Testing the Type of a File
+--------------------------
+
+   The "file mode", stored in the `st_mode' field of the file
+attributes, contains two kinds of information: the file type code, and
+the access permission bits.  This section discusses only the type code,
+which you can use to tell whether the file is a directory, socket,
+symbolic link, and so on.  For details about access permissions see
+*Note Permission Bits::.
+
+   There are two ways you can access the file type information in a file
+mode.  Firstly, for each file type there is a "predicate macro" which
+examines a given file mode and returns whether it is of that type or
+not.  Secondly, you can mask out the rest of the file mode to leave
+just the file type code, and compare this against constants for each of
+the supported file types.
+
+   All of the symbols listed in this section are defined in the header
+file `sys/stat.h'.
+
+   The following predicate macros test the type of a file, given the
+value M which is the `st_mode' field returned by `stat' on that file:
+
+ - Macro: int S_ISDIR (mode_t M)
+     This macro returns non-zero if the file is a directory.
+
+ - Macro: int S_ISCHR (mode_t M)
+     This macro returns non-zero if the file is a character special
+     file (a device like a terminal).
+
+ - Macro: int S_ISBLK (mode_t M)
+     This macro returns non-zero if the file is a block special file (a
+     device like a disk).
+
+ - Macro: int S_ISREG (mode_t M)
+     This macro returns non-zero if the file is a regular file.
+
+ - Macro: int S_ISFIFO (mode_t M)
+     This macro returns non-zero if the file is a FIFO special file, or
+     a pipe.  *Note Pipes and FIFOs::.
+
+ - Macro: int S_ISLNK (mode_t M)
+     This macro returns non-zero if the file is a symbolic link.  *Note
+     Symbolic Links::.
+
+ - Macro: int S_ISSOCK (mode_t M)
+     This macro returns non-zero if the file is a socket.  *Note
+     Sockets::.
+
+   An alternate non-POSIX method of testing the file type is supported
+for compatibility with BSD.  The mode can be bitwise AND-ed with
+`S_IFMT' to extract the file type code, and compared to the appropriate
+constant.  For example,
+
+     S_ISCHR (MODE)
+
+is equivalent to:
+
+     ((MODE & S_IFMT) == S_IFCHR)
+
+ - Macro: int S_IFMT
+     This is a bit mask used to extract the file type code from a mode
+     value.
+
+   These are the symbolic names for the different file type codes:
+
+`S_IFDIR'
+     This is the file type constant of a directory file.
+
+`S_IFCHR'
+     This is the file type constant of a character-oriented device file.
+
+`S_IFBLK'
+     This is the file type constant of a block-oriented device file.
+
+`S_IFREG'
+     This is the file type constant of a regular file.
+
+`S_IFLNK'
+     This is the file type constant of a symbolic link.
+
+`S_IFSOCK'
+     This is the file type constant of a socket.
+
+`S_IFIFO'
+     This is the file type constant of a FIFO or pipe.
+
+   The POSIX.1b standard introduced a few more objects which possibly
+can be implemented as object in the filesystem.  These are message
+queues, semaphores, and shared memory objects.  To allow
+differentiating these objects from other files the POSIX standard
+introduces three new test macros.  But unlike the other macros it does
+not take the value of the `st_mode' field as the parameter.  Instead
+they expect a pointer to the whole `struct stat' structure.
+
+ - Macro: int S_TYPEISMQ (struct stat *S)
+     If the system implement POSIX message queues as distinct objects
+     and the file is a message queue object, this macro returns a
+     non-zero value.  In all other cases the result is zero.
+
+ - Macro: int S_TYPEISSEM (struct stat *S)
+     If the system implement POSIX semaphores as distinct objects and
+     the file is a semaphore object, this macro returns a non-zero
+     value.  In all other cases the result is zero.
+
+ - Macro: int S_TYPEISSHM (struct stat *S)
+     If the system implement POSIX shared memory objects as distinct
+     objects and the file is an shared memory object, this macro
+     returns a non-zero value.  In all other cases the result is zero.
+
+
+File: libc.info,  Node: File Owner,  Next: Permission Bits,  Prev: Testing File Type,  Up: File Attributes
+
+File Owner
+----------
+
+   Every file has an "owner" which is one of the registered user names
+defined on the system.  Each file also has a "group" which is one of
+the defined groups.  The file owner can often be useful for showing you
+who edited the file (especially when you edit with GNU Emacs), but its
+main purpose is for access control.
+
+   The file owner and group play a role in determining access because
+the file has one set of access permission bits for the owner, another
+set that applies to users who belong to the file's group, and a third
+set of bits that applies to everyone else.  *Note Access Permission::,
+for the details of how access is decided based on this data.
+
+   When a file is created, its owner is set to the effective user ID of
+the process that creates it (*note Process Persona::).  The file's
+group ID may be set to either the effective group ID of the process, or
+the group ID of the directory that contains the file, depending on the
+system where the file is stored.  When you access a remote file system,
+it behaves according to its own rules, not according to the system your
+program is running on.  Thus, your program must be prepared to encounter
+either kind of behavior no matter what kind of system you run it on.
+
+   You can change the owner and/or group owner of an existing file using
+the `chown' function.  This is the primitive for the `chown' and
+`chgrp' shell commands.
+
+   The prototype for this function is declared in `unistd.h'.
+
+ - Function: int chown (const char *FILENAME, uid_t OWNER, gid_t GROUP)
+     The `chown' function changes the owner of the file FILENAME to
+     OWNER, and its group owner to GROUP.
+
+     Changing the owner of the file on certain systems clears the
+     set-user-ID and set-group-ID permission bits.  (This is because
+     those bits may not be appropriate for the new owner.)  Other file
+     permission bits are not changed.
+
+     The return value is `0' on success and `-1' on failure.  In
+     addition to the usual file name errors (*note File Name Errors::),
+     the following `errno' error conditions are defined for this
+     function:
+
+    `EPERM'
+          This process lacks permission to make the requested change.
+
+          Only privileged users or the file's owner can change the
+          file's group.  On most file systems, only privileged users
+          can change the file owner; some file systems allow you to
+          change the owner if you are currently the owner.  When you
+          access a remote file system, the behavior you encounter is
+          determined by the system that actually holds the file, not by
+          the system your program is running on.
+
+          *Note Options for Files::, for information about the
+          `_POSIX_CHOWN_RESTRICTED' macro.
+
+    `EROFS'
+          The file is on a read-only file system.
+
+ - Function: int fchown (int FILEDES, int OWNER, int GROUP)
+     This is like `chown', except that it changes the owner of the open
+     file with descriptor FILEDES.
+
+     The return value from `fchown' is `0' on success and `-1' on
+     failure.  The following `errno' error codes are defined for this
+     function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `EINVAL'
+          The FILEDES argument corresponds to a pipe or socket, not an
+          ordinary file.
+
+    `EPERM'
+          This process lacks permission to make the requested change.
+          For details see `chmod' above.
+
+    `EROFS'
+          The file resides on a read-only file system.
+
+
+File: libc.info,  Node: Permission Bits,  Next: Access Permission,  Prev: File Owner,  Up: File Attributes
+
+The Mode Bits for Access Permission
+-----------------------------------
+
+   The "file mode", stored in the `st_mode' field of the file
+attributes, contains two kinds of information: the file type code, and
+the access permission bits.  This section discusses only the access
+permission bits, which control who can read or write the file.  *Note
+Testing File Type::, for information about the file type code.
+
+   All of the symbols listed in this section are defined in the header
+file `sys/stat.h'.
+
+   These symbolic constants are defined for the file mode bits that
+control access permission for the file:
+
+`S_IRUSR'
+`S_IREAD'
+     Read permission bit for the owner of the file.  On many systems
+     this bit is 0400.  `S_IREAD' is an obsolete synonym provided for
+     BSD compatibility.
+
+`S_IWUSR'
+`S_IWRITE'
+     Write permission bit for the owner of the file.  Usually 0200.
+     `S_IWRITE' is an obsolete synonym provided for BSD compatibility.
+
+`S_IXUSR'
+`S_IEXEC'
+     Execute (for ordinary files) or search (for directories)
+     permission bit for the owner of the file.  Usually 0100.
+     `S_IEXEC' is an obsolete synonym provided for BSD compatibility.
+
+`S_IRWXU'
+     This is equivalent to `(S_IRUSR | S_IWUSR | S_IXUSR)'.
+
+`S_IRGRP'
+     Read permission bit for the group owner of the file.  Usually 040.
+
+`S_IWGRP'
+     Write permission bit for the group owner of the file.  Usually 020.
+
+`S_IXGRP'
+     Execute or search permission bit for the group owner of the file.
+     Usually 010.
+
+`S_IRWXG'
+     This is equivalent to `(S_IRGRP | S_IWGRP | S_IXGRP)'.
+
+`S_IROTH'
+     Read permission bit for other users.  Usually 04.
+
+`S_IWOTH'
+     Write permission bit for other users.  Usually 02.
+
+`S_IXOTH'
+     Execute or search permission bit for other users.  Usually 01.
+
+`S_IRWXO'
+     This is equivalent to `(S_IROTH | S_IWOTH | S_IXOTH)'.
+
+`S_ISUID'
+     This is the set-user-ID on execute bit, usually 04000.  *Note How
+     Change Persona::.
+
+`S_ISGID'
+     This is the set-group-ID on execute bit, usually 02000.  *Note How
+     Change Persona::.
+
+`S_ISVTX'
+     This is the "sticky" bit, usually 01000.
+
+     For a directory it gives permission to delete a file in that
+     directory only if you own that file.  Ordinarily, a user can
+     either delete all the files in a directory or cannot delete any of
+     them (based on whether the user has write permission for the
+     directory).  The same restriction applies--you must have both
+     write permission for the directory and own the file you want to
+     delete.  The one exception is that the owner of the directory can
+     delete any file in the directory, no matter who owns it (provided
+     the owner has given himself write permission for the directory).
+     This is commonly used for the `/tmp' directory, where anyone may
+     create files but not delete files created by other users.
+
+     Originally the sticky bit on an executable file modified the
+     swapping policies of the system.  Normally, when a program
+     terminated, its pages in core were immediately freed and reused.
+     If the sticky bit was set on the executable file, the system kept
+     the pages in core for a while as if the program were still
+     running.  This was advantageous for a program likely to be run
+     many times in succession.  This usage is obsolete in modern
+     systems.  When a program terminates, its pages always remain in
+     core as long as there is no shortage of memory in the system.
+     When the program is next run, its pages will still be in core if
+     no shortage arose since the last run.
+
+     On some modern systems where the sticky bit has no useful meaning
+     for an executable file, you cannot set the bit at all for a
+     non-directory.  If you try, `chmod' fails with `EFTYPE'; *note
+     Setting Permissions::.
+
+     Some systems (particularly SunOS) have yet another use for the
+     sticky bit.  If the sticky bit is set on a file that is _not_
+     executable, it means the opposite: never cache the pages of this
+     file at all.  The main use of this is for the files on an NFS
+     server machine which are used as the swap area of diskless client
+     machines.  The idea is that the pages of the file will be cached
+     in the client's memory, so it is a waste of the server's memory to
+     cache them a second time.  With this usage the sticky bit also
+     implies that the filesystem may fail to record the file's
+     modification time onto disk reliably (the idea being that no-one
+     cares for a swap file).
+
+     This bit is only available on BSD systems (and those derived from
+     them).  Therefore one has to use the `_BSD_SOURCE' feature select
+     macro to get the definition (*note Feature Test Macros::).
+
+   The actual bit values of the symbols are listed in the table above
+so you can decode file mode values when debugging your programs.  These
+bit values are correct for most systems, but they are not guaranteed.
+
+   *Warning:* Writing explicit numbers for file permissions is bad
+practice.  Not only is it not portable, it also requires everyone who
+reads your program to remember what the bits mean.  To make your program
+clean use the symbolic names.
+
+
+File: libc.info,  Node: Access Permission,  Next: Setting Permissions,  Prev: Permission Bits,  Up: File Attributes
+
+How Your Access to a File is Decided
+------------------------------------
+
+   Recall that the operating system normally decides access permission
+for a file based on the effective user and group IDs of the process and
+its supplementary group IDs, together with the file's owner, group and
+permission bits.  These concepts are discussed in detail in *Note
+Process Persona::.
+
+   If the effective user ID of the process matches the owner user ID of
+the file, then permissions for read, write, and execute/search are
+controlled by the corresponding "user" (or "owner") bits.  Likewise, if
+any of the effective group ID or supplementary group IDs of the process
+matches the group owner ID of the file, then permissions are controlled
+by the "group" bits.  Otherwise, permissions are controlled by the
+"other" bits.
+
+   Privileged users, like `root', can access any file regardless of its
+permission bits.  As a special case, for a file to be executable even
+by a privileged user, at least one of its execute bits must be set.
+
+
+File: libc.info,  Node: Setting Permissions,  Next: Testing File Access,  Prev: Access Permission,  Up: File Attributes
+
+Assigning File Permissions
+--------------------------
+
+   The primitive functions for creating files (for example, `open' or
+`mkdir') take a MODE argument, which specifies the file permissions to
+give the newly created file.  This mode is modified by the process's
+"file creation mask", or "umask", before it is used.
+
+   The bits that are set in the file creation mask identify permissions
+that are always to be disabled for newly created files.  For example, if
+you set all the "other" access bits in the mask, then newly created
+files are not accessible at all to processes in the "other" category,
+even if the MODE argument passed to the create function would permit
+such access.  In other words, the file creation mask is the complement
+of the ordinary access permissions you want to grant.
+
+   Programs that create files typically specify a MODE argument that
+includes all the permissions that make sense for the particular file.
+For an ordinary file, this is typically read and write permission for
+all classes of users.  These permissions are then restricted as
+specified by the individual user's own file creation mask.
+
+   To change the permission of an existing file given its name, call
+`chmod'.  This function uses the specified permission bits and ignores
+the file creation mask.
+
+   In normal use, the file creation mask is initialized by the user's
+login shell (using the `umask' shell command), and inherited by all
+subprocesses.  Application programs normally don't need to worry about
+the file creation mask.  It will automatically do what it is supposed to
+do.
+
+   When your program needs to create a file and bypass the umask for its
+access permissions, the easiest way to do this is to use `fchmod' after
+opening the file, rather than changing the umask.  In fact, changing
+the umask is usually done only by shells.  They use the `umask'
+function.
+
+   The functions in this section are declared in `sys/stat.h'.
+
+ - Function: mode_t umask (mode_t MASK)
+     The `umask' function sets the file creation mask of the current
+     process to MASK, and returns the previous value of the file
+     creation mask.
+
+     Here is an example showing how to read the mask with `umask'
+     without changing it permanently:
+
+          mode_t
+          read_umask (void)
+          {
+            mode_t mask = umask (0);
+            umask (mask);
+            return mask;
+          }
+
+     However, it is better to use `getumask' if you just want to read
+     the mask value, because it is reentrant (at least if you use the
+     GNU operating system).
+
+ - Function: mode_t getumask (void)
+     Return the current value of the file creation mask for the current
+     process.  This function is a GNU extension.
+
+ - Function: int chmod (const char *FILENAME, mode_t MODE)
+     The `chmod' function sets the access permission bits for the file
+     named by FILENAME to MODE.
+
+     If FILENAME is a symbolic link, `chmod' changes the permissions of
+     the file pointed to by the link, not those of the link itself.
+
+     This function returns `0' if successful and `-1' if not.  In
+     addition to the usual file name errors (*note File Name Errors::),
+     the following `errno' error conditions are defined for this
+     function:
+
+    `ENOENT'
+          The named file doesn't exist.
+
+    `EPERM'
+          This process does not have permission to change the access
+          permissions of this file.  Only the file's owner (as judged
+          by the effective user ID of the process) or a privileged user
+          can change them.
+
+    `EROFS'
+          The file resides on a read-only file system.
+
+    `EFTYPE'
+          MODE has the `S_ISVTX' bit (the "sticky bit") set, and the
+          named file is not a directory.  Some systems do not allow
+          setting the sticky bit on non-directory files, and some do
+          (and only some of those assign a useful meaning to the bit
+          for non-directory files).
+
+          You only get `EFTYPE' on systems where the sticky bit has no
+          useful meaning for non-directory files, so it is always safe
+          to just clear the bit in MODE and call `chmod' again.  *Note
+          Permission Bits::, for full details on the sticky bit.
+
+ - Function: int fchmod (int FILEDES, int MODE)
+     This is like `chmod', except that it changes the permissions of the
+     currently open file given by FILEDES.
+
+     The return value from `fchmod' is `0' on success and `-1' on
+     failure.  The following `errno' error codes are defined for this
+     function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `EINVAL'
+          The FILEDES argument corresponds to a pipe or socket, or
+          something else that doesn't really have access permissions.
+
+    `EPERM'
+          This process does not have permission to change the access
+          permissions of this file.  Only the file's owner (as judged
+          by the effective user ID of the process) or a privileged user
+          can change them.
+
+    `EROFS'
+          The file resides on a read-only file system.
+
+
+File: libc.info,  Node: Testing File Access,  Next: File Times,  Prev: Setting Permissions,  Up: File Attributes
+
+Testing Permission to Access a File
+-----------------------------------
+
+   In some situations it is desirable to allow programs to access files
+or devices even if this is not possible with the permissions granted to
+the user.  One possible solution is to set the setuid-bit of the program
+file.  If such a program is started the _effective_ user ID of the
+process is changed to that of the owner of the program file.  So to
+allow write access to files like `/etc/passwd', which normally can be
+written only by the super-user, the modifying program will have to be
+owned by `root' and the setuid-bit must be set.
+
+   But beside the files the program is intended to change the user
+should not be allowed to access any file to which s/he would not have
+access anyway.  The program therefore must explicitly check whether _the
+user_ would have the necessary access to a file, before it reads or
+writes the file.
+
+   To do this, use the function `access', which checks for access
+permission based on the process's _real_ user ID rather than the
+effective user ID.  (The setuid feature does not alter the real user ID,
+so it reflects the user who actually ran the program.)
+
+   There is another way you could check this access, which is easy to
+describe, but very hard to use.  This is to examine the file mode bits
+and mimic the system's own access computation.  This method is
+undesirable because many systems have additional access control
+features; your program cannot portably mimic them, and you would not
+want to try to keep track of the diverse features that different systems
+have.  Using `access' is simple and automatically does whatever is
+appropriate for the system you are using.
+
+   `access' is _only_ only appropriate to use in setuid programs.  A
+non-setuid program will always use the effective ID rather than the
+real ID.
+
+   The symbols in this section are declared in `unistd.h'.
+
+ - Function: int access (const char *FILENAME, int HOW)
+     The `access' function checks to see whether the file named by
+     FILENAME can be accessed in the way specified by the HOW argument.
+     The HOW argument either can be the bitwise OR of the flags
+     `R_OK', `W_OK', `X_OK', or the existence test `F_OK'.
+
+     This function uses the _real_ user and group IDs of the calling
+     process, rather than the _effective_ IDs, to check for access
+     permission.  As a result, if you use the function from a `setuid'
+     or `setgid' program (*note How Change Persona::), it gives
+     information relative to the user who actually ran the program.
+
+     The return value is `0' if the access is permitted, and `-1'
+     otherwise.  (In other words, treated as a predicate function,
+     `access' returns true if the requested access is _denied_.)
+
+     In addition to the usual file name errors (*note File Name
+     Errors::), the following `errno' error conditions are defined for
+     this function:
+
+    `EACCES'
+          The access specified by HOW is denied.
+
+    `ENOENT'
+          The file doesn't exist.
+
+    `EROFS'
+          Write permission was requested for a file on a read-only file
+          system.
+
+   These macros are defined in the header file `unistd.h' for use as
+the HOW argument to the `access' function.  The values are integer
+constants.
+
+ - Macro: int R_OK
+     Flag meaning test for read permission.
+
+ - Macro: int W_OK
+     Flag meaning test for write permission.
+
+ - Macro: int X_OK
+     Flag meaning test for execute/search permission.
+
+ - Macro: int F_OK
+     Flag meaning test for existence of the file.
+

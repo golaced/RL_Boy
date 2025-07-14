@@ -1,0 +1,1089 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Rounding,  Next: Control Functions,  Prev: Floating Point Errors,  Up: Arithmetic
+
+Rounding Modes
+==============
+
+   Floating-point calculations are carried out internally with extra
+precision, and then rounded to fit into the destination type.  This
+ensures that results are as precise as the input data.  IEEE 754
+defines four possible rounding modes:
+
+Round to nearest.
+     This is the default mode.  It should be used unless there is a
+     specific need for one of the others.  In this mode results are
+     rounded to the nearest representable value.  If the result is
+     midway between two representable values, the even representable is
+     chosen. "Even" here means the lowest-order bit is zero.  This
+     rounding mode prevents statistical bias and guarantees numeric
+     stability: round-off errors in a lengthy calculation will remain
+     smaller than half of `FLT_EPSILON'.
+
+Round toward plus Infinity.
+     All results are rounded to the smallest representable value which
+     is greater than the result.
+
+Round toward minus Infinity.
+     All results are rounded to the largest representable value which
+     is less than the result.
+
+Round toward zero.
+     All results are rounded to the largest representable value whose
+     magnitude is less than that of the result.  In other words, if the
+     result is negative it is rounded up; if it is positive, it is
+     rounded down.
+
+`fenv.h' defines constants which you can use to refer to the various
+rounding modes.  Each one will be defined if and only if the FPU
+supports the corresponding rounding mode.
+
+`FE_TONEAREST'
+     Round to nearest.
+
+`FE_UPWARD'
+     Round toward +oo.
+
+`FE_DOWNWARD'
+     Round toward -oo.
+
+`FE_TOWARDZERO'
+     Round toward zero.
+
+   Underflow is an unusual case.  Normally, IEEE 754 floating point
+numbers are always normalized (*note Floating Point Concepts::).
+Numbers smaller than 2^r (where r is the minimum exponent,
+`FLT_MIN_RADIX-1' for FLOAT) cannot be represented as normalized
+numbers.  Rounding all such numbers to zero or 2^r would cause some
+algorithms to fail at 0.  Therefore, they are left in denormalized
+form.  That produces loss of precision, since some bits of the mantissa
+are stolen to indicate the decimal point.
+
+   If a result is too small to be represented as a denormalized number,
+it is rounded to zero.  However, the sign of the result is preserved; if
+the calculation was negative, the result is "negative zero".  Negative
+zero can also result from some operations on infinity, such as 4/-oo.
+Negative zero behaves identically to zero except when the `copysign' or
+`signbit' functions are used to check the sign bit directly.
+
+   At any time one of the above four rounding modes is selected.  You
+can find out which one with this function:
+
+ - Function: int fegetround (void)
+     Returns the currently selected rounding mode, represented by one
+     of the values of the defined rounding mode macros.
+
+To change the rounding mode, use this function:
+
+ - Function: int fesetround (int ROUND)
+     Changes the currently selected rounding mode to ROUND.  If ROUND
+     does not correspond to one of the supported rounding modes nothing
+     is changed.  `fesetround' returns zero if it changed the rounding
+     mode, a nonzero value if the mode is not supported.
+
+   You should avoid changing the rounding mode if possible.  It can be
+an expensive operation; also, some hardware requires you to compile your
+program differently for it to work.  The resulting code may run slower.
+See your compiler documentation for details.
+
+
+File: libc.info,  Node: Control Functions,  Next: Arithmetic Functions,  Prev: Rounding,  Up: Arithmetic
+
+Floating-Point Control Functions
+================================
+
+   IEEE 754 floating-point implementations allow the programmer to
+decide whether traps will occur for each of the exceptions, by setting
+bits in the "control word".  In C, traps result in the program
+receiving the `SIGFPE' signal; see *Note Signal Handling::.
+
+   *Note:* IEEE 754 says that trap handlers are given details of the
+exceptional situation, and can set the result value.  C signals do not
+provide any mechanism to pass this information back and forth.
+Trapping exceptions in C is therefore not very useful.
+
+   It is sometimes necessary to save the state of the floating-point
+unit while you perform some calculation.  The library provides functions
+which save and restore the exception flags, the set of exceptions that
+generate traps, and the rounding mode.  This information is known as the
+"floating-point environment".
+
+   The functions to save and restore the floating-point environment all
+use a variable of type `fenv_t' to store information.  This type is
+defined in `fenv.h'.  Its size and contents are implementation-defined.
+You should not attempt to manipulate a variable of this type directly.
+
+   To save the state of the FPU, use one of these functions:
+
+ - Function: int fegetenv (fenv_t *ENVP)
+     Store the floating-point environment in the variable pointed to by
+     ENVP.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+ - Function: int feholdexcept (fenv_t *ENVP)
+     Store the current floating-point environment in the object pointed
+     to by ENVP.  Then clear all exception flags, and set the FPU to
+     trap no exceptions.  Not all FPUs support trapping no exceptions;
+     if `feholdexcept' cannot set this mode, it returns nonzero value.
+     If it succeeds, it returns zero.
+
+   The functions which restore the floating-point environment can take
+these kinds of arguments:
+
+   * Pointers to `fenv_t' objects, which were initialized previously by
+     a call to `fegetenv' or `feholdexcept'.
+
+   * The special macro `FE_DFL_ENV' which represents the floating-point
+     environment as it was available at program start.
+
+   * Implementation defined macros with names starting with `FE_' and
+     having type `fenv_t *'.
+
+     If possible, the GNU C Library defines a macro `FE_NOMASK_ENV'
+     which represents an environment where every exception raised
+     causes a trap to occur.  You can test for this macro using
+     `#ifdef'.  It is only defined if `_GNU_SOURCE' is defined.
+
+     Some platforms might define other predefined environments.
+
+To set the floating-point environment, you can use either of these
+functions:
+
+ - Function: int fesetenv (const fenv_t *ENVP)
+     Set the floating-point environment to that described by ENVP.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+ - Function: int feupdateenv (const fenv_t *ENVP)
+     Like `fesetenv', this function sets the floating-point environment
+     to that described by ENVP.  However, if any exceptions were
+     flagged in the status word before `feupdateenv' was called, they
+     remain flagged after the call.  In other words, after `feupdateenv'
+     is called, the status word is the bitwise OR of the previous
+     status word and the one saved in ENVP.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+To control for individual exceptions if raising them causes a trap to
+occur, you can use the following two functions.
+
+   *Portability Note:* These functions are all GNU extensions.
+
+ - Function: int feenableexcept (int EXCEPTS)
+     This functions enables traps for each of the exceptions as
+     indicated by the parameter EXCEPT.  The individual excepetions are
+     described in *Note Status bit operations::.  Only the specified
+     exceptions are enabled, the status of the other exceptions is not
+     changed.
+
+     The function returns the previous enabled exceptions in case the
+     operation was successful, `-1' otherwise.
+
+ - Function: int fedisableexcept (int EXCEPTS)
+     This functions disables traps for each of the exceptions as
+     indicated by the parameter EXCEPT.  The individual excepetions are
+     described in *Note Status bit operations::.  Only the specified
+     exceptions are disabled, the status of the other exceptions is not
+     changed.
+
+     The function returns the previous enabled exceptions in case the
+     operation was successful, `-1' otherwise.
+
+ - Function: int fegetexcept (int EXCEPTS)
+     The function returns a bitmask of all currently enabled
+     exceptions.  It returns `-1' in case of failure.
+
+
+File: libc.info,  Node: Arithmetic Functions,  Next: Complex Numbers,  Prev: Control Functions,  Up: Arithmetic
+
+Arithmetic Functions
+====================
+
+   The C library provides functions to do basic operations on
+floating-point numbers.  These include absolute value, maximum and
+minimum, normalization, bit twiddling, rounding, and a few others.
+
+* Menu:
+
+* Absolute Value::              Absolute values of integers and floats.
+* Normalization Functions::     Extracting exponents and putting them back.
+* Rounding Functions::          Rounding floats to integers.
+* Remainder Functions::         Remainders on division, precisely defined.
+* FP Bit Twiddling::            Sign bit adjustment.  Adding epsilon.
+* FP Comparison Functions::     Comparisons without risk of exceptions.
+* Misc FP Arithmetic::          Max, min, positive difference, multiply-add.
+
+
+File: libc.info,  Node: Absolute Value,  Next: Normalization Functions,  Up: Arithmetic Functions
+
+Absolute Value
+--------------
+
+   These functions are provided for obtaining the "absolute value" (or
+"magnitude") of a number.  The absolute value of a real number X is X
+if X is positive, -X if X is negative.  For a complex number Z, whose
+real part is X and whose imaginary part is Y, the absolute value is
+`sqrt (X*X + Y*Y)'.
+
+   Prototypes for `abs', `labs' and `llabs' are in `stdlib.h';
+`imaxabs' is declared in `inttypes.h'; `fabs', `fabsf' and `fabsl' are
+declared in `math.h'.  `cabs', `cabsf' and `cabsl' are declared in
+`complex.h'.
+
+ - Function: int abs (int NUMBER)
+ - Function: long int labs (long int NUMBER)
+ - Function: long long int llabs (long long int NUMBER)
+ - Function: intmax_t imaxabs (intmax_t NUMBER)
+     These functions return the absolute value of NUMBER.
+
+     Most computers use a two's complement integer representation, in
+     which the absolute value of `INT_MIN' (the smallest possible `int')
+     cannot be represented; thus, `abs (INT_MIN)' is not defined.
+
+     `llabs' and `imaxdiv' are new to ISO C99.
+
+     See *Note Integers:: for a description of the `intmax_t' type.
+
+
+ - Function: double fabs (double NUMBER)
+ - Function: float fabsf (float NUMBER)
+ - Function: long double fabsl (long double NUMBER)
+     This function returns the absolute value of the floating-point
+     number NUMBER.
+
+ - Function: double cabs (complex double Z)
+ - Function: float cabsf (complex float Z)
+ - Function: long double cabsl (complex long double Z)
+     These functions return the absolute  value of the complex number Z
+     (*note Complex Numbers::).  The absolute value of a complex number
+     is:
+
+          sqrt (creal (Z) * creal (Z) + cimag (Z) * cimag (Z))
+
+     This function should always be used instead of the direct formula
+     because it takes special care to avoid losing precision.  It may
+     also take advantage of hardware support for this operation. See
+     `hypot' in *Note Exponents and Logarithms::.
+
+
+File: libc.info,  Node: Normalization Functions,  Next: Rounding Functions,  Prev: Absolute Value,  Up: Arithmetic Functions
+
+Normalization Functions
+-----------------------
+
+   The functions described in this section are primarily provided as a
+way to efficiently perform certain low-level manipulations on floating
+point numbers that are represented internally using a binary radix; see
+*Note Floating Point Concepts::.  These functions are required to have
+equivalent behavior even if the representation does not use a radix of
+2, but of course they are unlikely to be particularly efficient in
+those cases.
+
+   All these functions are declared in `math.h'.
+
+ - Function: double frexp (double VALUE, int *EXPONENT)
+ - Function: float frexpf (float VALUE, int *EXPONENT)
+ - Function: long double frexpl (long double VALUE, int *EXPONENT)
+     These functions are used to split the number VALUE into a
+     normalized fraction and an exponent.
+
+     If the argument VALUE is not zero, the return value is VALUE times
+     a power of two, and is always in the range 1/2 (inclusive) to 1
+     (exclusive).  The corresponding exponent is stored in `*EXPONENT';
+     the return value multiplied by 2 raised to this exponent equals
+     the original number VALUE.
+
+     For example, `frexp (12.8, &exponent)' returns `0.8' and stores
+     `4' in `exponent'.
+
+     If VALUE is zero, then the return value is zero and zero is stored
+     in `*EXPONENT'.
+
+ - Function: double ldexp (double VALUE, int EXPONENT)
+ - Function: float ldexpf (float VALUE, int EXPONENT)
+ - Function: long double ldexpl (long double VALUE, int EXPONENT)
+     These functions return the result of multiplying the floating-point
+     number VALUE by 2 raised to the power EXPONENT.  (It can be used
+     to reassemble floating-point numbers that were taken apart by
+     `frexp'.)
+
+     For example, `ldexp (0.8, 4)' returns `12.8'.
+
+   The following functions, which come from BSD, provide facilities
+equivalent to those of `ldexp' and `frexp'.
+
+ - Function: double logb (double X)
+ - Function: float logbf (float X)
+ - Function: long double logbl (long double X)
+     These functions return the integer part of the base-2 logarithm of
+     X, an integer value represented in type `double'.  This is the
+     highest integer power of `2' contained in X.  The sign of X is
+     ignored.  For example, `logb (3.5)' is `1.0' and `logb (4.0)' is
+     `2.0'.
+
+     When `2' raised to this power is divided into X, it gives a
+     quotient between `1' (inclusive) and `2' (exclusive).
+
+     If X is zero, the return value is minus infinity if the machine
+     supports infinities, and a very small number if it does not.  If X
+     is infinity, the return value is infinity.
+
+     For finite X, the value returned by `logb' is one less than the
+     value that `frexp' would store into `*EXPONENT'.
+
+ - Function: double scalb (double VALUE, int EXPONENT)
+ - Function: float scalbf (float VALUE, int EXPONENT)
+ - Function: long double scalbl (long double VALUE, int EXPONENT)
+     The `scalb' function is the BSD name for `ldexp'.
+
+ - Function: long long int scalbn (double X, int n)
+ - Function: long long int scalbnf (float X, int n)
+ - Function: long long int scalbnl (long double X, int n)
+     `scalbn' is identical to `scalb', except that the exponent N is an
+     `int' instead of a floating-point number.
+
+ - Function: long long int scalbln (double X, long int n)
+ - Function: long long int scalblnf (float X, long int n)
+ - Function: long long int scalblnl (long double X, long int n)
+     `scalbln' is identical to `scalb', except that the exponent N is a
+     `long int' instead of a floating-point number.
+
+ - Function: long long int significand (double X)
+ - Function: long long int significandf (float X)
+ - Function: long long int significandl (long double X)
+     `significand' returns the mantissa of X scaled to the range [1, 2).
+     It is equivalent to `scalb (X, (double) -ilogb (X))'.
+
+     This function exists mainly for use in certain standardized tests
+     of IEEE 754 conformance.
+
+
+File: libc.info,  Node: Rounding Functions,  Next: Remainder Functions,  Prev: Normalization Functions,  Up: Arithmetic Functions
+
+Rounding Functions
+------------------
+
+   The functions listed here perform operations such as rounding and
+truncation of floating-point values. Some of these functions convert
+floating point numbers to integer values.  They are all declared in
+`math.h'.
+
+   You can also convert floating-point numbers to integers simply by
+casting them to `int'.  This discards the fractional part, effectively
+rounding towards zero.  However, this only works if the result can
+actually be represented as an `int'--for very large numbers, this is
+impossible.  The functions listed here return the result as a `double'
+instead to get around this problem.
+
+ - Function: double ceil (double X)
+ - Function: float ceilf (float X)
+ - Function: long double ceill (long double X)
+     These functions round X upwards to the nearest integer, returning
+     that value as a `double'.  Thus, `ceil (1.5)' is `2.0'.
+
+ - Function: double floor (double X)
+ - Function: float floorf (float X)
+ - Function: long double floorl (long double X)
+     These functions round X downwards to the nearest integer,
+     returning that value as a `double'.  Thus, `floor (1.5)' is `1.0'
+     and `floor (-1.5)' is `-2.0'.
+
+ - Function: double trunc (double X)
+ - Function: float truncf (float X)
+ - Function: long double truncl (long double X)
+     The `trunc' functions round X towards zero to the nearest integer
+     (returned in floating-point format).  Thus, `trunc (1.5)' is `1.0'
+     and `trunc (-1.5)' is `-1.0'.
+
+ - Function: double rint (double X)
+ - Function: float rintf (float X)
+ - Function: long double rintl (long double X)
+     These functions round X to an integer value according to the
+     current rounding mode.  *Note Floating Point Parameters::, for
+     information about the various rounding modes.  The default
+     rounding mode is to round to the nearest integer; some machines
+     support other modes, but round-to-nearest is always used unless
+     you explicitly select another.
+
+     If X was not initially an integer, these functions raise the
+     inexact exception.
+
+ - Function: double nearbyint (double X)
+ - Function: float nearbyintf (float X)
+ - Function: long double nearbyintl (long double X)
+     These functions return the same value as the `rint' functions, but
+     do not raise the inexact exception if X is not an integer.
+
+ - Function: double round (double X)
+ - Function: float roundf (float X)
+ - Function: long double roundl (long double X)
+     These functions are similar to `rint', but they round halfway
+     cases away from zero instead of to the nearest even integer.
+
+ - Function: long int lrint (double X)
+ - Function: long int lrintf (float X)
+ - Function: long int lrintl (long double X)
+     These functions are just like `rint', but they return a `long int'
+     instead of a floating-point number.
+
+ - Function: long long int llrint (double X)
+ - Function: long long int llrintf (float X)
+ - Function: long long int llrintl (long double X)
+     These functions are just like `rint', but they return a `long long
+     int' instead of a floating-point number.
+
+ - Function: long int lround (double X)
+ - Function: long int lroundf (float X)
+ - Function: long int lroundl (long double X)
+     These functions are just like `round', but they return a `long
+     int' instead of a floating-point number.
+
+ - Function: long long int llround (double X)
+ - Function: long long int llroundf (float X)
+ - Function: long long int llroundl (long double X)
+     These functions are just like `round', but they return a `long
+     long int' instead of a floating-point number.
+
+ - Function: double modf (double VALUE, double *INTEGER-PART)
+ - Function: float modff (float VALUE, float *INTEGER-PART)
+ - Function: long double modfl (long double VALUE, long double
+          *INTEGER-PART)
+     These functions break the argument VALUE into an integer part and a
+     fractional part (between `-1' and `1', exclusive).  Their sum
+     equals VALUE.  Each of the parts has the same sign as VALUE, and
+     the integer part is always rounded toward zero.
+
+     `modf' stores the integer part in `*INTEGER-PART', and returns the
+     fractional part.  For example, `modf (2.5, &intpart)' returns
+     `0.5' and stores `2.0' into `intpart'.
+
+
+File: libc.info,  Node: Remainder Functions,  Next: FP Bit Twiddling,  Prev: Rounding Functions,  Up: Arithmetic Functions
+
+Remainder Functions
+-------------------
+
+   The functions in this section compute the remainder on division of
+two floating-point numbers.  Each is a little different; pick the one
+that suits your problem.
+
+ - Function: double fmod (double NUMERATOR, double DENOMINATOR)
+ - Function: float fmodf (float NUMERATOR, float DENOMINATOR)
+ - Function: long double fmodl (long double NUMERATOR, long double
+          DENOMINATOR)
+     These functions compute the remainder from the division of
+     NUMERATOR by DENOMINATOR.  Specifically, the return value is
+     `NUMERATOR - N * DENOMINATOR', where N is the quotient of
+     NUMERATOR divided by DENOMINATOR, rounded towards zero to an
+     integer.  Thus, `fmod (6.5, 2.3)' returns `1.9', which is `6.5'
+     minus `4.6'.
+
+     The result has the same sign as the NUMERATOR and has magnitude
+     less than the magnitude of the DENOMINATOR.
+
+     If DENOMINATOR is zero, `fmod' signals a domain error.
+
+ - Function: double drem (double NUMERATOR, double DENOMINATOR)
+ - Function: float dremf (float NUMERATOR, float DENOMINATOR)
+ - Function: long double dreml (long double NUMERATOR, long double
+          DENOMINATOR)
+     These functions are like `fmod' except that they rounds the
+     internal quotient N to the nearest integer instead of towards zero
+     to an integer.  For example, `drem (6.5, 2.3)' returns `-0.4',
+     which is `6.5' minus `6.9'.
+
+     The absolute value of the result is less than or equal to half the
+     absolute value of the DENOMINATOR.  The difference between `fmod
+     (NUMERATOR, DENOMINATOR)' and `drem (NUMERATOR, DENOMINATOR)' is
+     always either DENOMINATOR, minus DENOMINATOR, or zero.
+
+     If DENOMINATOR is zero, `drem' signals a domain error.
+
+ - Function: double remainder (double NUMERATOR, double DENOMINATOR)
+ - Function: float remainderf (float NUMERATOR, float DENOMINATOR)
+ - Function: long double remainderl (long double NUMERATOR, long double
+          DENOMINATOR)
+     This function is another name for `drem'.
+
+
+File: libc.info,  Node: FP Bit Twiddling,  Next: FP Comparison Functions,  Prev: Remainder Functions,  Up: Arithmetic Functions
+
+Setting and modifying single bits of FP values
+----------------------------------------------
+
+   There are some operations that are too complicated or expensive to
+perform by hand on floating-point numbers.  ISO C99 defines functions
+to do these operations, which mostly involve changing single bits.
+
+ - Function: double copysign (double X, double Y)
+ - Function: float copysignf (float X, float Y)
+ - Function: long double copysignl (long double X, long double Y)
+     These functions return X but with the sign of Y.  They work even
+     if X or Y are NaN or zero.  Both of these can carry a sign
+     (although not all implementations support it) and this is one of
+     the few operations that can tell the difference.
+
+     `copysign' never raises an exception.
+
+     This function is defined in IEC 559 (and the appendix with
+     recommended functions in IEEE 754/IEEE 854).
+
+ - Function: int signbit (_float-type_ X)
+     `signbit' is a generic macro which can work on all floating-point
+     types.  It returns a nonzero value if the value of X has its sign
+     bit set.
+
+     This is not the same as `x < 0.0', because IEEE 754 floating point
+     allows zero to be signed.  The comparison `-0.0 < 0.0' is false,
+     but `signbit (-0.0)' will return a nonzero value.
+
+ - Function: double nextafter (double X, double Y)
+ - Function: float nextafterf (float X, float Y)
+ - Function: long double nextafterl (long double X, long double Y)
+     The `nextafter' function returns the next representable neighbor of
+     X in the direction towards Y.  The size of the step between X and
+     the result depends on the type of the result.  If X = Y the
+     function simply returns Y.  If either value is `NaN', `NaN' is
+     returned.  Otherwise a value corresponding to the value of the
+     least significant bit in the mantissa is added or subtracted,
+     depending on the direction.  `nextafter' will signal overflow or
+     underflow if the result goes outside of the range of normalized
+     numbers.
+
+     This function is defined in IEC 559 (and the appendix with
+     recommended functions in IEEE 754/IEEE 854).
+
+ - Function: double nexttoward (double X, long double Y)
+ - Function: float nexttowardf (float X, long double Y)
+ - Function: long double nexttowardl (long double X, long double Y)
+     These functions are identical to the corresponding versions of
+     `nextafter' except that their second argument is a `long double'.
+
+ - Function: double nan (const char *TAGP)
+ - Function: float nanf (const char *TAGP)
+ - Function: long double nanl (const char *TAGP)
+     The `nan' function returns a representation of NaN, provided that
+     NaN is supported by the target platform.  `nan
+     ("N-CHAR-SEQUENCE")' is equivalent to `strtod
+     ("NAN(N-CHAR-SEQUENCE)")'.
+
+     The argument TAGP is used in an unspecified manner.  On IEEE 754
+     systems, there are many representations of NaN, and TAGP selects
+     one.  On other systems it may do nothing.
+
+
+File: libc.info,  Node: FP Comparison Functions,  Next: Misc FP Arithmetic,  Prev: FP Bit Twiddling,  Up: Arithmetic Functions
+
+Floating-Point Comparison Functions
+-----------------------------------
+
+   The standard C comparison operators provoke exceptions when one or
+other of the operands is NaN.  For example,
+
+     int v = a < 1.0;
+
+will raise an exception if A is NaN.  (This does _not_ happen with `=='
+and `!='; those merely return false and true, respectively, when NaN is
+examined.)  Frequently this exception is undesirable.  ISO C99
+therefore defines comparison functions that do not raise exceptions
+when NaN is examined.  All of the functions are implemented as macros
+which allow their arguments to be of any floating-point type.  The
+macros are guaranteed to evaluate their arguments only once.
+
+ - Macro: int isgreater (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether the argument X is greater than Y.
+     It is equivalent to `(X) > (Y)', but no exception is raised if X
+     or Y are NaN.
+
+ - Macro: int isgreaterequal (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether the argument X is greater than or
+     equal to Y.  It is equivalent to `(X) >= (Y)', but no exception is
+     raised if X or Y are NaN.
+
+ - Macro: int isless (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether the argument X is less than Y.  It
+     is equivalent to `(X) < (Y)', but no exception is raised if X or Y
+     are NaN.
+
+ - Macro: int islessequal (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether the argument X is less than or equal
+     to Y.  It is equivalent to `(X) <= (Y)', but no exception is
+     raised if X or Y are NaN.
+
+ - Macro: int islessgreater (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether the argument X is less or greater
+     than Y.  It is equivalent to `(X) < (Y) || (X) > (Y)' (although it
+     only evaluates X and Y once), but no exception is raised if X or Y
+     are NaN.
+
+     This macro is not equivalent to `X != Y', because that expression
+     is true if X or Y are NaN.
+
+ - Macro: int isunordered (_real-floating_ X, _real-floating_ Y)
+     This macro determines whether its arguments are unordered.  In
+     other words, it is true if X or Y are NaN, and false otherwise.
+
+   Not all machines provide hardware support for these operations.  On
+machines that don't, the macros can be very slow.  Therefore, you should
+not use these functions when NaN is not a concern.
+
+   *Note:* There are no macros `isequal' or `isunequal'.  They are
+unnecessary, because the `==' and `!=' operators do _not_ throw an
+exception if one or both of the operands are NaN.
+
+
+File: libc.info,  Node: Misc FP Arithmetic,  Prev: FP Comparison Functions,  Up: Arithmetic Functions
+
+Miscellaneous FP arithmetic functions
+-------------------------------------
+
+   The functions in this section perform miscellaneous but common
+operations that are awkward to express with C operators.  On some
+processors these functions can use special machine instructions to
+perform these operations faster than the equivalent C code.
+
+ - Function: double fmin (double X, double Y)
+ - Function: float fminf (float X, float Y)
+ - Function: long double fminl (long double X, long double Y)
+     The `fmin' function returns the lesser of the two values X and Y.
+     It is similar to the expression
+          ((x) < (y) ? (x) : (y))
+     except that X and Y are only evaluated once.
+
+     If an argument is NaN, the other argument is returned.  If both
+     arguments are NaN, NaN is returned.
+
+ - Function: double fmax (double X, double Y)
+ - Function: float fmaxf (float X, float Y)
+ - Function: long double fmaxl (long double X, long double Y)
+     The `fmax' function returns the greater of the two values X and Y.
+
+     If an argument is NaN, the other argument is returned.  If both
+     arguments are NaN, NaN is returned.
+
+ - Function: double fdim (double X, double Y)
+ - Function: float fdimf (float X, float Y)
+ - Function: long double fdiml (long double X, long double Y)
+     The `fdim' function returns the positive difference between X and
+     Y.  The positive difference is X - Y if X is greater than Y, and 0
+     otherwise.
+
+     If X, Y, or both are NaN, NaN is returned.
+
+ - Function: double fma (double X, double Y, double Z)
+ - Function: float fmaf (float X, float Y, float Z)
+ - Function: long double fmal (long double X, long double Y, long
+          double Z)
+     The `fma' function performs floating-point multiply-add.  This is
+     the operation (X * Y) + Z, but the intermediate result is not
+     rounded to the destination type.  This can sometimes improve the
+     precision of a calculation.
+
+     This function was introduced because some processors have a special
+     instruction to perform multiply-add.  The C compiler cannot use it
+     directly, because the expression `x*y + z' is defined to round the
+     intermediate result.  `fma' lets you choose when you want to round
+     only once.
+
+     On processors which do not implement multiply-add in hardware,
+     `fma' can be very slow since it must avoid intermediate rounding.
+     `math.h' defines the symbols `FP_FAST_FMA', `FP_FAST_FMAF', and
+     `FP_FAST_FMAL' when the corresponding version of `fma' is no
+     slower than the expression `x*y + z'.  In the GNU C library, this
+     always means the operation is implemented in hardware.
+
+
+File: libc.info,  Node: Complex Numbers,  Next: Operations on Complex,  Prev: Arithmetic Functions,  Up: Arithmetic
+
+Complex Numbers
+===============
+
+   ISO C99 introduces support for complex numbers in C.  This is done
+with a new type qualifier, `complex'.  It is a keyword if and only if
+`complex.h' has been included.  There are three complex types,
+corresponding to the three real types:  `float complex', `double
+complex', and `long double complex'.
+
+   To construct complex numbers you need a way to indicate the imaginary
+part of a number.  There is no standard notation for an imaginary
+floating point constant.  Instead, `complex.h' defines two macros that
+can be used to create complex numbers.
+
+ - Macro: const float complex _Complex_I
+     This macro is a representation of the complex number "0+1i".
+     Multiplying a real floating-point value by `_Complex_I' gives a
+     complex number whose value is purely imaginary.  You can use this
+     to construct complex constants:
+
+          3.0 + 4.0i = `3.0 + 4.0 * _Complex_I'
+
+     Note that `_Complex_I * _Complex_I' has the value `-1', but the
+     type of that value is `complex'.
+
+`_Complex_I' is a bit of a mouthful.  `complex.h' also defines a
+shorter name for the same constant.
+
+ - Macro: const float complex I
+     This macro has exactly the same value as `_Complex_I'.  Most of the
+     time it is preferable.  However, it causes problems if you want to
+     use the identifier `I' for something else.  You can safely write
+
+          #include <complex.h>
+          #undef I
+
+     if you need `I' for your own purposes.  (In that case we recommend
+     you also define some other short name for `_Complex_I', such as
+     `J'.)
+
+
+
+File: libc.info,  Node: Operations on Complex,  Next: Parsing of Numbers,  Prev: Complex Numbers,  Up: Arithmetic
+
+Projections, Conjugates, and Decomposing of Complex Numbers
+===========================================================
+
+   ISO C99 also defines functions that perform basic operations on
+complex numbers, such as decomposition and conjugation.  The prototypes
+for all these functions are in `complex.h'.  All functions are
+available in three variants, one for each of the three complex types.
+
+ - Function: double creal (complex double Z)
+ - Function: float crealf (complex float Z)
+ - Function: long double creall (complex long double Z)
+     These functions return the real part of the complex number Z.
+
+ - Function: double cimag (complex double Z)
+ - Function: float cimagf (complex float Z)
+ - Function: long double cimagl (complex long double Z)
+     These functions return the imaginary part of the complex number Z.
+
+ - Function: complex double conj (complex double Z)
+ - Function: complex float conjf (complex float Z)
+ - Function: complex long double conjl (complex long double Z)
+     These functions return the conjugate value of the complex number
+     Z.  The conjugate of a complex number has the same real part and a
+     negated imaginary part.  In other words, `conj(a + bi) = a + -bi'.
+
+ - Function: double carg (complex double Z)
+ - Function: float cargf (complex float Z)
+ - Function: long double cargl (complex long double Z)
+     These functions return the argument of the complex number Z.  The
+     argument of a complex number is the angle in the complex plane
+     between the positive real axis and a line passing through zero and
+     the number.  This angle is measured in the usual fashion and
+     ranges from 0 to 2pi.
+
+     `carg' has a branch cut along the positive real axis.
+
+ - Function: complex double cproj (complex double Z)
+ - Function: complex float cprojf (complex float Z)
+ - Function: complex long double cprojl (complex long double Z)
+     These functions return the projection of the complex value Z onto
+     the Riemann sphere.  Values with a infinite imaginary part are
+     projected to positive infinity on the real axis, even if the real
+     part is NaN.  If the real part is infinite, the result is
+     equivalent to
+
+          INFINITY + I * copysign (0.0, cimag (z))
+
+
+File: libc.info,  Node: Parsing of Numbers,  Next: System V Number Conversion,  Prev: Operations on Complex,  Up: Arithmetic
+
+Parsing of Numbers
+==================
+
+   This section describes functions for "reading" integer and
+floating-point numbers from a string.  It may be more convenient in some
+cases to use `sscanf' or one of the related functions; see *Note
+Formatted Input::.  But often you can make a program more robust by
+finding the tokens in the string by hand, then converting the numbers
+one by one.
+
+* Menu:
+
+* Parsing of Integers::         Functions for conversion of integer values.
+* Parsing of Floats::           Functions for conversion of floating-point
+				 values.
+
+
+File: libc.info,  Node: Parsing of Integers,  Next: Parsing of Floats,  Up: Parsing of Numbers
+
+Parsing of Integers
+-------------------
+
+   The `str' functions are declared in `stdlib.h' and those beginning
+with `wcs' are declared in `wchar.h'.  One might wonder about the use
+of `restrict' in the prototypes of the functions in this section.  It
+is seemingly useless but the ISO C standard uses it (for the functions
+defined there) so we have to do it as well.
+
+ - Function: long int strtol (const char *restrict STRING, char
+          **restrict TAILPTR, int BASE)
+     The `strtol' ("string-to-long") function converts the initial part
+     of STRING to a signed integer, which is returned as a value of
+     type `long int'.
+
+     This function attempts to decompose STRING as follows:
+
+        * A (possibly empty) sequence of whitespace characters.  Which
+          characters are whitespace is determined by the `isspace'
+          function (*note Classification of Characters::).  These are
+          discarded.
+
+        * An optional plus or minus sign (`+' or `-').
+
+        * A nonempty sequence of digits in the radix specified by BASE.
+
+          If BASE is zero, decimal radix is assumed unless the series of
+          digits begins with `0' (specifying octal radix), or `0x' or
+          `0X' (specifying hexadecimal radix); in other words, the same
+          syntax used for integer constants in C.
+
+          Otherwise BASE must have a value between `2' and `36'.  If
+          BASE is `16', the digits may optionally be preceded by `0x'
+          or `0X'.  If base has no legal value the value returned is
+          `0l' and the global variable `errno' is set to `EINVAL'.
+
+        * Any remaining characters in the string.  If TAILPTR is not a
+          null pointer, `strtol' stores a pointer to this tail in
+          `*TAILPTR'.
+
+     If the string is empty, contains only whitespace, or does not
+     contain an initial substring that has the expected syntax for an
+     integer in the specified BASE, no conversion is performed.  In
+     this case, `strtol' returns a value of zero and the value stored in
+     `*TAILPTR' is the value of STRING.
+
+     In a locale other than the standard `"C"' locale, this function
+     may recognize additional implementation-dependent syntax.
+
+     If the string has valid syntax for an integer but the value is not
+     representable because of overflow, `strtol' returns either
+     `LONG_MAX' or `LONG_MIN' (*note Range of Type::), as appropriate
+     for the sign of the value.  It also sets `errno' to `ERANGE' to
+     indicate there was overflow.
+
+     You should not check for errors by examining the return value of
+     `strtol', because the string might be a valid representation of
+     `0l', `LONG_MAX', or `LONG_MIN'.  Instead, check whether TAILPTR
+     points to what you expect after the number (e.g. `'\0'' if the
+     string should end after the number).  You also need to clear ERRNO
+     before the call and check it afterward, in case there was overflow.
+
+     There is an example at the end of this section.
+
+ - Function: long int wcstol (const wchar_t *restrict STRING, wchar_t
+          **restrict TAILPTR, int BASE)
+     The `wcstol' function is equivalent to the `strtol' function in
+     nearly all aspects but handles wide character strings.
+
+     The `wcstol' function was introduced in Amendment 1 of ISO C90.
+
+ - Function: unsigned long int strtoul (const char *retrict STRING,
+          char **restrict TAILPTR, int BASE)
+     The `strtoul' ("string-to-unsigned-long") function is like
+     `strtol' except it converts to an `unsigned long int' value.  The
+     syntax is the same as described above for `strtol'.  The value
+     returned on overflow is `ULONG_MAX' (*note Range of Type::).
+
+     If STRING depicts a negative number, `strtoul' acts the same as
+     STRTOL but casts the result to an unsigned integer.  That means
+     for example that `strtoul' on `"-1"' returns `ULONG_MAX' and an
+     input more negative than `LONG_MIN' returns (`ULONG_MAX' + 1) / 2.
+
+     `strtoul' sets ERRNO to `EINVAL' if BASE is out of range, or
+     `ERANGE' on overflow.
+
+ - Function: unsigned long int wcstoul (const wchar_t *restrict STRING,
+          wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoul' function is equivalent to the `strtoul' function in
+     nearly all aspects but handles wide character strings.
+
+     The `wcstoul' function was introduced in Amendment 1 of ISO C90.
+
+ - Function: long long int strtoll (const char *restrict STRING, char
+          **restrict TAILPTR, int BASE)
+     The `strtoll' function is like `strtol' except that it returns a
+     `long long int' value, and accepts numbers with a correspondingly
+     larger range.
+
+     If the string has valid syntax for an integer but the value is not
+     representable because of overflow, `strtoll' returns either
+     `LONG_LONG_MAX' or `LONG_LONG_MIN' (*note Range of Type::), as
+     appropriate for the sign of the value.  It also sets `errno' to
+     `ERANGE' to indicate there was overflow.
+
+     The `strtoll' function was introduced in ISO C99.
+
+ - Function: long long int wcstoll (const wchar_t *restrict STRING,
+          wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoll' function is equivalent to the `strtoll' function in
+     nearly all aspects but handles wide character strings.
+
+     The `wcstoll' function was introduced in Amendment 1 of ISO C90.
+
+ - Function: long long int strtoq (const char *restrict STRING, char
+          **restrict TAILPTR, int BASE)
+     `strtoq' ("string-to-quad-word") is the BSD name for `strtoll'.
+
+ - Function: long long int wcstoq (const wchar_t *restrict STRING,
+          wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoq' function is equivalent to the `strtoq' function in
+     nearly all aspects but handles wide character strings.
+
+     The `wcstoq' function is a GNU extension.
+
+ - Function: unsigned long long int strtoull (const char *restrict
+          STRING, char **restrict TAILPTR, int BASE)
+     The `strtoull' function is related to `strtoll' the same way
+     `strtoul' is related to `strtol'.
+
+     The `strtoull' function was introduced in ISO C99.
+
+ - Function: unsigned long long int wcstoull (const wchar_t *restrict
+          STRING, wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoull' function is equivalent to the `strtoull' function
+     in nearly all aspects but handles wide character strings.
+
+     The `wcstoull' function was introduced in Amendment 1 of ISO C90.
+
+ - Function: unsigned long long int strtouq (const char *restrict
+          STRING, char **restrict TAILPTR, int BASE)
+     `strtouq' is the BSD name for `strtoull'.
+
+ - Function: unsigned long long int wcstouq (const wchar_t *restrict
+          STRING, wchar_t **restrict TAILPTR, int BASE)
+     The `wcstouq' function is equivalent to the `strtouq' function in
+     nearly all aspects but handles wide character strings.
+
+     The `wcstoq' function is a GNU extension.
+
+ - Function: intmax_t strtoimax (const char *restrict STRING, char
+          **restrict TAILPTR, int BASE)
+     The `strtoimax' function is like `strtol' except that it returns a
+     `intmax_t' value, and accepts numbers of a corresponding range.
+
+     If the string has valid syntax for an integer but the value is not
+     representable because of overflow, `strtoimax' returns either
+     `INTMAX_MAX' or `INTMAX_MIN' (*note Integers::), as appropriate
+     for the sign of the value.  It also sets `errno' to `ERANGE' to
+     indicate there was overflow.
+
+     See *Note Integers:: for a description of the `intmax_t' type.  The
+     `strtoimax' function was introduced in ISO C99.
+
+ - Function: intmax_t wcstoimax (const wchar_t *restrict STRING,
+          wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoimax' function is equivalent to the `strtoimax' function
+     in nearly all aspects but handles wide character strings.
+
+     The `wcstoimax' function was introduced in ISO C99.
+
+ - Function: uintmax_t strtoumax (const char *restrict STRING, char
+          **restrict TAILPTR, int BASE)
+     The `strtoumax' function is related to `strtoimax' the same way
+     that `strtoul' is related to `strtol'.
+
+     See *Note Integers:: for a description of the `intmax_t' type.  The
+     `strtoumax' function was introduced in ISO C99.
+
+ - Function: uintmax_t wcstoumax (const wchar_t *restrict STRING,
+          wchar_t **restrict TAILPTR, int BASE)
+     The `wcstoumax' function is equivalent to the `strtoumax' function
+     in nearly all aspects but handles wide character strings.
+
+     The `wcstoumax' function was introduced in ISO C99.
+
+ - Function: long int atol (const char *STRING)
+     This function is similar to the `strtol' function with a BASE
+     argument of `10', except that it need not detect overflow errors.
+     The `atol' function is provided mostly for compatibility with
+     existing code; using `strtol' is more robust.
+
+ - Function: int atoi (const char *STRING)
+     This function is like `atol', except that it returns an `int'.
+     The `atoi' function is also considered obsolete; use `strtol'
+     instead.
+
+ - Function: long long int atoll (const char *STRING)
+     This function is similar to `atol', except it returns a `long long
+     int'.
+
+     The `atoll' function was introduced in ISO C99.  It too is
+     obsolete (despite having just been added); use `strtoll' instead.
+
+   All the functions mentioned in this section so far do not handle
+alternative representations of characters as described in the locale
+data.  Some locales specify thousands separator and the way they have to
+be used which can help to make large numbers more readable.  To read
+such numbers one has to use the `scanf' functions with the `'' flag.
+
+   Here is a function which parses a string as a sequence of integers
+and returns the sum of them:
+
+     int
+     sum_ints_from_string (char *string)
+     {
+       int sum = 0;
+     
+       while (1) {
+         char *tail;
+         int next;
+     
+         /* Skip whitespace by hand, to detect the end.  */
+         while (isspace (*string)) string++;
+         if (*string == 0)
+           break;
+     
+         /* There is more nonwhitespace,  */
+         /* so it ought to be another number.  */
+         errno = 0;
+         /* Parse it.  */
+         next = strtol (string, &tail, 0);
+         /* Add it in, if not overflow.  */
+         if (errno)
+           printf ("Overflow\n");
+         else
+           sum += next;
+         /* Advance past it.  */
+         string = tail;
+       }
+     
+       return sum;
+     }
+

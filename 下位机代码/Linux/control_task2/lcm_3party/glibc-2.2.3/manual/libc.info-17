@@ -1,0 +1,1209 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Table of Output Conversions,  Next: Integer Conversions,  Prev: Output Conversion Syntax,  Up: Formatted Output
+
+Table of Output Conversions
+---------------------------
+
+   Here is a table summarizing what all the different conversions do:
+
+`%d', `%i'
+     Print an integer as a signed decimal number.  *Note Integer
+     Conversions::, for details.  `%d' and `%i' are synonymous for
+     output, but are different when used with `scanf' for input (*note
+     Table of Input Conversions::).
+
+`%o'
+     Print an integer as an unsigned octal number.  *Note Integer
+     Conversions::, for details.
+
+`%u'
+     Print an integer as an unsigned decimal number.  *Note Integer
+     Conversions::, for details.
+
+`%x', `%X'
+     Print an integer as an unsigned hexadecimal number.  `%x' uses
+     lower-case letters and `%X' uses upper-case.  *Note Integer
+     Conversions::, for details.
+
+`%f'
+     Print a floating-point number in normal (fixed-point) notation.
+     *Note Floating-Point Conversions::, for details.
+
+`%e', `%E'
+     Print a floating-point number in exponential notation.  `%e' uses
+     lower-case letters and `%E' uses upper-case.  *Note Floating-Point
+     Conversions::, for details.
+
+`%g', `%G'
+     Print a floating-point number in either normal or exponential
+     notation, whichever is more appropriate for its magnitude.  `%g'
+     uses lower-case letters and `%G' uses upper-case.  *Note
+     Floating-Point Conversions::, for details.
+
+`%a', `%A'
+     Print a floating-point number in a hexadecimal fractional notation
+     which the exponent to base 2 represented in decimal digits.  `%a'
+     uses lower-case letters and `%A' uses upper-case.  *Note
+     Floating-Point Conversions::, for details.
+
+`%c'
+     Print a single character.  *Note Other Output Conversions::.
+
+`%C'
+     This is an alias for `%lc' which is supported for compatibility
+     with the Unix standard.
+
+`%s'
+     Print a string.  *Note Other Output Conversions::.
+
+`%S'
+     This is an alias for `%ls' which is supported for compatibility
+     with the Unix standard.
+
+`%p'
+     Print the value of a pointer.  *Note Other Output Conversions::.
+
+`%n'
+     Get the number of characters printed so far.  *Note Other Output
+     Conversions::.  Note that this conversion specification never
+     produces any output.
+
+`%m'
+     Print the string corresponding to the value of `errno'.  (This is
+     a GNU extension.)  *Note Other Output Conversions::.
+
+`%%'
+     Print a literal `%' character.  *Note Other Output Conversions::.
+
+   If the syntax of a conversion specification is invalid, unpredictable
+things will happen, so don't do this.  If there aren't enough function
+arguments provided to supply values for all the conversion
+specifications in the template string, or if the arguments are not of
+the correct types, the results are unpredictable.  If you supply more
+arguments than conversion specifications, the extra argument values are
+simply ignored; this is sometimes useful.
+
+
+File: libc.info,  Node: Integer Conversions,  Next: Floating-Point Conversions,  Prev: Table of Output Conversions,  Up: Formatted Output
+
+Integer Conversions
+-------------------
+
+   This section describes the options for the `%d', `%i', `%o', `%u',
+`%x', and `%X' conversion specifications.  These conversions print
+integers in various formats.
+
+   The `%d' and `%i' conversion specifications both print an `int'
+argument as a signed decimal number; while `%o', `%u', and `%x' print
+the argument as an unsigned octal, decimal, or hexadecimal number
+(respectively).  The `%X' conversion specification is just like `%x'
+except that it uses the characters `ABCDEF' as digits instead of
+`abcdef'.
+
+   The following flags are meaningful:
+
+`-'
+     Left-justify the result in the field (instead of the normal
+     right-justification).
+
+`+'
+     For the signed `%d' and `%i' conversions, print a plus sign if the
+     value is positive.
+
+` '
+     For the signed `%d' and `%i' conversions, if the result doesn't
+     start with a plus or minus sign, prefix it with a space character
+     instead.  Since the `+' flag ensures that the result includes a
+     sign, this flag is ignored if you supply both of them.
+
+`#'
+     For the `%o' conversion, this forces the leading digit to be `0',
+     as if by increasing the precision.  For `%x' or `%X', this
+     prefixes a leading `0x' or `0X' (respectively) to the result.
+     This doesn't do anything useful for the `%d', `%i', or `%u'
+     conversions.  Using this flag produces output which can be parsed
+     by the `strtoul' function (*note Parsing of Integers::) and
+     `scanf' with the `%i' conversion (*note Numeric Input
+     Conversions::).
+
+`''
+     Separate the digits into groups as specified by the locale
+     specified for the `LC_NUMERIC' category; *note General Numeric::.
+     This flag is a GNU extension.
+
+`0'
+     Pad the field with zeros instead of spaces.  The zeros are placed
+     after any indication of sign or base.  This flag is ignored if the
+     `-' flag is also specified, or if a precision is specified.
+
+   If a precision is supplied, it specifies the minimum number of
+digits to appear; leading zeros are produced if necessary.  If you
+don't specify a precision, the number is printed with as many digits as
+it needs.  If you convert a value of zero with an explicit precision of
+zero, then no characters at all are produced.
+
+   Without a type modifier, the corresponding argument is treated as an
+`int' (for the signed conversions `%i' and `%d') or `unsigned int' (for
+the unsigned conversions `%o', `%u', `%x', and `%X').  Recall that
+since `printf' and friends are variadic, any `char' and `short'
+arguments are automatically converted to `int' by the default argument
+promotions.  For arguments of other integer types, you can use these
+modifiers:
+
+`hh'
+     Specifies that the argument is a `signed char' or `unsigned char',
+     as appropriate.  A `char' argument is converted to an `int' or
+     `unsigned int' by the default argument promotions anyway, but the
+     `h' modifier says to convert it back to a `char' again.
+
+     This modifier was introduced in ISO C99.
+
+`h'
+     Specifies that the argument is a `short int' or `unsigned short
+     int', as appropriate.  A `short' argument is converted to an `int'
+     or `unsigned int' by the default argument promotions anyway, but
+     the `h' modifier says to convert it back to a `short' again.
+
+`j'
+     Specifies that the argument is a `intmax_t' or `uintmax_t', as
+     appropriate.
+
+     This modifier was introduced in ISO C99.
+
+`l'
+     Specifies that the argument is a `long int' or `unsigned long
+     int', as appropriate.  Two `l' characters is like the `L'
+     modifier, below.
+
+     If used with `%c' or `%s' the corresponding parameter is
+     considered as a wide character or wide character string
+     respectively.  This use of `l' was introduced in Amendment 1 to
+     ISO C90.
+
+`L'
+`ll'
+`q'
+     Specifies that the argument is a `long long int'.  (This type is
+     an extension supported by the GNU C compiler.  On systems that
+     don't support extra-long integers, this is the same as `long int'.)
+
+     The `q' modifier is another name for the same thing, which comes
+     from 4.4 BSD; a `long long int' is sometimes called a "quad" `int'.
+
+`t'
+     Specifies that the argument is a `ptrdiff_t'.
+
+     This modifier was introduced in ISO C99.
+
+`z'
+`Z'
+     Specifies that the argument is a `size_t'.
+
+     `z' was introduced in ISO C99.  `Z' is a GNU extension predating
+     this addition and should not be used in new code.
+
+   Here is an example.  Using the template string:
+
+     "|%5d|%-5d|%+5d|%+-5d|% 5d|%05d|%5.0d|%5.2d|%d|\n"
+
+to print numbers using the different options for the `%d' conversion
+gives results like:
+
+     |    0|0    |   +0|+0   |    0|00000|     |   00|0|
+     |    1|1    |   +1|+1   |    1|00001|    1|   01|1|
+     |   -1|-1   |   -1|-1   |   -1|-0001|   -1|  -01|-1|
+     |100000|100000|+100000| 100000|100000|100000|100000|100000|
+
+   In particular, notice what happens in the last case where the number
+is too large to fit in the minimum field width specified.
+
+   Here are some more examples showing how unsigned integers print under
+various format options, using the template string:
+
+     "|%5u|%5o|%5x|%5X|%#5o|%#5x|%#5X|%#10.8x|\n"
+
+     |    0|    0|    0|    0|    0|  0x0|  0X0|0x00000000|
+     |    1|    1|    1|    1|   01|  0x1|  0X1|0x00000001|
+     |100000|303240|186a0|186A0|0303240|0x186a0|0X186A0|0x000186a0|
+
+
+File: libc.info,  Node: Floating-Point Conversions,  Next: Other Output Conversions,  Prev: Integer Conversions,  Up: Formatted Output
+
+Floating-Point Conversions
+--------------------------
+
+   This section discusses the conversion specifications for
+floating-point numbers: the `%f', `%e', `%E', `%g', and `%G'
+conversions.
+
+   The `%f' conversion prints its argument in fixed-point notation,
+producing output of the form [`-']DDD`.'DDD, where the number of digits
+following the decimal point is controlled by the precision you specify.
+
+   The `%e' conversion prints its argument in exponential notation,
+producing output of the form [`-']D`.'DDD`e'[`+'|`-']DD.  Again, the
+number of digits following the decimal point is controlled by the
+precision.  The exponent always contains at least two digits.  The `%E'
+conversion is similar but the exponent is marked with the letter `E'
+instead of `e'.
+
+   The `%g' and `%G' conversions print the argument in the style of
+`%e' or `%E' (respectively) if the exponent would be less than -4 or
+greater than or equal to the precision; otherwise they use the `%f'
+style.  Trailing zeros are removed from the fractional portion of the
+result and a decimal-point character appears only if it is followed by
+a digit.
+
+   The `%a' and `%A' conversions are meant for representing
+floating-point numbers exactly in textual form so that they can be
+exchanged as texts between different programs and/or machines.  The
+numbers are represented is the form [`-']`0x'H`.'HHH`p'[`+'|`-']DD.  At
+the left of the decimal-point character exactly one digit is print.
+This character is only `0' if the number is denormalized.  Otherwise
+the value is unspecified; it is implementation dependent how many bits
+are used.  The number of hexadecimal digits on the right side of the
+decimal-point character is equal to the precision.  If the precision is
+zero it is determined to be large enough to provide an exact
+representation of the number (or it is large enough to distinguish two
+adjacent values if the `FLT_RADIX' is not a power of 2, *note Floating
+Point Parameters::).  For the `%a' conversion lower-case characters are
+used to represent the hexadecimal number and the prefix and exponent
+sign are printed as `0x' and `p' respectively.  Otherwise upper-case
+characters are used and `0X' and `P' are used for the representation of
+prefix and exponent string.  The exponent to the base of two is printed
+as a decimal number using at least one digit but at most as many digits
+as necessary to represent the value exactly.
+
+   If the value to be printed represents infinity or a NaN, the output
+is [`-']`inf' or `nan' respectively if the conversion specifier is
+`%a', `%e', `%f', or `%g' and it is [`-']`INF' or `NAN' respectively if
+the conversion is `%A', `%E', or `%G'.
+
+   The following flags can be used to modify the behavior:
+
+`-'
+     Left-justify the result in the field.  Normally the result is
+     right-justified.
+
+`+'
+     Always include a plus or minus sign in the result.
+
+` '
+     If the result doesn't start with a plus or minus sign, prefix it
+     with a space instead.  Since the `+' flag ensures that the result
+     includes a sign, this flag is ignored if you supply both of them.
+
+`#'
+     Specifies that the result should always include a decimal point,
+     even if no digits follow it.  For the `%g' and `%G' conversions,
+     this also forces trailing zeros after the decimal point to be left
+     in place where they would otherwise be removed.
+
+`''
+     Separate the digits of the integer part of the result into groups
+     as specified by the locale specified for the `LC_NUMERIC' category;
+     *note General Numeric::.  This flag is a GNU extension.
+
+`0'
+     Pad the field with zeros instead of spaces; the zeros are placed
+     after any sign.  This flag is ignored if the `-' flag is also
+     specified.
+
+   The precision specifies how many digits follow the decimal-point
+character for the `%f', `%e', and `%E' conversions.  For these
+conversions, the default precision is `6'.  If the precision is
+explicitly `0', this suppresses the decimal point character entirely.
+For the `%g' and `%G' conversions, the precision specifies how many
+significant digits to print.  Significant digits are the first digit
+before the decimal point, and all the digits after it.  If the
+precision is `0' or not specified for `%g' or `%G', it is treated like
+a value of `1'.  If the value being printed cannot be expressed
+accurately in the specified number of digits, the value is rounded to
+the nearest number that fits.
+
+   Without a type modifier, the floating-point conversions use an
+argument of type `double'.  (By the default argument promotions, any
+`float' arguments are automatically converted to `double'.)  The
+following type modifier is supported:
+
+`L'
+     An uppercase `L' specifies that the argument is a `long double'.
+
+   Here are some examples showing how numbers print using the various
+floating-point conversions.  All of the numbers were printed using this
+template string:
+
+     "|%13.4a|%13.4f|%13.4e|%13.4g|\n"
+
+   Here is the output:
+
+     |  0x0.0000p+0|       0.0000|   0.0000e+00|            0|
+     |  0x1.0000p-1|       0.5000|   5.0000e-01|          0.5|
+     |  0x1.0000p+0|       1.0000|   1.0000e+00|            1|
+     | -0x1.0000p+0|      -1.0000|  -1.0000e+00|           -1|
+     |  0x1.9000p+6|     100.0000|   1.0000e+02|          100|
+     |  0x1.f400p+9|    1000.0000|   1.0000e+03|         1000|
+     | 0x1.3880p+13|   10000.0000|   1.0000e+04|        1e+04|
+     | 0x1.81c8p+13|   12345.0000|   1.2345e+04|    1.234e+04|
+     | 0x1.86a0p+16|  100000.0000|   1.0000e+05|        1e+05|
+     | 0x1.e240p+16|  123456.0000|   1.2346e+05|    1.235e+05|
+
+   Notice how the `%g' conversion drops trailing zeros.
+
+
+File: libc.info,  Node: Other Output Conversions,  Next: Formatted Output Functions,  Prev: Floating-Point Conversions,  Up: Formatted Output
+
+Other Output Conversions
+------------------------
+
+   This section describes miscellaneous conversions for `printf'.
+
+   The `%c' conversion prints a single character.  In case there is no
+`l' modifier the `int' argument is first converted to an `unsigned
+char'.  Then, if used in a wide stream function, the character is
+converted into the corresponding wide character.  The `-' flag can be
+used to specify left-justification in the field, but no other flags are
+defined, and no precision or type modifier can be given.  For example:
+
+     printf ("%c%c%c%c%c", 'h', 'e', 'l', 'l', 'o');
+
+prints `hello'.
+
+   If there is a `l' modifier present the argument is expected to be of
+type `wint_t'.  If used in a multibyte function the wide character is
+converted into a multibyte character before being added to the output.
+In this case more than one output byte can be produced.
+
+   The `%s' conversion prints a string.  If no `l' modifier is present
+the corresponding argument must be of type `char *' (or `const char
+*').  If used in a wide stream function the string is first converted
+in a wide character string.  A precision can be specified to indicate
+the maximum number of characters to write; otherwise characters in the
+string up to but not including the terminating null character are
+written to the output stream.  The `-' flag can be used to specify
+left-justification in the field, but no other flags or type modifiers
+are defined for this conversion.  For example:
+
+     printf ("%3s%-6s", "no", "where");
+
+prints ` nowhere '.
+
+   If there is a `l' modifier present the argument is expected to be of
+type `wchar_t' (or `const wchar_t *').
+
+   If you accidentally pass a null pointer as the argument for a `%s'
+conversion, the GNU library prints it as `(null)'.  We think this is
+more useful than crashing.  But it's not good practice to pass a null
+argument intentionally.
+
+   The `%m' conversion prints the string corresponding to the error
+code in `errno'.  *Note Error Messages::.  Thus:
+
+     fprintf (stderr, "can't open `%s': %m\n", filename);
+
+is equivalent to:
+
+     fprintf (stderr, "can't open `%s': %s\n", filename, strerror (errno));
+
+The `%m' conversion is a GNU C library extension.
+
+   The `%p' conversion prints a pointer value.  The corresponding
+argument must be of type `void *'.  In practice, you can use any type
+of pointer.
+
+   In the GNU system, non-null pointers are printed as unsigned
+integers, as if a `%#x' conversion were used.  Null pointers print as
+`(nil)'.  (Pointers might print differently in other systems.)
+
+   For example:
+
+     printf ("%p", "testing");
+
+prints `0x' followed by a hexadecimal number--the address of the string
+constant `"testing"'.  It does not print the word `testing'.
+
+   You can supply the `-' flag with the `%p' conversion to specify
+left-justification, but no other flags, precision, or type modifiers
+are defined.
+
+   The `%n' conversion is unlike any of the other output conversions.
+It uses an argument which must be a pointer to an `int', but instead of
+printing anything it stores the number of characters printed so far by
+this call at that location.  The `h' and `l' type modifiers are
+permitted to specify that the argument is of type `short int *' or
+`long int *' instead of `int *', but no flags, field width, or
+precision are permitted.
+
+   For example,
+
+     int nchar;
+     printf ("%d %s%n\n", 3, "bears", &nchar);
+
+prints:
+
+     3 bears
+
+and sets `nchar' to `7', because `3 bears' is seven characters.
+
+   The `%%' conversion prints a literal `%' character.  This conversion
+doesn't use an argument, and no flags, field width, precision, or type
+modifiers are permitted.
+
+
+File: libc.info,  Node: Formatted Output Functions,  Next: Dynamic Output,  Prev: Other Output Conversions,  Up: Formatted Output
+
+Formatted Output Functions
+--------------------------
+
+   This section describes how to call `printf' and related functions.
+Prototypes for these functions are in the header file `stdio.h'.
+Because these functions take a variable number of arguments, you _must_
+declare prototypes for them before using them.  Of course, the easiest
+way to make sure you have all the right prototypes is to just include
+`stdio.h'.
+
+ - Function: int printf (const char *TEMPLATE, ...)
+     The `printf' function prints the optional arguments under the
+     control of the template string TEMPLATE to the stream `stdout'.
+     It returns the number of characters printed, or a negative value
+     if there was an output error.
+
+ - Function: int wprintf (const wchar_t *TEMPLATE, ...)
+     The `wprintf' function prints the optional arguments under the
+     control of the wide template string TEMPLATE to the stream
+     `stdout'.  It returns the number of wide characters printed, or a
+     negative value if there was an output error.
+
+ - Function: int fprintf (FILE *STREAM, const char *TEMPLATE, ...)
+     This function is just like `printf', except that the output is
+     written to the stream STREAM instead of `stdout'.
+
+ - Function: int fwprintf (FILE *STREAM, const wchar_t *TEMPLATE, ...)
+     This function is just like `wprintf', except that the output is
+     written to the stream STREAM instead of `stdout'.
+
+ - Function: int sprintf (char *S, const char *TEMPLATE, ...)
+     This is like `printf', except that the output is stored in the
+     character array S instead of written to a stream.  A null
+     character is written to mark the end of the string.
+
+     The `sprintf' function returns the number of characters stored in
+     the array S, not including the terminating null character.
+
+     The behavior of this function is undefined if copying takes place
+     between objects that overlap--for example, if S is also given as
+     an argument to be printed under control of the `%s' conversion.
+     *Note Copying and Concatenation::.
+
+     *Warning:* The `sprintf' function can be *dangerous* because it
+     can potentially output more characters than can fit in the
+     allocation size of the string S.  Remember that the field width
+     given in a conversion specification is only a _minimum_ value.
+
+     To avoid this problem, you can use `snprintf' or `asprintf',
+     described below.
+
+ - Function: int swprintf (wchar_t *S, size_t SIZE, const wchar_t
+          *TEMPLATE, ...)
+     This is like `wprintf', except that the output is stored in the
+     wide character array WS instead of written to a stream.  A null
+     wide character is written to mark the end of the string.  The SIZE
+     argument specifies the maximum number of characters to produce.
+     The trailing null character is counted towards this limit, so you
+     should allocate at least SIZE wide characters for the string WS.
+
+     The return value is the number of characters which would be
+     generated for the given input, excluding the trailing null.  If
+     this value is greater or equal to SIZE, not all characters from
+     the result have been stored in WS.  You should try again with a
+     bigger output string.
+
+     Note that the corresponding narrow stream function takes fewer
+     parameters.  `swprintf' in fact corresponds to the `snprintf'
+     function.  Since the `sprintf' function can be dangerous and should
+     be avoided the ISO C committee refused to make the same mistake
+     again and decided to not define an function exactly corresponding
+     to `sprintf'.
+
+ - Function: int snprintf (char *S, size_t SIZE, const char *TEMPLATE,
+          ...)
+     The `snprintf' function is similar to `sprintf', except that the
+     SIZE argument specifies the maximum number of characters to
+     produce.  The trailing null character is counted towards this
+     limit, so you should allocate at least SIZE characters for the
+     string S.
+
+     The return value is the number of characters which would be
+     generated for the given input, excluding the trailing null.  If
+     this value is greater or equal to SIZE, not all characters from
+     the result have been stored in S.  You should try again with a
+     bigger output string.  Here is an example of doing this:
+
+          /* Construct a message describing the value of a variable
+             whose name is NAME and whose value is VALUE. */
+          char *
+          make_message (char *name, char *value)
+          {
+            /* Guess we need no more than 100 chars of space. */
+            int size = 100;
+            char *buffer = (char *) xmalloc (size);
+            int nchars;
+            if (buffer == NULL)
+              return NULL;
+          
+           /* Try to print in the allocated space. */
+            nchars = snprintf (buffer, size, "value of %s is %s",
+                               name, value);
+            if (nchars >= size)
+              {
+                /* Reallocate buffer now that we know
+                   how much space is needed. */
+                buffer = (char *) xrealloc (buffer, nchars + 1);
+          
+                if (buffer != NULL)
+                  /* Try again. */
+                  snprintf (buffer, size, "value of %s is %s",
+                            name, value);
+              }
+            /* The last call worked, return the string. */
+            return buffer;
+          }
+
+     In practice, it is often easier just to use `asprintf', below.
+
+     *Attention:* In versions of the GNU C library prior to 2.1 the
+     return value is the number of characters stored, not including the
+     terminating null; unless there was not enough space in S to store
+     the result in which case `-1' is returned.  This was changed in
+     order to comply with the ISO C99 standard.
+
+
+File: libc.info,  Node: Dynamic Output,  Next: Variable Arguments Output,  Prev: Formatted Output Functions,  Up: Formatted Output
+
+Dynamically Allocating Formatted Output
+---------------------------------------
+
+   The functions in this section do formatted output and place the
+results in dynamically allocated memory.
+
+ - Function: int asprintf (char **PTR, const char *TEMPLATE, ...)
+     This function is similar to `sprintf', except that it dynamically
+     allocates a string (as with `malloc'; *note Unconstrained
+     Allocation::) to hold the output, instead of putting the output in
+     a buffer you allocate in advance.  The PTR argument should be the
+     address of a `char *' object, and `asprintf' stores a pointer to
+     the newly allocated string at that location.
+
+     The return value is the number of characters allocated for the
+     buffer, or less than zero if an error occured. Usually this means
+     that the buffer could not be allocated.
+
+     Here is how to use `asprintf' to get the same result as the
+     `snprintf' example, but more easily:
+
+          /* Construct a message describing the value of a variable
+             whose name is NAME and whose value is VALUE. */
+          char *
+          make_message (char *name, char *value)
+          {
+            char *result;
+            if (asprintf (&result, "value of %s is %s", name, value) < 0)
+              return NULL;
+            return result;
+          }
+
+ - Function: int obstack_printf (struct obstack *OBSTACK, const char
+          *TEMPLATE, ...)
+     This function is similar to `asprintf', except that it uses the
+     obstack OBSTACK to allocate the space.  *Note Obstacks::.
+
+     The characters are written onto the end of the current object.  To
+     get at them, you must finish the object with `obstack_finish'
+     (*note Growing Objects::).
+
+
+File: libc.info,  Node: Variable Arguments Output,  Next: Parsing a Template String,  Prev: Dynamic Output,  Up: Formatted Output
+
+Variable Arguments Output Functions
+-----------------------------------
+
+   The functions `vprintf' and friends are provided so that you can
+define your own variadic `printf'-like functions that make use of the
+same internals as the built-in formatted output functions.
+
+   The most natural way to define such functions would be to use a
+language construct to say, "Call `printf' and pass this template plus
+all of my arguments after the first five."  But there is no way to do
+this in C, and it would be hard to provide a way, since at the C
+language level there is no way to tell how many arguments your function
+received.
+
+   Since that method is impossible, we provide alternative functions,
+the `vprintf' series, which lets you pass a `va_list' to describe "all
+of my arguments after the first five."
+
+   When it is sufficient to define a macro rather than a real function,
+the GNU C compiler provides a way to do this much more easily with
+macros.  For example:
+
+     #define myprintf(a, b, c, d, e, rest...) \
+                 printf (mytemplate , ## rest...)
+
+*Note Macros with Variable Numbers of Arguments: (gcc.info)Macro
+Varargs, for details.  But this is limited to macros, and does not
+apply to real functions at all.
+
+   Before calling `vprintf' or the other functions listed in this
+section, you _must_ call `va_start' (*note Variadic Functions::) to
+initialize a pointer to the variable arguments.  Then you can call
+`va_arg' to fetch the arguments that you want to handle yourself.  This
+advances the pointer past those arguments.
+
+   Once your `va_list' pointer is pointing at the argument of your
+choice, you are ready to call `vprintf'.  That argument and all
+subsequent arguments that were passed to your function are used by
+`vprintf' along with the template that you specified separately.
+
+   In some other systems, the `va_list' pointer may become invalid
+after the call to `vprintf', so you must not use `va_arg' after you
+call `vprintf'.  Instead, you should call `va_end' to retire the
+pointer from service.  However, you can safely call `va_start' on
+another pointer variable and begin fetching the arguments again through
+that pointer.  Calling `vprintf' does not destroy the argument list of
+your function, merely the particular pointer that you passed to it.
+
+   GNU C does not have such restrictions.  You can safely continue to
+fetch arguments from a `va_list' pointer after passing it to `vprintf',
+and `va_end' is a no-op.  (Note, however, that subsequent `va_arg'
+calls will fetch the same arguments which `vprintf' previously used.)
+
+   Prototypes for these functions are declared in `stdio.h'.
+
+ - Function: int vprintf (const char *TEMPLATE, va_list AP)
+     This function is similar to `printf' except that, instead of taking
+     a variable number of arguments directly, it takes an argument list
+     pointer AP.
+
+ - Function: int vwprintf (const wchar_t *TEMPLATE, va_list AP)
+     This function is similar to `wprintf' except that, instead of
+     taking a variable number of arguments directly, it takes an
+     argument list pointer AP.
+
+ - Function: int vfprintf (FILE *STREAM, const char *TEMPLATE, va_list
+          AP)
+     This is the equivalent of `fprintf' with the variable argument list
+     specified directly as for `vprintf'.
+
+ - Function: int vfwprintf (FILE *STREAM, const wchar_t *TEMPLATE,
+          va_list AP)
+     This is the equivalent of `fwprintf' with the variable argument
+     list specified directly as for `vwprintf'.
+
+ - Function: int vsprintf (char *S, const char *TEMPLATE, va_list AP)
+     This is the equivalent of `sprintf' with the variable argument list
+     specified directly as for `vprintf'.
+
+ - Function: int vswprintf (wchar_t *S, size_t SIZE, const wchar_t
+          *TEMPLATE, va_list AP)
+     This is the equivalent of `swprintf' with the variable argument
+     list specified directly as for `vwprintf'.
+
+ - Function: int vsnprintf (char *S, size_t SIZE, const char *TEMPLATE,
+          va_list AP)
+     This is the equivalent of `snprintf' with the variable argument
+     list specified directly as for `vprintf'.
+
+ - Function: int vasprintf (char **PTR, const char *TEMPLATE, va_list
+          AP)
+     The `vasprintf' function is the equivalent of `asprintf' with the
+     variable argument list specified directly as for `vprintf'.
+
+ - Function: int obstack_vprintf (struct obstack *OBSTACK, const char
+          *TEMPLATE, va_list AP)
+     The `obstack_vprintf' function is the equivalent of
+     `obstack_printf' with the variable argument list specified directly
+     as for `vprintf'.
+
+   Here's an example showing how you might use `vfprintf'.  This is a
+function that prints error messages to the stream `stderr', along with
+a prefix indicating the name of the program (*note Error Messages::,
+for a description of `program_invocation_short_name').
+
+     #include <stdio.h>
+     #include <stdarg.h>
+     
+     void
+     eprintf (const char *template, ...)
+     {
+       va_list ap;
+       extern char *program_invocation_short_name;
+     
+       fprintf (stderr, "%s: ", program_invocation_short_name);
+       va_start (ap, template);
+       vfprintf (stderr, template, ap);
+       va_end (ap);
+     }
+
+You could call `eprintf' like this:
+
+     eprintf ("file `%s' does not exist\n", filename);
+
+   In GNU C, there is a special construct you can use to let the
+compiler know that a function uses a `printf'-style format string.
+Then it can check the number and types of arguments in each call to the
+function, and warn you when they do not match the format string.  For
+example, take this declaration of `eprintf':
+
+     void eprintf (const char *template, ...)
+             __attribute__ ((format (printf, 1, 2)));
+
+This tells the compiler that `eprintf' uses a format string like
+`printf' (as opposed to `scanf'; *note Formatted Input::); the format
+string appears as the first argument; and the arguments to satisfy the
+format begin with the second.  *Note Declaring Attributes of Functions:
+(gcc.info)Function Attributes, for more information.
+
+
+File: libc.info,  Node: Parsing a Template String,  Next: Example of Parsing,  Prev: Variable Arguments Output,  Up: Formatted Output
+
+Parsing a Template String
+-------------------------
+
+   You can use the function `parse_printf_format' to obtain information
+about the number and types of arguments that are expected by a given
+template string.  This function permits interpreters that provide
+interfaces to `printf' to avoid passing along invalid arguments from
+the user's program, which could cause a crash.
+
+   All the symbols described in this section are declared in the header
+file `printf.h'.
+
+ - Function: size_t parse_printf_format (const char *TEMPLATE, size_t
+          N, int *ARGTYPES)
+     This function returns information about the number and types of
+     arguments expected by the `printf' template string TEMPLATE.  The
+     information is stored in the array ARGTYPES; each element of this
+     array describes one argument.  This information is encoded using
+     the various `PA_' macros, listed below.
+
+     The argument N specifies the number of elements in the array
+     ARGTYPES.  This is the maximum number of elements that
+     `parse_printf_format' will try to write.
+
+     `parse_printf_format' returns the total number of arguments
+     required by TEMPLATE.  If this number is greater than N, then the
+     information returned describes only the first N arguments.  If you
+     want information about additional arguments, allocate a bigger
+     array and call `parse_printf_format' again.
+
+   The argument types are encoded as a combination of a basic type and
+modifier flag bits.
+
+ - Macro: int PA_FLAG_MASK
+     This macro is a bitmask for the type modifier flag bits.  You can
+     write the expression `(argtypes[i] & PA_FLAG_MASK)' to extract
+     just the flag bits for an argument, or `(argtypes[i] &
+     ~PA_FLAG_MASK)' to extract just the basic type code.
+
+   Here are symbolic constants that represent the basic types; they
+stand for integer values.
+
+`PA_INT'
+     This specifies that the base type is `int'.
+
+`PA_CHAR'
+     This specifies that the base type is `int', cast to `char'.
+
+`PA_STRING'
+     This specifies that the base type is `char *', a null-terminated
+     string.
+
+`PA_POINTER'
+     This specifies that the base type is `void *', an arbitrary
+     pointer.
+
+`PA_FLOAT'
+     This specifies that the base type is `float'.
+
+`PA_DOUBLE'
+     This specifies that the base type is `double'.
+
+`PA_LAST'
+     You can define additional base types for your own programs as
+     offsets from `PA_LAST'.  For example, if you have data types `foo'
+     and `bar' with their own specialized `printf' conversions, you
+     could define encodings for these types as:
+
+          #define PA_FOO  PA_LAST
+          #define PA_BAR  (PA_LAST + 1)
+
+   Here are the flag bits that modify a basic type.  They are combined
+with the code for the basic type using inclusive-or.
+
+`PA_FLAG_PTR'
+     If this bit is set, it indicates that the encoded type is a
+     pointer to the base type, rather than an immediate value.  For
+     example, `PA_INT|PA_FLAG_PTR' represents the type `int *'.
+
+`PA_FLAG_SHORT'
+     If this bit is set, it indicates that the base type is modified
+     with `short'.  (This corresponds to the `h' type modifier.)
+
+`PA_FLAG_LONG'
+     If this bit is set, it indicates that the base type is modified
+     with `long'.  (This corresponds to the `l' type modifier.)
+
+`PA_FLAG_LONG_LONG'
+     If this bit is set, it indicates that the base type is modified
+     with `long long'.  (This corresponds to the `L' type modifier.)
+
+`PA_FLAG_LONG_DOUBLE'
+     This is a synonym for `PA_FLAG_LONG_LONG', used by convention with
+     a base type of `PA_DOUBLE' to indicate a type of `long double'.
+
+   For an example of using these facilities, see *Note Example of
+Parsing::.
+
+
+File: libc.info,  Node: Example of Parsing,  Prev: Parsing a Template String,  Up: Formatted Output
+
+Example of Parsing a Template String
+------------------------------------
+
+   Here is an example of decoding argument types for a format string.
+We assume this is part of an interpreter which contains arguments of
+type `NUMBER', `CHAR', `STRING' and `STRUCTURE' (and perhaps others
+which are not valid here).
+
+     /* Test whether the NARGS specified objects
+        in the vector ARGS are valid
+        for the format string FORMAT:
+        if so, return 1.
+        If not, return 0 after printing an error message.  */
+     
+     int
+     validate_args (char *format, int nargs, OBJECT *args)
+     {
+       int *argtypes;
+       int nwanted;
+     
+       /* Get the information about the arguments.
+          Each conversion specification must be at least two characters
+          long, so there cannot be more specifications than half the
+          length of the string.  */
+     
+       argtypes = (int *) alloca (strlen (format) / 2 * sizeof (int));
+       nwanted = parse_printf_format (string, nelts, argtypes);
+     
+       /* Check the number of arguments.  */
+       if (nwanted > nargs)
+         {
+           error ("too few arguments (at least %d required)", nwanted);
+           return 0;
+         }
+     
+       /* Check the C type wanted for each argument
+          and see if the object given is suitable.  */
+       for (i = 0; i < nwanted; i++)
+         {
+           int wanted;
+     
+           if (argtypes[i] & PA_FLAG_PTR)
+             wanted = STRUCTURE;
+           else
+             switch (argtypes[i] & ~PA_FLAG_MASK)
+               {
+               case PA_INT:
+               case PA_FLOAT:
+               case PA_DOUBLE:
+                 wanted = NUMBER;
+                 break;
+               case PA_CHAR:
+                 wanted = CHAR;
+                 break;
+               case PA_STRING:
+                 wanted = STRING;
+                 break;
+               case PA_POINTER:
+                 wanted = STRUCTURE;
+                 break;
+               }
+           if (TYPE (args[i]) != wanted)
+             {
+               error ("type mismatch for arg number %d", i);
+               return 0;
+             }
+         }
+       return 1;
+     }
+
+
+File: libc.info,  Node: Customizing Printf,  Next: Formatted Input,  Prev: Formatted Output,  Up: I/O on Streams
+
+Customizing `printf'
+====================
+
+   The GNU C library lets you define your own custom conversion
+specifiers for `printf' template strings, to teach `printf' clever ways
+to print the important data structures of your program.
+
+   The way you do this is by registering the conversion with the
+function `register_printf_function'; see *Note Registering New
+Conversions::.  One of the arguments you pass to this function is a
+pointer to a handler function that produces the actual output; see
+*Note Defining the Output Handler::, for information on how to write
+this function.
+
+   You can also install a function that just returns information about
+the number and type of arguments expected by the conversion specifier.
+*Note Parsing a Template String::, for information about this.
+
+   The facilities of this section are declared in the header file
+`printf.h'.
+
+* Menu:
+
+* Registering New Conversions::         Using `register_printf_function'
+                                         to register a new output conversion.
+* Conversion Specifier Options::        The handler must be able to get
+                                         the options specified in the
+                                         template when it is called.
+* Defining the Output Handler::         Defining the handler and arginfo
+                                         functions that are passed as arguments
+                                         to `register_printf_function'.
+* Printf Extension Example::            How to define a `printf'
+                                         handler function.
+* Predefined Printf Handlers::          Predefined `printf' handlers.
+
+   *Portability Note:* The ability to extend the syntax of `printf'
+template strings is a GNU extension.  ISO standard C has nothing
+similar.
+
+
+File: libc.info,  Node: Registering New Conversions,  Next: Conversion Specifier Options,  Up: Customizing Printf
+
+Registering New Conversions
+---------------------------
+
+   The function to register a new output conversion is
+`register_printf_function', declared in `printf.h'.
+
+ - Function: int register_printf_function (int SPEC, printf_function
+          HANDLER-FUNCTION, printf_arginfo_function ARGINFO-FUNCTION)
+     This function defines the conversion specifier character SPEC.
+     Thus, if SPEC is `'Y'', it defines the conversion `%Y'.  You can
+     redefine the built-in conversions like `%s', but flag characters
+     like `#' and type modifiers like `l' can never be used as
+     conversions; calling `register_printf_function' for those
+     characters has no effect.  It is advisable not to use lowercase
+     letters, since the ISO C standard warns that additional lowercase
+     letters may be standardized in future editions of the standard.
+
+     The HANDLER-FUNCTION is the function called by `printf' and
+     friends when this conversion appears in a template string.  *Note
+     Defining the Output Handler::, for information about how to define
+     a function to pass as this argument.  If you specify a null
+     pointer, any existing handler function for SPEC is removed.
+
+     The ARGINFO-FUNCTION is the function called by
+     `parse_printf_format' when this conversion appears in a template
+     string.  *Note Parsing a Template String::, for information about
+     this.
+
+     *Attention:* In the GNU C library versions before 2.0 the
+     ARGINFO-FUNCTION function did not need to be installed unless the
+     user used the `parse_printf_format' function.  This has changed.
+     Now a call to any of the `printf' functions will call this
+     function when this format specifier appears in the format string.
+
+     The return value is `0' on success, and `-1' on failure (which
+     occurs if SPEC is out of range).
+
+     You can redefine the standard output conversions, but this is
+     probably not a good idea because of the potential for confusion.
+     Library routines written by other people could break if you do
+     this.
+
+
+File: libc.info,  Node: Conversion Specifier Options,  Next: Defining the Output Handler,  Prev: Registering New Conversions,  Up: Customizing Printf
+
+Conversion Specifier Options
+----------------------------
+
+   If you define a meaning for `%A', what if the template contains
+`%+23A' or `%-#A'?  To implement a sensible meaning for these, the
+handler when called needs to be able to get the options specified in
+the template.
+
+   Both the HANDLER-FUNCTION and ARGINFO-FUNCTION accept an argument
+that points to a `struct printf_info', which contains information about
+the options appearing in an instance of the conversion specifier.  This
+data type is declared in the header file `printf.h'.
+
+ - Type: struct printf_info
+     This structure is used to pass information about the options
+     appearing in an instance of a conversion specifier in a `printf'
+     template string to the handler and arginfo functions for that
+     specifier.  It contains the following members:
+
+    `int prec'
+          This is the precision specified.  The value is `-1' if no
+          precision was specified.  If the precision was given as `*',
+          the `printf_info' structure passed to the handler function
+          contains the actual value retrieved from the argument list.
+          But the structure passed to the arginfo function contains a
+          value of `INT_MIN', since the actual value is not known.
+
+    `int width'
+          This is the minimum field width specified.  The value is `0'
+          if no width was specified.  If the field width was given as
+          `*', the `printf_info' structure passed to the handler
+          function contains the actual value retrieved from the
+          argument list.  But the structure passed to the arginfo
+          function contains a value of `INT_MIN', since the actual
+          value is not known.
+
+    `wchar_t spec'
+          This is the conversion specifier character specified.  It's
+          stored in the structure so that you can register the same
+          handler function for multiple characters, but still have a
+          way to tell them apart when the handler function is called.
+
+    `unsigned int is_long_double'
+          This is a boolean that is true if the `L', `ll', or `q' type
+          modifier was specified.  For integer conversions, this
+          indicates `long long int', as opposed to `long double' for
+          floating point conversions.
+
+    `unsigned int is_char'
+          This is a boolean that is true if the `hh' type modifier was
+          specified.
+
+    `unsigned int is_short'
+          This is a boolean that is true if the `h' type modifier was
+          specified.
+
+    `unsigned int is_long'
+          This is a boolean that is true if the `l' type modifier was
+          specified.
+
+    `unsigned int alt'
+          This is a boolean that is true if the `#' flag was specified.
+
+    `unsigned int space'
+          This is a boolean that is true if the ` ' flag was specified.
+
+    `unsigned int left'
+          This is a boolean that is true if the `-' flag was specified.
+
+    `unsigned int showsign'
+          This is a boolean that is true if the `+' flag was specified.
+
+    `unsigned int group'
+          This is a boolean that is true if the `'' flag was specified.
+
+    `unsigned int extra'
+          This flag has a special meaning depending on the context.  It
+          could be used freely by the user-defined handlers but when
+          called from the `printf' function this variable always
+          contains the value `0'.
+
+    `unsigned int wide'
+          This flag is set if the stream is wide oriented.
+
+    `wchar_t pad'
+          This is the character to use for padding the output to the
+          minimum field width.  The value is `'0'' if the `0' flag was
+          specified, and `' '' otherwise.
+
+
+File: libc.info,  Node: Defining the Output Handler,  Next: Printf Extension Example,  Prev: Conversion Specifier Options,  Up: Customizing Printf
+
+Defining the Output Handler
+---------------------------
+
+   Now let's look at how to define the handler and arginfo functions
+which are passed as arguments to `register_printf_function'.
+
+   *Compatibility Note:* The interface changed in GNU libc version 2.0.
+Previously the third argument was of type `va_list *'.
+
+   You should define your handler functions with a prototype like:
+
+     int FUNCTION (FILE *stream, const struct printf_info *info,
+                         const void *const *args)
+
+   The STREAM argument passed to the handler function is the stream to
+which it should write output.
+
+   The INFO argument is a pointer to a structure that contains
+information about the various options that were included with the
+conversion in the template string.  You should not modify this structure
+inside your handler function.  *Note Conversion Specifier Options::, for
+a description of this data structure.
+
+   The ARGS is a vector of pointers to the arguments data.  The number
+of arguments was determined by calling the argument information
+function provided by the user.
+
+   Your handler function should return a value just like `printf' does:
+it should return the number of characters it has written, or a negative
+value to indicate an error.
+
+ - Data Type: printf_function
+     This is the data type that a handler function should have.
+
+   If you are going to use `parse_printf_format' in your application,
+you must also define a function to pass as the ARGINFO-FUNCTION
+argument for each new conversion you install with
+`register_printf_function'.
+
+   You have to define these functions with a prototype like:
+
+     int FUNCTION (const struct printf_info *info,
+                         size_t n, int *argtypes)
+
+   The return value from the function should be the number of arguments
+the conversion expects.  The function should also fill in no more than
+N elements of the ARGTYPES array with information about the types of
+each of these arguments.  This information is encoded using the various
+`PA_' macros.  (You will notice that this is the same calling
+convention `parse_printf_format' itself uses.)
+
+ - Data Type: printf_arginfo_function
+     This type is used to describe functions that return information
+     about the number and type of arguments used by a conversion
+     specifier.
+

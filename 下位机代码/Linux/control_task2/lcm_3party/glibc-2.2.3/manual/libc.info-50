@@ -1,0 +1,277 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Floating Point Parameters,  Next: IEEE Floating Point,  Prev: Floating Point Concepts,  Up: Floating Type Macros
+
+Floating Point Parameters
+.........................
+
+   These macro definitions can be accessed by including the header file
+`float.h' in your program.
+
+   Macro names starting with `FLT_' refer to the `float' type, while
+names beginning with `DBL_' refer to the `double' type and names
+beginning with `LDBL_' refer to the `long double' type.  (If GCC does
+not support `long double' as a distinct data type on a target machine
+then the values for the `LDBL_' constants are equal to the
+corresponding constants for the `double' type.)
+
+   Of these macros, only `FLT_RADIX' is guaranteed to be a constant
+expression.  The other macros listed here cannot be reliably used in
+places that require constant expressions, such as `#if' preprocessing
+directives or in the dimensions of static arrays.
+
+   Although the ISO C standard specifies minimum and maximum values for
+most of these parameters, the GNU C implementation uses whatever values
+describe the floating point representation of the target machine.  So in
+principle GNU C actually satisfies the ISO C requirements only if the
+target machine is suitable.  In practice, all the machines currently
+supported are suitable.
+
+`FLT_ROUNDS'
+     This value characterizes the rounding mode for floating point
+     addition.  The following values indicate standard rounding modes:
+
+    `-1'
+          The mode is indeterminable.
+
+    `0'
+          Rounding is towards zero.
+
+    `1'
+          Rounding is to the nearest number.
+
+    `2'
+          Rounding is towards positive infinity.
+
+    `3'
+          Rounding is towards negative infinity.
+
+     Any other value represents a machine-dependent nonstandard rounding
+     mode.
+
+     On most machines, the value is `1', in accordance with the IEEE
+     standard for floating point.
+
+     Here is a table showing how certain values round for each possible
+     value of `FLT_ROUNDS', if the other aspects of the representation
+     match the IEEE single-precision standard.
+
+                          0      1             2             3
+           1.00000003    1.0    1.0           1.00000012    1.0
+           1.00000007    1.0    1.00000012    1.00000012    1.0
+          -1.00000003   -1.0   -1.0          -1.0          -1.00000012
+          -1.00000007   -1.0   -1.00000012   -1.0          -1.00000012
+
+`FLT_RADIX'
+     This is the value of the base, or radix, of the exponent
+     representation.  This is guaranteed to be a constant expression,
+     unlike the other macros described in this section.  The value is 2
+     on all machines we know of except the IBM 360 and derivatives.
+
+`FLT_MANT_DIG'
+     This is the number of base-`FLT_RADIX' digits in the floating point
+     mantissa for the `float' data type.  The following expression
+     yields `1.0' (even though mathematically it should not) due to the
+     limited number of mantissa digits:
+
+          float radix = FLT_RADIX;
+          
+          1.0f + 1.0f / radix / radix / ... / radix
+
+     where `radix' appears `FLT_MANT_DIG' times.
+
+`DBL_MANT_DIG'
+`LDBL_MANT_DIG'
+     This is the number of base-`FLT_RADIX' digits in the floating point
+     mantissa for the data types `double' and `long double',
+     respectively.
+
+`FLT_DIG'
+     This is the number of decimal digits of precision for the `float'
+     data type.  Technically, if P and B are the precision and base
+     (respectively) for the representation, then the decimal precision
+     Q is the maximum number of decimal digits such that any floating
+     point number with Q base 10 digits can be rounded to a floating
+     point number with P base B digits and back again, without change
+     to the Q decimal digits.
+
+     The value of this macro is supposed to be at least `6', to satisfy
+     ISO C.
+
+`DBL_DIG'
+`LDBL_DIG'
+     These are similar to `FLT_DIG', but for the data types `double'
+     and `long double', respectively.  The values of these macros are
+     supposed to be at least `10'.
+
+`FLT_MIN_EXP'
+     This is the smallest possible exponent value for type `float'.
+     More precisely, is the minimum negative integer such that the value
+     `FLT_RADIX' raised to this power minus 1 can be represented as a
+     normalized floating point number of type `float'.
+
+`DBL_MIN_EXP'
+`LDBL_MIN_EXP'
+     These are similar to `FLT_MIN_EXP', but for the data types
+     `double' and `long double', respectively.
+
+`FLT_MIN_10_EXP'
+     This is the minimum negative integer such that `10' raised to this
+     power minus 1 can be represented as a normalized floating point
+     number of type `float'.  This is supposed to be `-37' or even less.
+
+`DBL_MIN_10_EXP'
+`LDBL_MIN_10_EXP'
+     These are similar to `FLT_MIN_10_EXP', but for the data types
+     `double' and `long double', respectively.
+
+`FLT_MAX_EXP'
+     This is the largest possible exponent value for type `float'.  More
+     precisely, this is the maximum positive integer such that value
+     `FLT_RADIX' raised to this power minus 1 can be represented as a
+     floating point number of type `float'.
+
+`DBL_MAX_EXP'
+`LDBL_MAX_EXP'
+     These are similar to `FLT_MAX_EXP', but for the data types
+     `double' and `long double', respectively.
+
+`FLT_MAX_10_EXP'
+     This is the maximum positive integer such that `10' raised to this
+     power minus 1 can be represented as a normalized floating point
+     number of type `float'.  This is supposed to be at least `37'.
+
+`DBL_MAX_10_EXP'
+`LDBL_MAX_10_EXP'
+     These are similar to `FLT_MAX_10_EXP', but for the data types
+     `double' and `long double', respectively.
+
+`FLT_MAX'
+     The value of this macro is the maximum number representable in type
+     `float'.  It is supposed to be at least `1E+37'.  The value has
+     type `float'.
+
+     The smallest representable number is `- FLT_MAX'.
+
+`DBL_MAX'
+`LDBL_MAX'
+     These are similar to `FLT_MAX', but for the data types `double'
+     and `long double', respectively.  The type of the macro's value is
+     the same as the type it describes.
+
+`FLT_MIN'
+     The value of this macro is the minimum normalized positive floating
+     point number that is representable in type `float'.  It is supposed
+     to be no more than `1E-37'.
+
+`DBL_MIN'
+`LDBL_MIN'
+     These are similar to `FLT_MIN', but for the data types `double'
+     and `long double', respectively.  The type of the macro's value is
+     the same as the type it describes.
+
+`FLT_EPSILON'
+     This is the maximum positive floating point number of type `float'
+     such that `1.0 + FLT_EPSILON != 1.0' is true.  It's supposed to be
+     no greater than `1E-5'.
+
+`DBL_EPSILON'
+`LDBL_EPSILON'
+     These are similar to `FLT_EPSILON', but for the data types
+     `double' and `long double', respectively.  The type of the macro's
+     value is the same as the type it describes.  The values are not
+     supposed to be greater than `1E-9'.
+
+
+File: libc.info,  Node: IEEE Floating Point,  Prev: Floating Point Parameters,  Up: Floating Type Macros
+
+IEEE Floating Point
+...................
+
+   Here is an example showing how the floating type measurements come
+out for the most common floating point representation, specified by the
+`IEEE Standard for Binary Floating Point Arithmetic (ANSI/IEEE Std
+754-1985)'.  Nearly all computers designed since the 1980s use this
+format.
+
+   The IEEE single-precision float representation uses a base of 2.
+There is a sign bit, a mantissa with 23 bits plus one hidden bit (so
+the total precision is 24 base-2 digits), and an 8-bit exponent that
+can represent values in the range -125 to 128, inclusive.
+
+   So, for an implementation that uses this representation for the
+`float' data type, appropriate values for the corresponding parameters
+are:
+
+     FLT_RADIX                             2
+     FLT_MANT_DIG                         24
+     FLT_DIG                               6
+     FLT_MIN_EXP                        -125
+     FLT_MIN_10_EXP                      -37
+     FLT_MAX_EXP                         128
+     FLT_MAX_10_EXP                      +38
+     FLT_MIN                 1.17549435E-38F
+     FLT_MAX                 3.40282347E+38F
+     FLT_EPSILON             1.19209290E-07F
+
+   Here are the values for the `double' data type:
+
+     DBL_MANT_DIG                         53
+     DBL_DIG                              15
+     DBL_MIN_EXP                       -1021
+     DBL_MIN_10_EXP                     -307
+     DBL_MAX_EXP                        1024
+     DBL_MAX_10_EXP                      308
+     DBL_MAX         1.7976931348623157E+308
+     DBL_MIN         2.2250738585072014E-308
+     DBL_EPSILON     2.2204460492503131E-016
+
+
+File: libc.info,  Node: Structure Measurement,  Prev: Floating Type Macros,  Up: Data Type Measurements
+
+Structure Field Offset Measurement
+----------------------------------
+
+   You can use `offsetof' to measure the location within a structure
+type of a particular structure member.
+
+ - Macro: size_t offsetof (TYPE, MEMBER)
+     This expands to a integer constant expression that is the offset
+     of the structure member named MEMBER in a the structure type TYPE.
+     For example, `offsetof (struct s, elem)' is the offset, in bytes,
+     of the member `elem' in a `struct s'.
+
+     This macro won't work if MEMBER is a bit field; you get an error
+     from the C compiler in that case.
+

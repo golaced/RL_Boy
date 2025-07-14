@@ -1,0 +1,1243 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Malloc Tunable Parameters,  Next: Heap Consistency Checking,  Prev: Aligned Memory Blocks,  Up: Unconstrained Allocation
+
+Malloc Tunable Parameters
+.........................
+
+   You can adjust some parameters for dynamic memory allocation with the
+`mallopt' function.  This function is the general SVID/XPG interface,
+defined in `malloc.h'.
+
+ - Function: int mallopt (int PARAM, int VALUE)
+     When calling `mallopt', the PARAM argument specifies the parameter
+     to be set, and VALUE the new value to be set.  Possible choices
+     for PARAM, as defined in `malloc.h', are:
+
+    `M_TRIM_THRESHOLD'
+          This is the minimum size (in bytes) of the top-most,
+          releasable chunk that will cause `sbrk' to be called with a
+          negative argument in order to return memory to the system.
+
+    `M_TOP_PAD'
+          This parameter determines the amount of extra memory to
+          obtain from the system when a call to `sbrk' is required.  It
+          also specifies the number of bytes to retain when shrinking
+          the heap by calling `sbrk' with a negative argument.  This
+          provides the necessary hysteresis in heap size such that
+          excessive amounts of system calls can be avoided.
+
+    `M_MMAP_THRESHOLD'
+          All chunks larger than this value are allocated outside the
+          normal heap, using the `mmap' system call.  This way it is
+          guaranteed that the memory for these chunks can be returned
+          to the system on `free'.
+
+    `M_MMAP_MAX'
+          The maximum number of chunks to allocate with `mmap'.
+          Setting this to zero disables all use of `mmap'.
+
+
+
+File: libc.info,  Node: Heap Consistency Checking,  Next: Hooks for Malloc,  Prev: Malloc Tunable Parameters,  Up: Unconstrained Allocation
+
+Heap Consistency Checking
+.........................
+
+   You can ask `malloc' to check the consistency of dynamic memory by
+using the `mcheck' function.  This function is a GNU extension,
+declared in `mcheck.h'.
+
+ - Function: int mcheck (void (*ABORTFN) (enum mcheck_status STATUS))
+     Calling `mcheck' tells `malloc' to perform occasional consistency
+     checks.  These will catch things such as writing past the end of a
+     block that was allocated with `malloc'.
+
+     The ABORTFN argument is the function to call when an inconsistency
+     is found.  If you supply a null pointer, then `mcheck' uses a
+     default function which prints a message and calls `abort' (*note
+     Aborting a Program::).  The function you supply is called with one
+     argument, which says what sort of inconsistency was detected; its
+     type is described below.
+
+     It is too late to begin allocation checking once you have allocated
+     anything with `malloc'.  So `mcheck' does nothing in that case.
+     The function returns `-1' if you call it too late, and `0'
+     otherwise (when it is successful).
+
+     The easiest way to arrange to call `mcheck' early enough is to use
+     the option `-lmcheck' when you link your program; then you don't
+     need to modify your program source at all.  Alternatively you
+     might use a debugger to insert a call to `mcheck' whenever the
+     program is started, for example these gdb commands will
+     automatically call `mcheck' whenever the program starts:
+
+          (gdb) break main
+          Breakpoint 1, main (argc=2, argv=0xbffff964) at whatever.c:10
+          (gdb) command 1
+          Type commands for when breakpoint 1 is hit, one per line.
+          End with a line saying just "end".
+          >call mcheck(0)
+          >continue
+          >end
+          (gdb) ...
+
+     This will however only work if no initialization function of any
+     object involved calls any of the `malloc' functions since `mcheck'
+     must be called before the first such function.
+
+
+ - Function: enum mcheck_status mprobe (void *POINTER)
+     The `mprobe' function lets you explicitly check for inconsistencies
+     in a particular allocated block.  You must have already called
+     `mcheck' at the beginning of the program, to do its occasional
+     checks; calling `mprobe' requests an additional consistency check
+     to be done at the time of the call.
+
+     The argument POINTER must be a pointer returned by `malloc' or
+     `realloc'.  `mprobe' returns a value that says what inconsistency,
+     if any, was found.  The values are described below.
+
+ - Data Type: enum mcheck_status
+     This enumerated type describes what kind of inconsistency was
+     detected in an allocated block, if any.  Here are the possible
+     values:
+
+    `MCHECK_DISABLED'
+          `mcheck' was not called before the first allocation.  No
+          consistency checking can be done.
+
+    `MCHECK_OK'
+          No inconsistency detected.
+
+    `MCHECK_HEAD'
+          The data immediately before the block was modified.  This
+          commonly happens when an array index or pointer is
+          decremented too far.
+
+    `MCHECK_TAIL'
+          The data immediately after the block was modified.  This
+          commonly happens when an array index or pointer is
+          incremented too far.
+
+    `MCHECK_FREE'
+          The block was already freed.
+
+   Another possibility to check for and guard against bugs in the use of
+`malloc', `realloc' and `free' is to set the environment variable
+`MALLOC_CHECK_'.  When `MALLOC_CHECK_' is set, a special (less
+efficient) implementation is used which is designed to be tolerant
+against simple errors, such as double calls of `free' with the same
+argument, or overruns of a single byte (off-by-one bugs).  Not all such
+errors can be protected against, however, and memory leaks can result.
+If `MALLOC_CHECK_' is set to `0', any detected heap corruption is
+silently ignored; if set to `1', a diagnostic is printed on `stderr';
+if set to `2', `abort' is called immediately.  This can be useful
+because otherwise a crash may happen much later, and the true cause for
+the problem is then very hard to track down.
+
+   There is one problem with `MALLOC_CHECK_': in SUID or SGID binaries
+it could possibly be exploited since diverging from the normal programs
+behaviour it now writes something to the standard error desriptor.
+Therefore the use of `MALLOC_CHECK_' is disabled by default for SUID
+and SGID binaries.  It can be enabled again by the system administrator
+by adding a file `/etc/suid-debug' (the content is not important it
+could be empty).
+
+   So, what's the difference between using `MALLOC_CHECK_' and linking
+with `-lmcheck'?  `MALLOC_CHECK_' is orthogonal with respect to
+`-lmcheck'.  `-lmcheck' has been added for backward compatibility.
+Both `MALLOC_CHECK_' and `-lmcheck' should uncover the same bugs - but
+using `MALLOC_CHECK_' you don't need to recompile your application.
+
+
+File: libc.info,  Node: Hooks for Malloc,  Next: Statistics of Malloc,  Prev: Heap Consistency Checking,  Up: Unconstrained Allocation
+
+Memory Allocation Hooks
+.......................
+
+   The GNU C library lets you modify the behavior of `malloc',
+`realloc', and `free' by specifying appropriate hook functions.  You
+can use these hooks to help you debug programs that use dynamic memory
+allocation, for example.
+
+   The hook variables are declared in `malloc.h'.
+
+ - Variable: __malloc_hook
+     The value of this variable is a pointer to the function that
+     `malloc' uses whenever it is called.  You should define this
+     function to look like `malloc'; that is, like:
+
+          void *FUNCTION (size_t SIZE, const void *CALLER)
+
+     The value of CALLER is the return address found on the stack when
+     the `malloc' function was called.  This value allows you to trace
+     the memory consumption of the program.
+
+ - Variable: __realloc_hook
+     The value of this variable is a pointer to function that `realloc'
+     uses whenever it is called.  You should define this function to
+     look like `realloc'; that is, like:
+
+          void *FUNCTION (void *PTR, size_t SIZE, const void *CALLER)
+
+     The value of CALLER is the return address found on the stack when
+     the `realloc' function was called.  This value allows you to trace
+     the memory consumption of the program.
+
+ - Variable: __free_hook
+     The value of this variable is a pointer to function that `free'
+     uses whenever it is called.  You should define this function to
+     look like `free'; that is, like:
+
+          void FUNCTION (void *PTR, const void *CALLER)
+
+     The value of CALLER is the return address found on the stack when
+     the `free' function was called.  This value allows you to trace the
+     memory consumption of the program.
+
+ - Variable: __memalign_hook
+     The value of this variable is a pointer to function that `memalign'
+     uses whenever it is called.  You should define this function to
+     look like `memalign'; that is, like:
+
+          void *FUNCTION (size_t SIZE, size_t ALIGNMENT, const void *CALLER)
+
+     The value of CALLER is the return address found on the stack when
+     the `memalign' function was called.  This value allows you to
+     trace the memory consumption of the program.
+
+   You must make sure that the function you install as a hook for one of
+these functions does not call that function recursively without
+restoring the old value of the hook first!  Otherwise, your program
+will get stuck in an infinite recursion.  Before calling the function
+recursively, one should make sure to restore all the hooks to their
+previous value.  When coming back from the recursive call, all the
+hooks should be resaved since a hook might modify itself.
+
+ - Variable: __malloc_initialize_hook
+     The value of this variable is a pointer to a function that is
+     called once when the malloc implementation is initialized.  This
+     is a weak variable, so it can be overridden in the application
+     with a definition like the following:
+
+          void (*__MALLOC_INITIALIZE_HOOK) (void) = my_init_hook;
+
+   An issue to look out for is the time at which the malloc hook
+functions can be safely installed.  If the hook functions call the
+malloc-related functions recursively, it is necessary that malloc has
+already properly initialized itself at the time when `__malloc_hook'
+etc. is assigned to.  On the other hand, if the hook functions provide a
+complete malloc implementation of their own, it is vital that the hooks
+are assigned to _before_ the very first `malloc' call has completed,
+because otherwise a chunk obtained from the ordinary, un-hooked malloc
+may later be handed to `__free_hook', for example.
+
+   In both cases, the problem can be solved by setting up the hooks from
+within a user-defined function pointed to by
+`__malloc_initialize_hook'--then the hooks will be set up safely at the
+right time.
+
+   Here is an example showing how to use `__malloc_hook' and
+`__free_hook' properly.  It installs a function that prints out
+information every time `malloc' or `free' is called.  We just assume
+here that `realloc' and `memalign' are not used in our program.
+
+     /* Prototypes for __malloc_hook, __free_hook */
+     #include <malloc.h>
+     
+     /* Prototypes for our hooks.  */
+     static void *my_init_hook (void);
+     static void *my_malloc_hook (size_t, const void *);
+     static void my_free_hook (void*, const void *);
+     
+     /* Override initializing hook from the C library. */
+     void (*__malloc_initialize_hook) (void) = my_init_hook;
+     
+     static void
+     my_init_hook (void)
+     {
+       old_malloc_hook = __malloc_hook;
+       old_free_hook = __free_hook;
+       __malloc_hook = my_malloc_hook;
+       __free_hook = my_free_hook;
+     }
+     
+     static void *
+     my_malloc_hook (size_t size, const void *caller)
+     {
+       void *result;
+       /* Restore all old hooks */
+       __malloc_hook = old_malloc_hook;
+       __free_hook = old_free_hook;
+       /* Call recursively */
+       result = malloc (size);
+       /* Save underlaying hooks */
+       old_malloc_hook = __malloc_hook;
+       old_free_hook = __free_hook;
+       /* `printf' might call `malloc', so protect it too. */
+       printf ("malloc (%u) returns %p\n", (unsigned int) size, result);
+       /* Restore our own hooks */
+       __malloc_hook = my_malloc_hook;
+       __free_hook = my_free_hook;
+       return result;
+     }
+     
+     static void *
+     my_free_hook (void *ptr, const void *caller)
+     {
+       /* Restore all old hooks */
+       __malloc_hook = old_malloc_hook;
+       __free_hook = old_free_hook;
+       /* Call recursively */
+       free (ptr);
+       /* Save underlaying hooks */
+       old_malloc_hook = __malloc_hook;
+       old_free_hook = __free_hook;
+       /* `printf' might call `free', so protect it too. */
+       printf ("freed pointer %p\n", ptr);
+       /* Restore our own hooks */
+       __malloc_hook = my_malloc_hook;
+       __free_hook = my_free_hook;
+     }
+     
+     main ()
+     {
+       ...
+     }
+
+   The `mcheck' function (*note Heap Consistency Checking::) works by
+installing such hooks.
+
+
+File: libc.info,  Node: Statistics of Malloc,  Next: Summary of Malloc,  Prev: Hooks for Malloc,  Up: Unconstrained Allocation
+
+Statistics for Memory Allocation with `malloc'
+..............................................
+
+   You can get information about dynamic memory allocation by calling
+the `mallinfo' function.  This function and its associated data type
+are declared in `malloc.h'; they are an extension of the standard
+SVID/XPG version.
+
+ - Data Type: struct mallinfo
+     This structure type is used to return information about the dynamic
+     memory allocator.  It contains the following members:
+
+    `int arena'
+          This is the total size of memory allocated with `sbrk' by
+          `malloc', in bytes.
+
+    `int ordblks'
+          This is the number of chunks not in use.  (The memory
+          allocator internally gets chunks of memory from the operating
+          system, and then carves them up to satisfy individual
+          `malloc' requests; see *Note Efficiency and Malloc::.)
+
+    `int smblks'
+          This field is unused.
+
+    `int hblks'
+          This is the total number of chunks allocated with `mmap'.
+
+    `int hblkhd'
+          This is the total size of memory allocated with `mmap', in
+          bytes.
+
+    `int usmblks'
+          This field is unused.
+
+    `int fsmblks'
+          This field is unused.
+
+    `int uordblks'
+          This is the total size of memory occupied by chunks handed
+          out by `malloc'.
+
+    `int fordblks'
+          This is the total size of memory occupied by free (not in
+          use) chunks.
+
+    `int keepcost'
+          This is the size of the top-most releasable chunk that
+          normally borders the end of the heap (i.e. the high end of
+          the virtual address space's data segment).
+
+
+ - Function: struct mallinfo mallinfo (void)
+     This function returns information about the current dynamic memory
+     usage in a structure of type `struct mallinfo'.
+
+
+File: libc.info,  Node: Summary of Malloc,  Prev: Statistics of Malloc,  Up: Unconstrained Allocation
+
+Summary of `malloc'-Related Functions
+.....................................
+
+   Here is a summary of the functions that work with `malloc':
+
+`void *malloc (size_t SIZE)'
+     Allocate a block of SIZE bytes.  *Note Basic Allocation::.
+
+`void free (void *ADDR)'
+     Free a block previously allocated by `malloc'.  *Note Freeing
+     after Malloc::.
+
+`void *realloc (void *ADDR, size_t SIZE)'
+     Make a block previously allocated by `malloc' larger or smaller,
+     possibly by copying it to a new location.  *Note Changing Block
+     Size::.
+
+`void *calloc (size_t COUNT, size_t ELTSIZE)'
+     Allocate a block of COUNT * ELTSIZE bytes using `malloc', and set
+     its contents to zero.  *Note Allocating Cleared Space::.
+
+`void *valloc (size_t SIZE)'
+     Allocate a block of SIZE bytes, starting on a page boundary.
+     *Note Aligned Memory Blocks::.
+
+`void *memalign (size_t SIZE, size_t BOUNDARY)'
+     Allocate a block of SIZE bytes, starting on an address that is a
+     multiple of BOUNDARY.  *Note Aligned Memory Blocks::.
+
+`int mallopt (int PARAM, int VALUE)'
+     Adjust a tunable parameter.  *Note Malloc Tunable Parameters::.
+
+`int mcheck (void (*ABORTFN) (void))'
+     Tell `malloc' to perform occasional consistency checks on
+     dynamically allocated memory, and to call ABORTFN when an
+     inconsistency is found.  *Note Heap Consistency Checking::.
+
+`void *(*__malloc_hook) (size_t SIZE, const void *CALLER)'
+     A pointer to a function that `malloc' uses whenever it is called.
+
+`void *(*__realloc_hook) (void *PTR, size_t SIZE, const void *CALLER)'
+     A pointer to a function that `realloc' uses whenever it is called.
+
+`void (*__free_hook) (void *PTR, const void *CALLER)'
+     A pointer to a function that `free' uses whenever it is called.
+
+`void (*__memalign_hook) (size_t SIZE, size_t ALIGNMENT, const void *CALLER)'
+     A pointer to a function that `memalign' uses whenever it is called.
+
+`struct mallinfo mallinfo (void)'
+     Return information about the current dynamic memory usage.  *Note
+     Statistics of Malloc::.
+
+
+File: libc.info,  Node: Allocation Debugging,  Next: Obstacks,  Prev: Unconstrained Allocation,  Up: Memory Allocation
+
+Allocation Debugging
+--------------------
+
+   A complicated task when programming with languages which do not use
+garbage collected dynamic memory allocation is to find memory leaks.
+Long running programs must assure that dynamically allocated objects are
+freed at the end of their lifetime.  If this does not happen the system
+runs out of memory, sooner or later.
+
+   The `malloc' implementation in the GNU C library provides some
+simple means to detect such leaks and obtain some information to find
+the location.  To do this the application must be started in a special
+mode which is enabled by an environment variable.  There are no speed
+penalties for the program if the debugging mode is not enabled.
+
+* Menu:
+
+* Tracing malloc::               How to install the tracing functionality.
+* Using the Memory Debugger::    Example programs excerpts.
+* Tips for the Memory Debugger:: Some more or less clever ideas.
+* Interpreting the traces::      What do all these lines mean?
+
+
+File: libc.info,  Node: Tracing malloc,  Next: Using the Memory Debugger,  Up: Allocation Debugging
+
+How to install the tracing functionality
+........................................
+
+ - Function: void mtrace (void)
+     When the `mtrace' function is called it looks for an environment
+     variable named `MALLOC_TRACE'.  This variable is supposed to
+     contain a valid file name.  The user must have write access.  If
+     the file already exists it is truncated.  If the environment
+     variable is not set or it does not name a valid file which can be
+     opened for writing nothing is done.  The behaviour of `malloc'
+     etc. is not changed.  For obvious reasons this also happens if the
+     application is installed with the SUID or SGID bit set.
+
+     If the named file is successfully opened, `mtrace' installs special
+     handlers for the functions `malloc', `realloc', and `free' (*note
+     Hooks for Malloc::).  From then on, all uses of these functions
+     are traced and protocolled into the file.  There is now of course
+     a speed penalty for all calls to the traced functions so tracing
+     should not be enabled during normal use.
+
+     This function is a GNU extension and generally not available on
+     other systems.  The prototype can be found in `mcheck.h'.
+
+ - Function: void muntrace (void)
+     The `muntrace' function can be called after `mtrace' was used to
+     enable tracing the `malloc' calls.  If no (succesful) call of
+     `mtrace' was made `muntrace' does nothing.
+
+     Otherwise it deinstalls the handlers for `malloc', `realloc', and
+     `free' and then closes the protocol file.  No calls are
+     protocolled anymore and the program runs again at full speed.
+
+     This function is a GNU extension and generally not available on
+     other systems.  The prototype can be found in `mcheck.h'.
+
+
+File: libc.info,  Node: Using the Memory Debugger,  Next: Tips for the Memory Debugger,  Prev: Tracing malloc,  Up: Allocation Debugging
+
+Example program excerpts
+........................
+
+   Even though the tracing functionality does not influence the runtime
+behaviour of the program it is not a good idea to call `mtrace' in all
+programs.  Just imagine that you debug a program using `mtrace' and all
+other programs used in the debugging session also trace their `malloc'
+calls.  The output file would be the same for all programs and thus is
+unusable.  Therefore one should call `mtrace' only if compiled for
+debugging.  A program could therefore start like this:
+
+     #include <mcheck.h>
+     
+     int
+     main (int argc, char *argv[])
+     {
+     #ifdef DEBUGGING
+       mtrace ();
+     #endif
+       ...
+     }
+
+   This is all what is needed if you want to trace the calls during the
+whole runtime of the program.  Alternatively you can stop the tracing at
+any time with a call to `muntrace'.  It is even possible to restart the
+tracing again with a new call to `mtrace'.  But this can cause
+unreliable results since there may be calls of the functions which are
+not called.  Please note that not only the application uses the traced
+functions, also libraries (including the C library itself) use these
+functions.
+
+   This last point is also why it is no good idea to call `muntrace'
+before the program terminated.  The libraries are informed about the
+termination of the program only after the program returns from `main'
+or calls `exit' and so cannot free the memory they use before this time.
+
+   So the best thing one can do is to call `mtrace' as the very first
+function in the program and never call `muntrace'.  So the program
+traces almost all uses of the `malloc' functions (except those calls
+which are executed by constructors of the program or used libraries).
+
+
+File: libc.info,  Node: Tips for the Memory Debugger,  Next: Interpreting the traces,  Prev: Using the Memory Debugger,  Up: Allocation Debugging
+
+Some more or less clever ideas
+..............................
+
+   You know the situation.  The program is prepared for debugging and in
+all debugging sessions it runs well.  But once it is started without
+debugging the error shows up.  A typical example is a memory leak that
+becomes visible only when we turn off the debugging.  If you foresee
+such situations you can still win.  Simply use something equivalent to
+the following little program:
+
+     #include <mcheck.h>
+     #include <signal.h>
+     
+     static void
+     enable (int sig)
+     {
+       mtrace ();
+       signal (SIGUSR1, enable);
+     }
+     
+     static void
+     disable (int sig)
+     {
+       muntrace ();
+       signal (SIGUSR2, disable);
+     }
+     
+     int
+     main (int argc, char *argv[])
+     {
+       ...
+     
+       signal (SIGUSR1, enable);
+       signal (SIGUSR2, disable);
+     
+       ...
+     }
+
+   I.e., the user can start the memory debugger any time s/he wants if
+the program was started with `MALLOC_TRACE' set in the environment.
+The output will of course not show the allocations which happened before
+the first signal but if there is a memory leak this will show up
+nevertheless.
+
+
+File: libc.info,  Node: Interpreting the traces,  Prev: Tips for the Memory Debugger,  Up: Allocation Debugging
+
+Interpreting the traces
+.......................
+
+   If you take a look at the output it will look similar to this:
+
+     = Start
+      [0x8048209] - 0x8064cc8
+      [0x8048209] - 0x8064ce0
+      [0x8048209] - 0x8064cf8
+      [0x80481eb] + 0x8064c48 0x14
+      [0x80481eb] + 0x8064c60 0x14
+      [0x80481eb] + 0x8064c78 0x14
+      [0x80481eb] + 0x8064c90 0x14
+     = End
+
+   What this all means is not really important since the trace file is
+not meant to be read by a human.  Therefore no attention is given to
+readability.  Instead there is a program which comes with the GNU C
+library which interprets the traces and outputs a summary in an
+user-friendly way.  The program is called `mtrace' (it is in fact a
+Perl script) and it takes one or two arguments.  In any case the name of
+the file with the trace output must be specified.  If an optional
+argument precedes the name of the trace file this must be the name of
+the program which generated the trace.
+
+     drepper$ mtrace tst-mtrace log
+     No memory leaks.
+
+   In this case the program `tst-mtrace' was run and it produced a
+trace file `log'.  The message printed by `mtrace' shows there are no
+problems with the code, all allocated memory was freed afterwards.
+
+   If we call `mtrace' on the example trace given above we would get a
+different outout:
+
+     drepper$ mtrace errlog
+     - 0x08064cc8 Free 2 was never alloc'd 0x8048209
+     - 0x08064ce0 Free 3 was never alloc'd 0x8048209
+     - 0x08064cf8 Free 4 was never alloc'd 0x8048209
+     
+     Memory not freed:
+     -----------------
+        Address     Size     Caller
+     0x08064c48     0x14  at 0x80481eb
+     0x08064c60     0x14  at 0x80481eb
+     0x08064c78     0x14  at 0x80481eb
+     0x08064c90     0x14  at 0x80481eb
+
+   We have called `mtrace' with only one argument and so the script has
+no chance to find out what is meant with the addresses given in the
+trace.  We can do better:
+
+     drepper$ mtrace tst errlog
+     - 0x08064cc8 Free 2 was never alloc'd /home/drepper/tst.c:39
+     - 0x08064ce0 Free 3 was never alloc'd /home/drepper/tst.c:39
+     - 0x08064cf8 Free 4 was never alloc'd /home/drepper/tst.c:39
+     
+     Memory not freed:
+     -----------------
+        Address     Size     Caller
+     0x08064c48     0x14  at /home/drepper/tst.c:33
+     0x08064c60     0x14  at /home/drepper/tst.c:33
+     0x08064c78     0x14  at /home/drepper/tst.c:33
+     0x08064c90     0x14  at /home/drepper/tst.c:33
+
+   Suddenly the output makes much more sense and the user can see
+immediately where the function calls causing the trouble can be found.
+
+   Interpreting this output is not complicated.  There are at most two
+different situations being detected.  First, `free' was called for
+pointers which were never returned by one of the allocation functions.
+This is usually a very bad problem and what this looks like is shown in
+the first three lines of the output.  Situations like this are quite
+rare and if they appear they show up very drastically: the program
+normally crashes.
+
+   The other situation which is much harder to detect are memory leaks.
+As you can see in the output the `mtrace' function collects all this
+information and so can say that the program calls an allocation function
+from line 33 in the source file `/home/drepper/tst-mtrace.c' four times
+without freeing this memory before the program terminates.  Whether
+this is a real problem remains to be investigated.
+
+
+File: libc.info,  Node: Obstacks,  Next: Variable Size Automatic,  Prev: Allocation Debugging,  Up: Memory Allocation
+
+Obstacks
+--------
+
+   An "obstack" is a pool of memory containing a stack of objects.  You
+can create any number of separate obstacks, and then allocate objects in
+specified obstacks.  Within each obstack, the last object allocated must
+always be the first one freed, but distinct obstacks are independent of
+each other.
+
+   Aside from this one constraint of order of freeing, obstacks are
+totally general: an obstack can contain any number of objects of any
+size.  They are implemented with macros, so allocation is usually very
+fast as long as the objects are usually small.  And the only space
+overhead per object is the padding needed to start each object on a
+suitable boundary.
+
+* Menu:
+
+* Creating Obstacks::		How to declare an obstack in your program.
+* Preparing for Obstacks::	Preparations needed before you can
+				 use obstacks.
+* Allocation in an Obstack::    Allocating objects in an obstack.
+* Freeing Obstack Objects::     Freeing objects in an obstack.
+* Obstack Functions::		The obstack functions are both
+				 functions and macros.
+* Growing Objects::             Making an object bigger by stages.
+* Extra Fast Growing::		Extra-high-efficiency (though more
+				 complicated) growing objects.
+* Status of an Obstack::        Inquiries about the status of an obstack.
+* Obstacks Data Alignment::     Controlling alignment of objects in obstacks.
+* Obstack Chunks::              How obstacks obtain and release chunks;
+				 efficiency considerations.
+* Summary of Obstacks::
+
+
+File: libc.info,  Node: Creating Obstacks,  Next: Preparing for Obstacks,  Up: Obstacks
+
+Creating Obstacks
+.................
+
+   The utilities for manipulating obstacks are declared in the header
+file `obstack.h'.
+
+ - Data Type: struct obstack
+     An obstack is represented by a data structure of type `struct
+     obstack'.  This structure has a small fixed size; it records the
+     status of the obstack and how to find the space in which objects
+     are allocated.  It does not contain any of the objects themselves.
+     You should not try to access the contents of the structure
+     directly; use only the functions described in this chapter.
+
+   You can declare variables of type `struct obstack' and use them as
+obstacks, or you can allocate obstacks dynamically like any other kind
+of object.  Dynamic allocation of obstacks allows your program to have a
+variable number of different stacks.  (You can even allocate an obstack
+structure in another obstack, but this is rarely useful.)
+
+   All the functions that work with obstacks require you to specify
+which obstack to use.  You do this with a pointer of type `struct
+obstack *'.  In the following, we often say "an obstack" when strictly
+speaking the object at hand is such a pointer.
+
+   The objects in the obstack are packed into large blocks called
+"chunks".  The `struct obstack' structure points to a chain of the
+chunks currently in use.
+
+   The obstack library obtains a new chunk whenever you allocate an
+object that won't fit in the previous chunk.  Since the obstack library
+manages chunks automatically, you don't need to pay much attention to
+them, but you do need to supply a function which the obstack library
+should use to get a chunk.  Usually you supply a function which uses
+`malloc' directly or indirectly.  You must also supply a function to
+free a chunk.  These matters are described in the following section.
+
+
+File: libc.info,  Node: Preparing for Obstacks,  Next: Allocation in an Obstack,  Prev: Creating Obstacks,  Up: Obstacks
+
+Preparing for Using Obstacks
+............................
+
+   Each source file in which you plan to use the obstack functions must
+include the header file `obstack.h', like this:
+
+     #include <obstack.h>
+
+   Also, if the source file uses the macro `obstack_init', it must
+declare or define two functions or macros that will be called by the
+obstack library.  One, `obstack_chunk_alloc', is used to allocate the
+chunks of memory into which objects are packed.  The other,
+`obstack_chunk_free', is used to return chunks when the objects in them
+are freed.  These macros should appear before any use of obstacks in
+the source file.
+
+   Usually these are defined to use `malloc' via the intermediary
+`xmalloc' (*note Unconstrained Allocation::).  This is done with the
+following pair of macro definitions:
+
+     #define obstack_chunk_alloc xmalloc
+     #define obstack_chunk_free free
+
+Though the memory you get using obstacks really comes from `malloc',
+using obstacks is faster because `malloc' is called less often, for
+larger blocks of memory.  *Note Obstack Chunks::, for full details.
+
+   At run time, before the program can use a `struct obstack' object as
+an obstack, it must initialize the obstack by calling `obstack_init'.
+
+ - Function: int obstack_init (struct obstack *OBSTACK-PTR)
+     Initialize obstack OBSTACK-PTR for allocation of objects.  This
+     function calls the obstack's `obstack_chunk_alloc' function.  If
+     allocation of memory fails, the function pointed to by
+     `obstack_alloc_failed_handler' is called.  The `obstack_init'
+     function always returns 1 (Compatibility notice: Former versions of
+     obstack returned 0 if allocation failed).
+
+   Here are two examples of how to allocate the space for an obstack and
+initialize it.  First, an obstack that is a static variable:
+
+     static struct obstack myobstack;
+     ...
+     obstack_init (&myobstack);
+
+Second, an obstack that is itself dynamically allocated:
+
+     struct obstack *myobstack_ptr
+       = (struct obstack *) xmalloc (sizeof (struct obstack));
+     
+     obstack_init (myobstack_ptr);
+
+ - Variable: obstack_alloc_failed_handler
+     The value of this variable is a pointer to a function that
+     `obstack' uses when `obstack_chunk_alloc' fails to allocate
+     memory.  The default action is to print a message and abort.  You
+     should supply a function that either calls `exit' (*note Program
+     Termination::) or `longjmp' (*note Non-Local Exits::) and doesn't
+     return.
+
+          void my_obstack_alloc_failed (void)
+          ...
+          obstack_alloc_failed_handler = &my_obstack_alloc_failed;
+
+
+
+File: libc.info,  Node: Allocation in an Obstack,  Next: Freeing Obstack Objects,  Prev: Preparing for Obstacks,  Up: Obstacks
+
+Allocation in an Obstack
+........................
+
+   The most direct way to allocate an object in an obstack is with
+`obstack_alloc', which is invoked almost like `malloc'.
+
+ - Function: void * obstack_alloc (struct obstack *OBSTACK-PTR, int
+          SIZE)
+     This allocates an uninitialized block of SIZE bytes in an obstack
+     and returns its address.  Here OBSTACK-PTR specifies which obstack
+     to allocate the block in; it is the address of the `struct obstack'
+     object which represents the obstack.  Each obstack function or
+     macro requires you to specify an OBSTACK-PTR as the first argument.
+
+     This function calls the obstack's `obstack_chunk_alloc' function if
+     it needs to allocate a new chunk of memory; it calls
+     `obstack_alloc_failed_handler' if allocation of memory by
+     `obstack_chunk_alloc' failed.
+
+   For example, here is a function that allocates a copy of a string STR
+in a specific obstack, which is in the variable `string_obstack':
+
+     struct obstack string_obstack;
+     
+     char *
+     copystring (char *string)
+     {
+       size_t len = strlen (string) + 1;
+       char *s = (char *) obstack_alloc (&string_obstack, len);
+       memcpy (s, string, len);
+       return s;
+     }
+
+   To allocate a block with specified contents, use the function
+`obstack_copy', declared like this:
+
+ - Function: void * obstack_copy (struct obstack *OBSTACK-PTR, void
+          *ADDRESS, int SIZE)
+     This allocates a block and initializes it by copying SIZE bytes of
+     data starting at ADDRESS.  It calls `obstack_alloc_failed_handler'
+     if allocation of memory by `obstack_chunk_alloc' failed.
+
+ - Function: void * obstack_copy0 (struct obstack *OBSTACK-PTR, void
+          *ADDRESS, int SIZE)
+     Like `obstack_copy', but appends an extra byte containing a null
+     character.  This extra byte is not counted in the argument SIZE.
+
+   The `obstack_copy0' function is convenient for copying a sequence of
+characters into an obstack as a null-terminated string.  Here is an
+example of its use:
+
+     char *
+     obstack_savestring (char *addr, int size)
+     {
+       return obstack_copy0 (&myobstack, addr, size);
+     }
+
+Contrast this with the previous example of `savestring' using `malloc'
+(*note Basic Allocation::).
+
+
+File: libc.info,  Node: Freeing Obstack Objects,  Next: Obstack Functions,  Prev: Allocation in an Obstack,  Up: Obstacks
+
+Freeing Objects in an Obstack
+.............................
+
+   To free an object allocated in an obstack, use the function
+`obstack_free'.  Since the obstack is a stack of objects, freeing one
+object automatically frees all other objects allocated more recently in
+the same obstack.
+
+ - Function: void obstack_free (struct obstack *OBSTACK-PTR, void
+          *OBJECT)
+     If OBJECT is a null pointer, everything allocated in the obstack
+     is freed.  Otherwise, OBJECT must be the address of an object
+     allocated in the obstack.  Then OBJECT is freed, along with
+     everything allocated in OBSTACK since OBJECT.
+
+   Note that if OBJECT is a null pointer, the result is an
+uninitialized obstack.  To free all memory in an obstack but leave it
+valid for further allocation, call `obstack_free' with the address of
+the first object allocated on the obstack:
+
+     obstack_free (obstack_ptr, first_object_allocated_ptr);
+
+   Recall that the objects in an obstack are grouped into chunks.  When
+all the objects in a chunk become free, the obstack library
+automatically frees the chunk (*note Preparing for Obstacks::).  Then
+other obstacks, or non-obstack allocation, can reuse the space of the
+chunk.
+
+
+File: libc.info,  Node: Obstack Functions,  Next: Growing Objects,  Prev: Freeing Obstack Objects,  Up: Obstacks
+
+Obstack Functions and Macros
+............................
+
+   The interfaces for using obstacks may be defined either as functions
+or as macros, depending on the compiler.  The obstack facility works
+with all C compilers, including both ISO C and traditional C, but there
+are precautions you must take if you plan to use compilers other than
+GNU C.
+
+   If you are using an old-fashioned non-ISO C compiler, all the obstack
+"functions" are actually defined only as macros.  You can call these
+macros like functions, but you cannot use them in any other way (for
+example, you cannot take their address).
+
+   Calling the macros requires a special precaution: namely, the first
+operand (the obstack pointer) may not contain any side effects, because
+it may be computed more than once.  For example, if you write this:
+
+     obstack_alloc (get_obstack (), 4);
+
+you will find that `get_obstack' may be called several times.  If you
+use `*obstack_list_ptr++' as the obstack pointer argument, you will get
+very strange results since the incrementation may occur several times.
+
+   In ISO C, each function has both a macro definition and a function
+definition.  The function definition is used if you take the address of
+the function without calling it.  An ordinary call uses the macro
+definition by default, but you can request the function definition
+instead by writing the function name in parentheses, as shown here:
+
+     char *x;
+     void *(*funcp) ();
+     /* Use the macro.  */
+     x = (char *) obstack_alloc (obptr, size);
+     /* Call the function.  */
+     x = (char *) (obstack_alloc) (obptr, size);
+     /* Take the address of the function.  */
+     funcp = obstack_alloc;
+
+This is the same situation that exists in ISO C for the standard library
+functions.  *Note Macro Definitions::.
+
+   *Warning:* When you do use the macros, you must observe the
+precaution of avoiding side effects in the first operand, even in ISO C.
+
+   If you use the GNU C compiler, this precaution is not necessary,
+because various language extensions in GNU C permit defining the macros
+so as to compute each argument only once.
+
+
+File: libc.info,  Node: Growing Objects,  Next: Extra Fast Growing,  Prev: Obstack Functions,  Up: Obstacks
+
+Growing Objects
+...............
+
+   Because memory in obstack chunks is used sequentially, it is
+possible to build up an object step by step, adding one or more bytes
+at a time to the end of the object.  With this technique, you do not
+need to know how much data you will put in the object until you come to
+the end of it.  We call this the technique of "growing objects".  The
+special functions for adding data to the growing object are described
+in this section.
+
+   You don't need to do anything special when you start to grow an
+object.  Using one of the functions to add data to the object
+automatically starts it.  However, it is necessary to say explicitly
+when the object is finished.  This is done with the function
+`obstack_finish'.
+
+   The actual address of the object thus built up is not known until the
+object is finished.  Until then, it always remains possible that you
+will add so much data that the object must be copied into a new chunk.
+
+   While the obstack is in use for a growing object, you cannot use it
+for ordinary allocation of another object.  If you try to do so, the
+space already added to the growing object will become part of the other
+object.
+
+ - Function: void obstack_blank (struct obstack *OBSTACK-PTR, int SIZE)
+     The most basic function for adding to a growing object is
+     `obstack_blank', which adds space without initializing it.
+
+ - Function: void obstack_grow (struct obstack *OBSTACK-PTR, void
+          *DATA, int SIZE)
+     To add a block of initialized space, use `obstack_grow', which is
+     the growing-object analogue of `obstack_copy'.  It adds SIZE bytes
+     of data to the growing object, copying the contents from DATA.
+
+ - Function: void obstack_grow0 (struct obstack *OBSTACK-PTR, void
+          *DATA, int SIZE)
+     This is the growing-object analogue of `obstack_copy0'.  It adds
+     SIZE bytes copied from DATA, followed by an additional null
+     character.
+
+ - Function: void obstack_1grow (struct obstack *OBSTACK-PTR, char C)
+     To add one character at a time, use the function `obstack_1grow'.
+     It adds a single byte containing C to the growing object.
+
+ - Function: void obstack_ptr_grow (struct obstack *OBSTACK-PTR, void
+          *DATA)
+     Adding the value of a pointer one can use the function
+     `obstack_ptr_grow'.  It adds `sizeof (void *)' bytes containing
+     the value of DATA.
+
+ - Function: void obstack_int_grow (struct obstack *OBSTACK-PTR, int
+          DATA)
+     A single value of type `int' can be added by using the
+     `obstack_int_grow' function.  It adds `sizeof (int)' bytes to the
+     growing object and initializes them with the value of DATA.
+
+ - Function: void * obstack_finish (struct obstack *OBSTACK-PTR)
+     When you are finished growing the object, use the function
+     `obstack_finish' to close it off and return its final address.
+
+     Once you have finished the object, the obstack is available for
+     ordinary allocation or for growing another object.
+
+     This function can return a null pointer under the same conditions
+     as `obstack_alloc' (*note Allocation in an Obstack::).
+
+   When you build an object by growing it, you will probably need to
+know afterward how long it became.  You need not keep track of this as
+you grow the object, because you can find out the length from the
+obstack just before finishing the object with the function
+`obstack_object_size', declared as follows:
+
+ - Function: int obstack_object_size (struct obstack *OBSTACK-PTR)
+     This function returns the current size of the growing object, in
+     bytes.  Remember to call this function _before_ finishing the
+     object.  After it is finished, `obstack_object_size' will return
+     zero.
+
+   If you have started growing an object and wish to cancel it, you
+should finish it and then free it, like this:
+
+     obstack_free (obstack_ptr, obstack_finish (obstack_ptr));
+
+This has no effect if no object was growing.
+
+   You can use `obstack_blank' with a negative size argument to make
+the current object smaller.  Just don't try to shrink it beyond zero
+length--there's no telling what will happen if you do that.
+
+
+File: libc.info,  Node: Extra Fast Growing,  Next: Status of an Obstack,  Prev: Growing Objects,  Up: Obstacks
+
+Extra Fast Growing Objects
+..........................
+
+   The usual functions for growing objects incur overhead for checking
+whether there is room for the new growth in the current chunk.  If you
+are frequently constructing objects in small steps of growth, this
+overhead can be significant.
+
+   You can reduce the overhead by using special "fast growth" functions
+that grow the object without checking.  In order to have a robust
+program, you must do the checking yourself.  If you do this checking in
+the simplest way each time you are about to add data to the object, you
+have not saved anything, because that is what the ordinary growth
+functions do.  But if you can arrange to check less often, or check
+more efficiently, then you make the program faster.
+
+   The function `obstack_room' returns the amount of room available in
+the current chunk.  It is declared as follows:
+
+ - Function: int obstack_room (struct obstack *OBSTACK-PTR)
+     This returns the number of bytes that can be added safely to the
+     current growing object (or to an object about to be started) in
+     obstack OBSTACK using the fast growth functions.
+
+   While you know there is room, you can use these fast growth functions
+for adding data to a growing object:
+
+ - Function: void obstack_1grow_fast (struct obstack *OBSTACK-PTR, char
+          C)
+     The function `obstack_1grow_fast' adds one byte containing the
+     character C to the growing object in obstack OBSTACK-PTR.
+
+ - Function: void obstack_ptr_grow_fast (struct obstack *OBSTACK-PTR,
+          void *DATA)
+     The function `obstack_ptr_grow_fast' adds `sizeof (void *)' bytes
+     containing the value of DATA to the growing object in obstack
+     OBSTACK-PTR.
+
+ - Function: void obstack_int_grow_fast (struct obstack *OBSTACK-PTR,
+          int DATA)
+     The function `obstack_int_grow_fast' adds `sizeof (int)' bytes
+     containing the value of DATA to the growing object in obstack
+     OBSTACK-PTR.
+
+ - Function: void obstack_blank_fast (struct obstack *OBSTACK-PTR, int
+          SIZE)
+     The function `obstack_blank_fast' adds SIZE bytes to the growing
+     object in obstack OBSTACK-PTR without initializing them.
+
+   When you check for space using `obstack_room' and there is not
+enough room for what you want to add, the fast growth functions are not
+safe.  In this case, simply use the corresponding ordinary growth
+function instead.  Very soon this will copy the object to a new chunk;
+then there will be lots of room available again.
+
+   So, each time you use an ordinary growth function, check afterward
+for sufficient space using `obstack_room'.  Once the object is copied
+to a new chunk, there will be plenty of space again, so the program will
+start using the fast growth functions again.
+
+   Here is an example:
+
+     void
+     add_string (struct obstack *obstack, const char *ptr, int len)
+     {
+       while (len > 0)
+         {
+           int room = obstack_room (obstack);
+           if (room == 0)
+             {
+               /* Not enough room. Add one character slowly,
+                  which may copy to a new chunk and make room.  */
+               obstack_1grow (obstack, *ptr++);
+               len--;
+             }
+           else
+             {
+               if (room > len)
+                 room = len;
+               /* Add fast as much as we have room for. */
+               len -= room;
+               while (room-- > 0)
+                 obstack_1grow_fast (obstack, *ptr++);
+             }
+         }
+     }
+
+
+File: libc.info,  Node: Status of an Obstack,  Next: Obstacks Data Alignment,  Prev: Extra Fast Growing,  Up: Obstacks
+
+Status of an Obstack
+....................
+
+   Here are functions that provide information on the current status of
+allocation in an obstack.  You can use them to learn about an object
+while still growing it.
+
+ - Function: void * obstack_base (struct obstack *OBSTACK-PTR)
+     This function returns the tentative address of the beginning of the
+     currently growing object in OBSTACK-PTR.  If you finish the object
+     immediately, it will have that address.  If you make it larger
+     first, it may outgrow the current chunk--then its address will
+     change!
+
+     If no object is growing, this value says where the next object you
+     allocate will start (once again assuming it fits in the current
+     chunk).
+
+ - Function: void * obstack_next_free (struct obstack *OBSTACK-PTR)
+     This function returns the address of the first free byte in the
+     current chunk of obstack OBSTACK-PTR.  This is the end of the
+     currently growing object.  If no object is growing,
+     `obstack_next_free' returns the same value as `obstack_base'.
+
+ - Function: int obstack_object_size (struct obstack *OBSTACK-PTR)
+     This function returns the size in bytes of the currently growing
+     object.  This is equivalent to
+
+          obstack_next_free (OBSTACK-PTR) - obstack_base (OBSTACK-PTR)
+
+
+File: libc.info,  Node: Obstacks Data Alignment,  Next: Obstack Chunks,  Prev: Status of an Obstack,  Up: Obstacks
+
+Alignment of Data in Obstacks
+.............................
+
+   Each obstack has an "alignment boundary"; each object allocated in
+the obstack automatically starts on an address that is a multiple of the
+specified boundary.  By default, this boundary is 4 bytes.
+
+   To access an obstack's alignment boundary, use the macro
+`obstack_alignment_mask', whose function prototype looks like this:
+
+ - Macro: int obstack_alignment_mask (struct obstack *OBSTACK-PTR)
+     The value is a bit mask; a bit that is 1 indicates that the
+     corresponding bit in the address of an object should be 0.  The
+     mask value should be one less than a power of 2; the effect is
+     that all object addresses are multiples of that power of 2.  The
+     default value of the mask is 3, so that addresses are multiples of
+     4.  A mask value of 0 means an object can start on any multiple of
+     1 (that is, no alignment is required).
+
+     The expansion of the macro `obstack_alignment_mask' is an lvalue,
+     so you can alter the mask by assignment.  For example, this
+     statement:
+
+          obstack_alignment_mask (obstack_ptr) = 0;
+
+     has the effect of turning off alignment processing in the
+     specified obstack.
+
+   Note that a change in alignment mask does not take effect until
+_after_ the next time an object is allocated or finished in the
+obstack.  If you are not growing an object, you can make the new
+alignment mask take effect immediately by calling `obstack_finish'.
+This will finish a zero-length object and then do proper alignment for
+the next object.
+
