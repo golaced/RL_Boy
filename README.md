@@ -120,38 +120,47 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 1. **Router Name:** Tinker-2.4G-ID Number, **Password:** 11111111.
 2. **HMI Host Computer Configuration for STM32 Board:** Connect the Core and Extcan circuit boards via USB, complete the motor reverse checkbox and motor type selection according to the configuration diagram, and each motor completes CAN_ID configuration through its own Dami host computer:
 
-| Left Leg        | Type    |STM32-Core CAN1|
-| Brushless Motor | Type    | CAN ID Number |
-| Deflection      | 6006    | 1             |
-| Side Exhibition | 8006    | 2             |
-| Thigh           | 8006    | 3             |
-| Calf            | 8006    | 4             |
-| Sole            | 6006    | 5             |
-| Waist           | 6006    | 6             |
-| Head Heading    | 3507    | 7             |
+### Left Leg (Type: STM32-Core CAN1)
 
-| Right Leg       | Type    | STM32-Core CAN2|
-| Brushless Motor | Type    | CAN ID Number |
-| Deflection      | 6006    | 1             |
-| Side Exhibition | 8006    | 2             |
-| Thigh           | 8006    | 3             |
-| Calf            | 8006    | 4             |
-| Sole            | 6006    | 5             |
+| Brushless Motor | Type | CAN ID Number |
+|-----------------|------|---------------|
+| Deflection      | 6006 | 1             |
+| Side Exhibition | 8006 | 2             |
+| Thigh           | 8006 | 3             |
+| Calf            | 8006 | 4             |
+| Sole            | 6006 | 5             |
+| Waist           | 6006 | 6             |
+| Head Heading    | 3507 | 7             |
 
-| Left Arm        | Type    | STM32-Core CAN1|
-| Brushless Motor | Type    | CAN ID Number |
-| Motor 1         | 3507    | 1             |
-| Motor 2         | 3507    | 2             |
-| Motor 3         | 3507    | 3             |
-| Motor 4         | 3507    | 4             |
+### Right Leg (Type: STM32-Core CAN2)
+
+| Brushless Motor | Type | CAN ID Number |
+|-----------------|------|---------------|
+| Deflection      | 6006 | 1             |
+| Side Exhibition | 8006 | 2             |
+| Thigh           | 8006 | 3             |
+| Calf            | 8006 | 4             |
+| Sole            | 6006 | 5             |
+
+### Left Arm (Type: STM32-Core CAN1)
+
+| Brushless Motor | Type | CAN ID Number |
+|-----------------|------|---------------|
+| Motor 1         | 3507 | 1             |
+| Motor 2         | 3507 | 2             |
+| Motor 3         | 3507 | 3             |
+| Motor 4         | 3507 | 4             |
+
+### Right Arm (Type: STM32-Core CAN2)
+
+| Brushless Motor | Type | CAN ID Number |
+|-----------------|------|---------------|
+| Motor 1         | 3507 | 1             |
+| Motor 2         | 3507 | 2             |
+| Motor 3         | 3507 | 3             |
+| Motor 4         | 3507 | 4             |
 
 
-| Right Arm       | Type    | STM32-Core CAN2|
-| Brushless Motor | Type    | CAN ID Number |
-| Motor 1         | 3507    | 1             |
-| Motor 2         | 3507    | 2             |
-| Motor 3         | 3507    | 3             |
-| Motor 4         | 3507    | 4             |
 Configure the core STM32 of the HMI interface as follows:
 
 <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/3.png?raw=true" ></td>
