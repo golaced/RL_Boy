@@ -1,5 +1,9 @@
 # Introduction to RL Boy Project
 
+Feishu Link：
+https://hcn64ij2s2xr.feishu.cn/wiki/EKkhwVXq4ip1C3ks36fc7MlInZg?from=from_copylink
+
+
 **RL-Boy Reinforcement Kid** is a small-sized open-source robot project and a full-stack open-source scaled-down humanoid robot project. Centered around running end-to-end reinforcement learning algorithms, it has 22 degrees of freedom, including waist, hands, and head. Among small-sized robots, it fully possesses the ability to run end-to-end reinforcement learning algorithms and imitation learning algorithms. Meanwhile, due to having upper limbs, it can also run open-source software packages related to VLA operations. Reinforcement Kid has a 1-degree-of-freedom head and an OLED screen, so it can display expressions well, and combined with AI models, it can implement dialogue and interactive actions.
 
 ## Features of the Reinforcement Kid:
@@ -12,7 +16,8 @@
 
 | **Degree of Freedom** | **Control System**       | **Reinforcement Learning**       | **Embodied Operation**       | **Facial Interaction**       | **Remote Control Operation**       |
 |-----------------------|--------------------------|----------------------------------|-----------------------------|------------------------------|------------------------------------|
-| 1 head                | Compatible with Raspberry Pi, Odroid, Coolpi, Chips such as RDK Sweet Potato | Open-source reinforcement learning algorithms support standing, stable walking, and accurate URDF, enabling Zero-Shot transfer | Can run upper limb operation algorithms and open-source typical small models such as ACT and DP | The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations | Provides a control device for an isomorphic dual-arm robot, enabling data acquisition of the robot's dual arms |
+| 1 head,1 at the waist,Single Arm 4 + 1,Gripper5 reps per leg| Compatible with Raspberry Pi, Odroid, Coolpi, Chips such as RDK Sweet Potato | Open-source reinforcement learning algorithms support standing, stable walking, and accurate URDF, enabling Zero-
+Shot transfer | Can run upper limb operation algorithms and open-source typical small models such as ACT and DP | The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations | Provides a control device for an isomorphic dual-arm robot, enabling data acquisition of the robot's dual arms |
 
 ## BOM List
 
@@ -159,19 +164,21 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 | Motor 3         | 3507    | 3             |
 | Motor 4         | 3507    | 4             |
 
+Configure the core STM32 of the HMI interface as follows:
+
  <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/3.png?raw=true" ></td>
 
-### Firmware Update:
-- **Date:** 2025/7/14
-- **Files:** `extcan.hex`, `extcan.hex`
+Configure the core ExtCan of the HMI interface as follows:
   
  <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/4.png?raw=true" ></td>
 
-### ODroid Control Software Package Update:
-- Update the software of the Odroid internal system via WinSCP.
-- Modify `rc.local` to ensure the correct operation of the self-starting script:
+3.Update STM32 firmware:
+2025/7/14
 
-```bash
+4.Update the firmware and parameters of the ODroid control software package: Update the software of the Odroid internal system via WinSCP
+5.Modify rc.local to ensure the correct operation of the self-starting script:
+
+bash
 sleep 5
 sudo /home/odroid/Tinker/hardware_task_tinker2 &
 sleep 1
@@ -179,3 +186,9 @@ sudo /home/odroid/Tinker/mission_task &
 sleep 1
 sudo /home/odroid/Tinker/navigation_task_tinker2 &
 sleep 1
+
+Hardware Wiring Diagram:
+ <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/5.png?raw=true" ></td>
+
+
+
