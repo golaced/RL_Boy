@@ -118,14 +118,10 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 
 ### Configuration Instructions:
 1. **Router Name:** Tinker-2.4G-ID Number, **Password:** 11111111.
-2. **HMI Host Computer Configuration for STM32 Board:** Connect the Core and Extcan circuit boards via USB, complete the motor reverse checkbox and motor type selection according to the configuration diagram, and each motor completes CAN_ID configuration through its own Dami host computer.
+2. **HMI Host Computer Configuration for STM32 Board:** Connect the Core and Extcan circuit boards via USB, complete the motor reverse checkbox and motor type selection according to the configuration diagram, and each motor completes CAN_ID configuration through its own Dami host computer:
 
-#### Motor Configuration Tables:
-
-**Left Leg (Type: STM32-Core CAN1)**
-
+| Left Leg        | Type    |STM32-Core CAN1|
 | Brushless Motor | Type    | CAN ID Number |
-|-----------------|---------|---------------|
 | Deflection      | 6006    | 1             |
 | Side Exhibition | 8006    | 2             |
 | Thigh           | 8006    | 3             |
@@ -134,48 +130,40 @@ The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and
 | Waist           | 6006    | 6             |
 | Head Heading    | 3507    | 7             |
 
-**Right Leg (Type: STM32-Core CAN2)**
-
+| Right Leg       | Type    | STM32-Core CAN2|
 | Brushless Motor | Type    | CAN ID Number |
-|-----------------|---------|---------------|
 | Deflection      | 6006    | 1             |
 | Side Exhibition | 8006    | 2             |
 | Thigh           | 8006    | 3             |
 | Calf            | 8006    | 4             |
 | Sole            | 6006    | 5             |
 
-**Left Arm (Type: STM32-Core CAN1)**
-
+| Left Arm        | Type    | STM32-Core CAN1|
 | Brushless Motor | Type    | CAN ID Number |
-|-----------------|---------|---------------|
 | Motor 1         | 3507    | 1             |
 | Motor 2         | 3507    | 2             |
 | Motor 3         | 3507    | 3             |
 | Motor 4         | 3507    | 4             |
 
-**Right Arm (Type: STM32-Core CAN2)**
 
+| Right Arm       | Type    | STM32-Core CAN2|
 | Brushless Motor | Type    | CAN ID Number |
-|-----------------|---------|---------------|
 | Motor 1         | 3507    | 1             |
 | Motor 2         | 3507    | 2             |
 | Motor 3         | 3507    | 3             |
 | Motor 4         | 3507    | 4             |
-
 Configure the core STM32 of the HMI interface as follows:
 
- <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/3.png?raw=true" ></td>
-
+<td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/3.png?raw=true" ></td>
 Configure the core ExtCan of the HMI interface as follows:
-  
- <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/4.png?raw=true" ></td>
-
+<td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/4.png?raw=true" ></td>
 3.Update STM32 firmware:
 2025/7/14
-
+[extcan.hex]
 4.Update the firmware and parameters of the ODroid control software package: Update the software of the Odroid internal system via WinSCP
 5.Modify rc.local to ensure the correct operation of the self-starting script:
 
+```
 bash
 sleep 5
 sudo /home/odroid/Tinker/hardware_task_tinker2 &
@@ -184,6 +172,7 @@ sudo /home/odroid/Tinker/mission_task &
 sleep 1
 sudo /home/odroid/Tinker/navigation_task_tinker2 &
 sleep 1
+```
 
 Hardware Wiring Diagram:
  <td> <img src="https://github.com/golaced/RL_Boy/blob/master/RL_Boy_image/5.png?raw=true" ></td>
