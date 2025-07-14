@@ -1,0 +1,192 @@
+Introduction to RL Boy Project
+RL-Boy Reinforcement Kid is a small-sized open-source robot project and a full-stack open-source scaled-down humanoid robot project. Centered around running end-to-end reinforcement learning algorithms, it has 22 degrees of freedom, including waist, hands, and head. Among small-sized robots, it fully possesses the ability to run end-to-end reinforcement learning algorithms and imitation learning algorithms. Meanwhile, due to having upper limbs, it can also run open-source software packages related to VLA operations. Reinforcement Kid has a 1-degree-of-freedom head and an OLED screen, so it can display expressions well, and combined with AI models, it can implement dialogue and interactive actions:
+Features of the Reinforcement Kid:
+1) Ultra-small size and high degree of freedom:  The enhanced small robot has 22 degrees of freedom, with a rotatable waist and head, but is only 55 cm tall; 
+2) End-to-end network drive: The reinforcement agent can implement the RL deep reinforcement learning algorithm, while the upper limb can implement operations by running the VLA model, thus realizing the development of the cerebellum-cerebrum fusion algorithm;
+3) Open source of whole-link power builder:  In addition to open-sourcing robot mechanical design and BOM diagram materials, the robot's upper and lower computer software, as well as the onnx model deployment framework, have been open-sourced. The model deployment framework is fully synchronized with isacc and sim2sim scripts; 
+4) Provide remote control equipment: Provide servo-based dual-arm remote control software that can meet the data acquisition requirements for controlling and supporting the upper limbs and waist of the robot;
+The basic performance of the Reinforcement Kid is: 
+Degree of Freedom
+1 head
+1 at the waist
+Single Arm 4 + 1 Gripper
+5 reps per leg	Control System
+Compatible with Raspberry Pi 
+Odroid
+Coolpi
+Chips such as RDK Sweet Potato	Reinforcement Learning 
+Open-source reinforcement learning algorithms support standing, stable walking, and accurate URDF, enabling Zero-Shot transfer	Embodied Operation
+can run upper limb operation algorithms and open-source typical small models such as ACT and DP 	Facial Interaction 
+The robot's face uses ESP32, which can run the AI Xiaozhi software to implement facial expressions and voice Agent conversations 	Remote Control Operation
+Provides a control device for an isomorphic dual-arm robot, enabling data acquisition of the robot's dual arms 
+The BOM of the Reinforcement Kid is mainly composed of 3D printing materials and carbon fiber sheets, which facilitates DIY and processing: 
+
+
+	
+BOM List: 
+Project	Attribute	Link	Unit Price RMB
+Router	Black 1 Network Port + PFC Antenna	https://item.taobao.com/item.htm?id=636099840850&spm=a1z10.1-c-s.w4004-22912785476.34.28113d0etvlbTQ	82
+Handle	100mm Spacing
+Curved	https://detail.tmall.com/item.htm?abbucket=3&id=649810911512&ns=1&priceTId=2147827817282246469278549e458c&skuId=4681092817609&spm=a21n57.1.item.83.4b20523cDMHbSG&utparam=%7B%22aplus_abtest%22%3A%22271c85fa998a25b30d2c8b68d1210feb%22%7D&xxc=taobaoSearch	12.5
+Battery 
+	Color Classification: 6s1865: 24v7ah Rectangle / 38-70-110mm
+	https://item.taobao.com/item.htm?_u=31klsj8951e2&id=620559361552&pisk=gAiquy6-dnK4V2xQF8EaL-parrcYDoABscN_IADghSVDW-tGbAk3CKd9H4yi1bp9HoMg_fl7wGw6kCIZajMnlrGsl52gZbDfc5tY7fkI9fs6DqwGbbMTSfiZBGyiIfpY1KLSHxETjBOI_HMxHYJEs3i4I3qoeRSciH9J4hvzjBOBba6ukIZi5et0-7bup7Xcoicgq72gpl2gj-vzZRydSscgjLJzLRVgnrVgE82YZN2gj-jkqR2QnZ20SLSuwRx8qxDG4JaDdSrxQhxfnPPnn7SGY9eUoHlc5isXf84utHEhjLiz3rPnhm2vPoeoV0zQPOs0qv3Si8re06eqrvruGkYFzokSMDrmYISbFYkiRzoWKHE4mS0_DA6eGYoqGxnrCOb4c2MIXymD06F7JgrA68t3CL8gONU0e8PBUL0q9OZm9Eh3rNQTrkezOKwfWNUmm8PBUE_OWrnuUW9f6&spm=a1z09.2.0.0.35152e8dtsNMeP	199
+DCDC	12V
+	https://item.taobao.com/item.htm?_u=31klsj89a707&id=601763884843&spm=a1z09.2.0.0.35152e8dtsNMeP	42
+DCDC	5V	https://item.taobao.com/item.htm?_u=31klsj89a707&id=601763884843&spm=a1z09.2.0.0.35152e8dtsNMeP	42
+6006 Motor	4	https://item.taobao.com/item.htm?id=816922353459&spm=a21xtw.29178619.product_shelf.8.4e127fe0pb8Ghr	799
+8006 Motor	6	https://item.taobao.com/item.htm?id=815097170248&spm=a21xtw.29178619.product_shelf.15.4e127fe0pb8Ghr	1009
+3507 Motor	8	Consult Damiao	300
+Robot Main Controller
+	1 piece	https://item.taobao.com/item.htm?id=643604114830&pisk=fjLDrRT4bnSX_8wcO0bjjhb2a6_0h-_1IdUOBNBZ4TW7kdQAWaSPO6z4bi7Na3ABIthscZKlILJl3dAsG1WwQdX9D03pGI_17vQiJ2dXvTzRjdjV3Q7yN1q4uKDQGvQ17vHiihwhGN9KvASAigllM6qV7GSNzbfO1O7N3Gyya1WPQhzgEDW8oeccv92va-TtccbdLIW2MILrEiZXiTY97U50pOR21PzwrsjXW-koZjSvbBsBkg0gPZdH4a5M5XrGIGYfrTvn8P1W0KYPjUh_O98Xae_P22lHaU9vGUAT_V5JpTRXuwSz3urtIt1llKJ4flsVN_XQl3ao04N6mEGoZkif0_1xpbcufnSVN_biZbqe8i55MQ1..&spm=a1z10.1-c-s.w4004-23351273161.6.2d3f3ad6Yc6aSJ&skuId=4801836802568	899
+Jumper Conversion Module	1 piece
+USB 2.0 Female Socket to DIP
+	https://detail.tmall.com/item.htm?_u=61klsj89b50c&id=520458685405&pisk=g2DZydsKVdpZ6wv7Ake44nIM3PgTdRYWoxabmmm0fP4MMl9c3mouchLvXXrml2KvXRi0uquQJtZX6EBq8Vio15gj1rq0-2m1Cr9TgqoSyq6XBfZc32iYiqMqDtrmmqKTlhdIXceYnUTSuLitXvQDRLkamMXnvu5goLtpLKxUnUTW36s36Fwm539eG9f32yjGsO00KWq00-q0j-xU-orRiN00nH-UcuzcolqGtyqzV-fgi-qhKlE5o140n9xUDyfGn3pxjmXUV5x71SbcDtCuOzmg8tXP2oNM2m1fUTyUj55O9yBDAvra_zmsIldQBkDIL7NCcO2n2XggY8JNylln4J4_EQ5UQDgtURDy7OZIYmc7TvtkeRygSjwtcg8sYAusXvofm1ysN0MYZAvNyyNR4KQYALqXYI45M5qLYztexfuRcR0J64VhMsF3ekzWfl1AM5DgYzte1sCY6vqUPh_A.&spm=a1z09.2.0.0.5e682e8da7Rnqm	15
+Power Distribution Board	1 piece	See below for details 	200
+Carbon Fiber Cutting	1 set	See below for details 	Inquiry 
+Aluminum alloy processing	1 set	See below for details 	Inquiry 
+3D Printing	1 set	See below for details 	Inquiry 
+TF Card	1 x 64G
+	https://detail.tmall.com/item.htm?abbucket=1&id=44499258098&rn=78106b6b847574327ee4c1f778bbeef8&spm=a1z10.3-b-s.w4011-22927138577.79.714a5afdmI56mW&sku_properties=5919063%3A6536025	32
+USB Camera	2 pieces	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.1aa72e8d5lSrjv&id=647516320352&_u=v1klsj893d60&pisk=gcDg_GY5XfPszDLL9vw6wNrc0mRLfRwj3qBYk-U2TyzBc1C9fSrqmqDx6mzYnq0moPF25RHm-0ivfxK_QKqqy22xXPUx-n0tctL6GRBVoViy5cUvfx44-Vu0GhaYur0x0fKpeLnsf-w2nUpJe2mLdMuGgOWw09r44HEwAfJqa-w2yEfd359uh4ip6HfVTkzQmorauqyUTuZu3oy4uH4Umu1V7qu2xkrY4sWV_1SU8u4FgtWabJ5U0oUVQlP2xDzQj-zqu5-nYfMhGz0syv8FmuHYhPvmdlVgzczZXcHFUWfsjy48PvrixDiNGtWqKlVsh6C9oUPtg0NSBqJcdRnoTJrmh350o7cqBJkw8LPQgvuUYVKAGkcm0YwsSFf_7f33NkPFmLZKyyosQXxf8cu8SRrU9L-oYSlKC7M98O2rNcetg48d6Plu0guRT_SJVttZMe5fG5rQxzUMBW8h9YUCSHxhNpPaAl9HxHfjn5rQxzKHx_u0_kZ6B	134
+JetsonNano
+
+	Single main board + TF card
+(Optional) 	https://detail.tmall.com/item.htm?id=608609593274&ns=1&priceTId=2147bfa817279390610616600ed936&skuId=5422392111859&spm=a21n57.1.item.5.fc6c523cGFagFD&utparam=%7B%22aplus_abtest%22%3A%22122708f3139a1ec96c080e6856c92ea1%22%7D&xxc=ad_ztc	1119
+IMU	1	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.63912e8dtwKJPk&id=852758654977&_u=t1klsj897a19&pisk=gqcL_Ps0rhxn3EhLS2JGZWL3MPrpmd0E7DufZuqhFcnt2qQnK8quF7nqD81kLW28wcZitk03OzwSqmM3AvqlwbnZv6fuO0A8Vqkwzk4ntaUSCDCoK2qnBaFEsvfuxHP-PmVJmnADi2uU_7tDmQDzRQVbuuZ5qks6174-I26hl2uUau_GVKDs8gIXC9b7PuT91r4QNyw7AVTTyz_QNkw5fOabf7N7VJ161y4POgw7RFQ_ozjCd_a51Pa3uMN7N011flz7Nyi7N33B2l_Qq_HXXQw1keIfO6GTJJERZlC8kff0LoO4b_CJrVwLK2ZON_GZCgA8Sk9VSuP3YR4K4I5UO8HSt5GBfIwaFfi_5DYlUPH-PjPEvHBUAvmT3Pw1yIzimlgEOALPf2i0v5UZZh5Q2AMStJPP4WhmgJj4d8jQmFLOUTyQSX8o30TTI_h4WoYpwTWzQFzTmFChUTyQdPEDS1BPURoc.	164
+High-performance IMU	1	https://detail.tmall.com/item.htm?id=671044026458&pisk=gxfbs7Aofmmjbedt5K4rOyu4_dR6hzPU6VTO-NhqWIdvCfQVAFlwQ-Ys13_LonygnG65Xgv2DhJw1FseqZlaoZz_1NQpDCW20FIPfgDV01-N45_hAKlVW1ucEM7KgsyD_fODsCEUYWPUuZAM6zfCjyomwE8a_fpvHIA-Yng4pWPFoag2ky78T18O2uLjBfI9HLdJu3n9kdI9e3LH2jLtMFn8P3x-Mqd9X4dJ7ekxHGLt2QLMJfK9BFL-wExJXCKAXaUW73K9ykoe5P-flyGEUvKxYN_vVfhOG5vHApHZsfjHkKOdo3_Pz_TXhHJuieXFMg7OgsvuNbdGz9s1BMEr3nBBRg9FhkGfAiYO5FIbt2tRGN1WnTPKVUXRuOCccVG9os5eCHv7Wfvww6Jdpigg-advWGvh_kcDDNQht9RQGDYfewO54xheAODmCNgn1UtUPzMiI7e8TgQD_Dt9HUYXNzaScQpvrU1YPzMiIKLkzoU7PmOl.&spm=tbpc.boughtlist.suborder_itemtitle.1.79e12e8d17eGhM&skuId=5518648381440	900
+IMU Serial Port Conversion Cable	1	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.1aa72e8d5lSrjv&id=647516320352&_u=v1klsj893d60&pisk=gcDg_GY5XfPszDLL9vw6wNrc0mRLfRwj3qBYk-U2TyzBc1C9fSrqmqDx6mzYnq0moPF25RHm-0ivfxK_QKqqy22xXPUx-n0tctL6GRBVoViy5cUvfx44-Vu0GhaYur0x0fKpeLnsf-w2nUpJe2mLdMuGgOWw09r44HEwAfJqa-w2yEfd359uh4ip6HfVTkzQmorauqyUTuZu3oy4uH4Umu1V7qu2xkrY4sWV_1SU8u4FgtWabJ5U0oUVQlP2xDzQj-zqu5-nYfMhGz0syv8FmuHYhPvmdlVgzczZXcHFUWfsjy48PvrixDiNGtWqKlVsh6C9oUPtg0NSBqJcdRnoTJrmh350o7cqBJkw8LPQgvuUYVKAGkcm0YwsSFf_7f33NkPFmLZKyyosQXxf8cu8SRrU9L-oYSlKC7M98O2rNcetg48d6Plu0guRT_SJVttZMe5fG5rQxzUMBW8h9YUCSHxhNpPaAl9HxHfjn5rQxzKHx_u0_kZ6B	40
+OLED	1	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.63912e8dtwKJPk&id=567986384172&_u=t1klsj89551e&pisk=g1H_sWvPgNb6XFwAc5xUALvRIsynGHJyHiZxqmBNDReTGtnZPoW4gCqfhyiJjPRDsqGIk2VaWrP4hogz-cW2jc-Xhmn8W-la7o3El2fZ7xzq8KioP5WZDxSit4oRQARg3twgn-LyzLJyjc20HEo086_G9uZX3oEYXR2dzPswwLJrjDsaX3opUAS60dZ1Mt3A69IL-oZAB-3Y9JE0JOEABoQpAy4dHlEO6pULDlEA6qEO9wEaXsBOHredJoaLk-exkDKQ0yUvVpS7cCaifhUv1AQOw_ibRtBxdkL0yc9OelDUfPUSXsJWFoq_1znT-UGFWDVKmSMcmtioXb002VQ9lrDIvAhxxNtLFDGEa5GBWtaEQXMQQALcZDoQW7wETBYagRgsZzV9te0-Y0kgtxT5Jrcaqg51Uz28MsvFdkqQzHtCisueS_VfrfrZs5E3fW-BANh06kqIGHtCidFTxklWAH_9b	32
+Network Cable	3
+Length: 0.15m 	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.63912e8dtwKJPk&id=744136764912&_u=t1klsj89db79&pisk=gPP8_Sti-ijlRrV-ozWDtbQo6qo89t4zuuz6tDmkdoEYvPLuEvmndXEaXvOhUbDK9oi0Z04oN2MQxlwoV8mH9WE42QAnNkfKAPyV800uZe3Qhud3EzmuHehzi8AnqglLRlcdjGfGszzrgXsGj62EP6csSUgBxv1XcX0Lnz9k5zzrTDTDAO2bzHK1h5TIRD_AGV0SO4MIVr_xJ23SO0MBcKgscXGIAYOfG40eNHMIPZKj7VgWN2OWhqgoJ2GIOkGXlmuIO4ZIO3_cvmTSxBe1D6MXWeBwaQPxyYnptmdKR7diHcgscBgqE4EZfzivOBmWtZZ3kzjJ_rcrYl3gqsO8XyaadxFpVaq_cJEIu-SppceQrRub1wvZmSnuA7HfSCHnG5DsN-XVqvc-RkkatGRrVyaa_Rjz95VZEhkSK3iGkZpeLYg0aw2aAZHD95uxjaCpLpkVuqnGkQveLYMSkcbDMpJE3lf..	6.8
+Remote Control 1	1 piece
+Bat 2 Black [High-end Model] with Vibration	https://detail.tmall.com/item.htm?_u=31klsj8951de&id=38896089959&pisk=gZfxukiHSuqDszur_cwkIQxLWUxAh1QVzi7IshxmCgIRXw3cndxMCCIFvdGg3Iv96gtlinbDGF91jM6Dctxi61IPDjcMGGV9fwWz7nYciVL1FihGnZxceVdVZtcMmoRO5MATxkV3tZ72aCZ3xVYSyrOB-qGjjnOWNCodlq0QtZ72bqn_-TNnBi1M3jM6fGNSNetWljtXlzpW-FOsGdGjF0ty5CO65C_WNFYI1fG1f3gWuEH6ffMbNbTDVhO6hEtlzlKSlhcOQL9zcvHm4YDlwEpvXfbE6LjjtCxQo3Gt6Pq23HOH2fG1wE7SUYIq9RxCLnvhsgNoMCQWWgphHkhAvi81WFsYT2K5MNCJ3TVI2UW5oO1VDVh6usfHBHJ85fJMN6vCBiqr1nXdPgphZ0jzw6fenDJXImt3yzHZQKTlgPXFfzpo668JxrFtQAJzzUK3yjDZQK9XyH4owAkwUMf..&spm=a1z09.2.0.0.35152e8dtsNMeP	77
+Remote Control 2
+ESP32 OmniTele	1 piece	Produced according to the materials 
+	600
+arm cuff	Black Large (Adult Plus Size) [(33cm long x 20cm wide)] 2 pieces	https://item.taobao.com/item.htm?_u=61klsj89653c&id=683955453468&pisk=gCKIufm4zWVClpUek0HNl2VqJRSMOQiq286JnLEUeMIdPupeGTrPz2X7V19xK6uo-QT6wCbF9_7PVTOVsprrKpkSVLpA9g8FTTdwNC4eT35y_09DGwree3yHSIJYYHuh4ushqghqgmoqKpjl2gLR_6F3WtXS49CRep4CTpgxgmo2C2Bh4dh2Yqrl1TB42gUdpRH1e9ed2aQpBA6RUWU8vQptC1X7wWE8v5UOht6R2TER6cBVhuUd9_UTB1XR2_KmH-6SR6vIIb9qHoecYpC_2uKKqa1fAzr7VKXdRyvR1Rywf9_CgNa2G_xp_LKexN2EKgvwlQTJMfzF9E6W3U9KvlIexpLAynhuyMTJt3_HR8DDBMdMosbKSfX6Yn75iNNI__82QHQ6Mfr6Zgkb0sjAyzmafOX1gAM_rzRZtrb7ieWe-wBGdNksCWLlJOXsOAM_rDQdIO4sCANQD&spm=a1z09.2.0.0.59cf2e8d5Mv4UD	13
+Foot cushioning	15 thick and 40 wide	https://detail.tmall.com/item.htm?id=740214426088&ns=1&priceTId=213e380c17282830917732284e2ee9&skuId=5275334734049&spm=a21n57.1.item.32.3324523cQN6Ejk&utparam=%7B%22aplus_abtest%22%3A%22b542d9d6c8788aa46216400ae7a45000%22%7D&xxc=ad_ztc	11
+Air Switch	Single 32A	https://buyertrade.taobao.com/trade/detail/tradeSnap.htm?spm=a1z09.2.0.0.13802e8dSiBGXc&tradeID=1931951103334788577&snapShot=true	31
+Network Port Conversion
+	Shielded D-Type Straight Through Socket (1 Piece) 	https://detail.tmall.com/item.htm?abbucket=3&id=674427182363&ns=1&pisk=gw_qKmcROrUqE3UBNQLwTIKcMxWvvE2QuN96s1fMGKvDh1AM7TX_MK1gHO7wE1IbMhwx_jQPLVgbHoCi7FTgdJaQRsFvWF2InkxQ2xdB9q46ICxlMnc8NzaQRsCrGIVCZyNOn3HD6c0GImxoZLdwIjYGI30k6L0DsqAiE7R9EFcDiK4lZCRtoCXMsYAk9CMDiVxME0AMEdYMS3ZOi10yOnVB334PH8zJupfDUV0E9K-0M_nsJ2B9inoA5LP7NaR20ptr2wHPoT1GlZK-GSLONMWNj92ScKje_6sNir0klZCcxhb3BcYVjtQwDilT9_YceMppmueJaZ_BbpKr3891A__D492SzOIzWAd7-CNzjpi9mQdyd7Pl09h6od6PjqntX3YpapNXGcn9mZAyd7rjXcKArQJQGAC..&priceTId=2147bfa817279393064733178ed936&skuId=5424631827417&spm=a21n57.1.item.47.fc6c523cGFagFD&utparam=%7B%22aplus_abtest%22%3A%22ff2e933715d0e6bc2dd0d6514c30ec27%22%7D&xxc=taobaoSearch	20.8
+Step-down Module
+To other temporary expansion modules
+	5V/12V 	https://item.taobao.com/item.htm?_u=71klsj899694&id=544179516749&pisk=gL0ZyAfKNFLZ-KL7OWU4acN-pLMtcPvWnqwbijc01R2MD5TcujluGCpv6DPmhvdv6PG03xkQpZNXXKQqLAGoflMjf-V0Kvc15-TT0xlSex_XWcNcuvGYmxgqMZPmixdThCKI6fUYoL9S3UGt6o5wnJ3aiw2n9S_cjUOp8EAUoL9WuM13XdamCVPFRwj3wJfGjND0-kVTgrV0srAUKSPRmOD0oBRUiSycINqGKMVuZrjgn-4hK5NzsibgneAUMJVGsF_-sjbUNlA7Y1UOmpOBa8lgLZbmSEKzUf7CiyHT_ner_JPdu2NZe8cgLZbbIZOnhXl6QahQW-HzNATh7YlmwmqEuOAsEvmqnWnp3iyrmfi8t4Af2JgUCx0axQ_zcy07qPmBvdZb7SDY2q9RWRcmw4n54-BYOUVXTn25DlVLT8OetckRGPDJXYqhDiE3yWyW15sADl0gT8OefiIYX2VUFC6A.&spm=a1z09.2.0.0.13802e8dSiBGXc&sku_properties=31309%3A1120477521	23
+Brushless Servo
+SCS40 (Optional)
+	2 pieces
+	https://item.taobao.com/item.htm?_u=31klsj897893&id=561810277224&pisk=gJHou9DPTbPS0IfbRnyWtXcU0SeoegwIL2BLJJUegrzXA_CJVWrEx2DKwDzLK20n-zFeP8HnocipVvK7UpqEWq2K2zUKoH0-A9LWO8BF-4iwP0UpVv4Uo4u3O3aL8y0KYbKvBdnSVJwUKFp9BXWaPgglzuryYrr_fFhxa_hZVJwe-iBe6dmSSiLUQzrU0nq8jayUaJJV3rZdayuUzS74jlwU82uFgmrQxuWU8yS2mlET4wPzLS74bkEFL2yemm--m9ziLxM2PYydEso9sbEuZPozz0Eo3FwdN4acVgHcBF4i4X6FLxquNvvBUdpQwXo_1YF6Ktw-jjy4xvtNtyVnF-4mSdWQcbuo3WDvAGaZFmk_3Spwjmkjy0MmvMJUDVUqVYywCazKMcD3xvTBngyVg6L3Po2Sz45CO7rbmP6SGtArppQZMnxc1QNzcuL9mnfIa7rbmJxDm1kaaoZ-c&spm=a1z09.2.0.0.35152e8dtsNMeP&skuId=4079779893538	386
+
+Steering Gear SCS125
+(Upgradable to 40 to improve head flexibility) (Optional)
+	1 piece	https://item.taobao.com/item.htm?_u=31klsj898dec&id=648615972680&pisk=g8nsu0tPu1fsaobZynpUPPbQ2trH1jtyDtwxExINHlETliHZN-S4uF2fcWMJI58DSjgIMX4a6Sz4c-GztAS2IAJXcxH86oua_-hEGXbZ_mPqTnMoNPSZHmWi-bkRbc8g0iZgmodya3-yIAq0DE7KD65GJRy60-IODAb__ATJa3-rdFeg0vdynTkhy-ePDoQTB6pQ3-BOWjUAvvF3n-CTHGpIpWVdkSEYWkeLE8CYD-FApwe4FOCTk-BKpW2YD1K-iTwX55D6KE9lpGdXfjFCDinQpIcoCLQLiVesg7kOuoqqA04_wAFC0QvyJ2Vbt0deRvqmWfynG3OQ24cIczEWud4th2G0bDpAW73Z_jUj-QszCluQPcgMn6Hta5g8jxWW_vax8c4obBI_24Dabgr147q8kZxFAJ2Qap9CoZlesa4fZVyZSPe3CyJBd130WJ2Ilp9CohUTKJuWdp19Q&spm=a1z09.2.0.0.35152e8dtsNMeP&skuId=4675740336453	85
+Steering Gear Driver Board (Optional)	1 piece	https://item.taobao.com/item.htm?_u=31klsj89f3f1&id=560546097733&pisk=gVamPpa2boofHhtSC_ufjlqZa030qIg_7RLtBVHN4Yk51nKAGclasR4TD5ktSR2gIxnNhqUgEWNOGPCjuNcap80TMxHTE12Y1FBffqLwI-NFhSHOGPDZE-yifsMtQA2T_oCRJwFbGVgZS9QdJl8EhIwDbAoN_3ljg9E80nEUGVgNIQLNvwVbKQC4fAlZa_cxtKuZ0V7yzYG90AyZ30JrtXgZQRyw47lssj8ZQARPZXhKQnkZ_77rTXT2uRuNZ4lB22TZKPz7ztaqWExzfF2rimDUgxPxmzWj_nwKEZ_YreBrpSr67FzoimaG5Z7d5mEaODaxANYSkWqrzf41ThDijrgoEJbe5bZ4nzogy1OILrNzR4oR86VzP-Fbr5dN7beKUSaq8w9qBuF3Sf41Cajzb3-OIxGol-y2fhiqNbDBluTl0PQ9LuClZHsj0bGAp_fkfooqNb0GZ_xU8mlSM71..&spm=a1z09.2.0.0.35152e8dtsNMeP&skuId=5710045188000	45
+Screws and Nuts 
+Screw 	Link	Number	Usefulness
+M3*6
+	https://detail.tmall.com/item.htm?_u=71klsj895375&id=635430936636&pisk=gGzsyu_y0dvsALxa2ZCEV1xPEh3H5-_PkIGYZSLwMV3tcEFaFj8q0GcXlvNRsAScj-ZQHJmZBxoqljwrK58Vs55flSF-BqrZQjeUhJxaQrk4LZNuFc8aMrRgx8PJ7PSiuEgioqBPUa7Ps50mkjOFk2vMvjhOufHtD5xsQ5sRUa7zOGhiuWBz79WcCblykqKt6pCIgjLvW-nvJWHnijptMFCQ9vDpWf3vWp3KwbJ9k-hxpehoixdtBjKKpbMKHqnt63KyNjssI51hFSby31taavTvkyGdnbP6GUl_5f_ZU5MIt24QrcM86vTVE_SLxxM3y9SQtqqTQX2fP9g8qJaj24sVscFbA-0aJsKtelyaHmZhFUls7ki75lfDp5erCu3ggQ6aOmEUS04NpFg8q5uN4fTrE4nvmw8ItXMPO6tD0JWMqm9ubfriXXcsY61BBomttXZfO6tcWchnTu1COdCN.&spm=a1z09.2.0.0.13802e8dSiBGXc	20	Top motor installation
+M3*6	Same as above	10	Roll motor fixed aluminum alloy
+M4*8	Same as above	10	Roll motor fixed aluminum alloy
+M4*8	Same as above	10	thigh aluminum alloy roll motor
+M4*8	Same as above	10	thigh aluminum alloy thigh motor
+M3*6	Same as above	28	Thigh Carbon Plate
+M3*10	Same as above	6	Thigh Carbon Plate and Support
+M4*6	Same as above	10	Lower leg carbon plate, lower leg motor
+M3*10	Same as above	8	Shin Carbon Plate and Support
+M3*6	Same as above	10	Ankle Motor and Carbon Plate
+M3*8	Same as above	12	Ankle Motor and Foot End
+M3*15	Same as above	8	Upper and lower frames and supports
+M3*10	Same as above	6	Battery Compartment 
+M5*15	Same as above	4	Bottom Support
+M3*12	Same as above	2	Battery top fixing 
+M3*10	Same as above	4	Battery side fixed 
+M3*6	Same as above	4	Main control carbon plate support
+M3*8	Same as above	4	Power supply board fixed
+M2.5 Aluminum Column * 12	https://item.taobao.com/item.htm?_u=71klsj895592&id=521616041424&pisk=guZqPJ98diI2tWjIFYnZLrMLw6NxsmfCslGsIR2ihjccWxsMbRynCtCOHzkg17BOHmwi_5PSwhM1k1KaaSw3lqN_lfDiZ72Xcfsx75yQ95t1DrMMb7wtS5ZaBhkgI5Bx1tQ7H-ntj61Q_MwYHVJVsbEqngmueApDnM6R4GXrj61CbU9oksigGooeyYYopbvDonViqYDKCcDincXrZAkpSIVijTWrIAlMin0DZUDnKcYmSqYoqvkMjxciSYXrBbcM2Py0I3kIo9gyHmLM7OEEt-cyjHJL6qXTpFtkqvDmuEpEZhX74xuqt-ZmHaixEuZrR496m02LPSDrYiRK3z2Eqjih8Uo4FSEEmk52cYwzIygzV9jK0mc05me6Lswz0SwY4R9MumaQdl33miRKN2IzDCH5xA6PSXTtoYHrOTWuuWpsmWQYt4Y9W4mKUX6jhFLtooDrOT7XWF3YqYlChCC..&spm=a1z09.2.0.0.13802e8dSiBGXc	4	Main Control Carrier Board Support 
+M2.5*5	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.13802e8dSiBGXc&id=521623593151&_u=71klsj898553&pisk=gBI-PcGMKSVuPSHqYXaD-D3t4oR8eMBP3_WsxBAoRsCA9OHlreAHRHCN6ei3z3YpvsOcqQXkVpTCt1_kNaAnvMCVw0mHV6qpOO74LQvlqvpCl_nhrTAlkvKPmamHZ7-dd1xLs5qgjTWy0HNgse3c31-6QDgItLijcHlOFYD_jTWyTYhQIZZi9QzEHDgBO6ZjcdOXFDOBR-LXIptIVeiSljO2dHtBNU6jGd9KN2iWO-nXpp3BdQ97cI9HBLtBA66X2PNpGYOnvwRSg2D4soz0oipJyBnhQDdGxcY61QOjAKoBFUQlFInIAi7jtkpDNPkDT3AyoLCUb0-WJwskcgNbfE8Ccs9fZJ0eHwBCb358w4R5rsLwhEMLbKfMGTS5kJlfF1AJDKS3g0OdlwskzHSr9Gjwrf8W-bOgH-3E8U9c4JbNO-LmvGJvs8EK82843KdgH00E8UTWHC2mD2ueu1f..	4	Main Control Carrier Board
+M2.5*10	Same as above	4	Bottom of the main control carrier board
+M3*12	Same as above	4	JetsonNano
+M3*10	Same as above	8	Router Servo Driver
+M4*15	Same as above	10	Head servo fixed
+M3*8	Same as above	15	Head Servo
+M3 nut self-locking	https://item.taobao.com/item.htm?id=9558815975&pisk=fRfHrW1EU9JBA5oHlRAQEiYA_5RnADOW2ghJ2QKzQh-1vphdeOYP2Ga7RBQyqgj9fXBLdLKorhjEwpClPbYPzgaB2ywORwOWaoEAqSQCRbN74E5nLckN5Eke8Ik8fERWaoEu-TiDRQsftEcH-dzMJEoyaLlE_PYJy3RyYLoN7U-w4hLrbVbYA_UHHnmdTUeoyq9D0w-FJwCNlmKc8gloZzLHKpQejblP1OpLkZ-UhVKW9H92-gNjOBJlU6dNTlP2CL5NbFSLyYTGEa5XOMqndHWdjKTwQ4VXWiKNR6WgPc7FDHAG4VkZeuxBSBsFYYMWLFTMcX6ssJrlvYS7SPDbdp86JoUgSY6eLFTMZP4i3sJe5eQ1.&spm=a1z10.3-c.w4002-23213606238.11.2dc7306955u4yf	the above summation	
+Cable 
+Type	Link	Number
+USB Cable 5CM	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.63912e8dtwKJPk&id=641806749737&_u=t1klsj89a926&pisk=gvou_5mP84zSwMdYkmZWW6WqrrZkFuZIYXIL9kFeuSPXdaQJFyyEKXmKyvPLxXcnt7UeNunniAMpFDp74H2E6jqKe7FKipc-dMdWRuIFtbMwNYFpFDVUibl3RLNLTWcKL4pvXhHSFkZUxCK9XvTfLUcl8areLZyaQKeyh4-E7kZe6BbAYztgAfGvsQbFu-PbEa5ETzz4gJN4L8PrTSz4QRCzYXlU3oyTETSzaMzV0SwOY8SUYZ54C8fP4glE3K27UkPETzJm33FdY5mEcmRVEEDc3SA8c84u_YPreYn27y7SLSvJUmj9o5HrRMSEm84SxHtyXHa-8Aas2PthcuHiuoynAd73tym7mScMbMwjzbm4-mpCC5oS3cZ4khJi3mG-FmDdLHyx6SkS4l-1aW3xID2nABtc4r7VJBV7nuGraw_Qz-w01ggfmUopv1uvnKb6PzybeCpDnwgzz-w0xKvc7czzh8Hf.	1
+XT-CAN Line	https://item.taobao.com/item.htm?abbucket=18&detail_redpacket_pop=true&id=761445347736&ns=1&pisk=gczSe-bwYLv5LF0pO0fqGNjMCC0Dps7wFBGLsWLy943-poNgdY5hq4rjd-ejeU5lqDHQE4n34vkrd2N3CsWN7NPuZ20AQO7ZuDCEVVvJyUpEMShtRbQ5ui58Z20ddI8dbNNuBdX1L3hKMsGrtQ3K2vpAkxce2veKempx1f0KJJH-HxhowXp-JYnAGfhZweHKwxhx6fYJvJ3dGSHm92h8p2KSLCGCVYV5wvpyUEsOw7MXJeUjM9D4NNLEGrlSvANJYFTstbiSB7HcClYPxmFnAyAHR5V8jJcTeLBIKrNYykFDFs3_GorZVo6JRxzzcrgzy9xggSM-fqrVmToEP8ZiI0IcnRF4_zm0RO9xKulG4lLZIVnpxZ8jijMNGstHY-WkjD6eFEPx2jcS0s1Xekm-ijZCGsthy0hmgl1fGLCP.&priceTId=215044cf17432331442831681e18ab&query=XT%E7%BA%BF%202&skuId=5419848543478&spm=a21n57.1.hoverItem.3&utparam=%7B%22aplus_abtest%22%3A%2296d25b5447e10344c770cbb2f9ce3e8a%22%7D&xxc=taobaoSearch	4
+Red and Black Power Extension Cord
+16AW	https://item.taobao.com/item.htm?_u=71klsj89efee&id=597502950509&pisk=giSnPAjEzw8CY_06NR-Qrs0XfftH_vt54_nJw3dz7CR_F23LdUJPE_jRJTRJq_flZBLzOHIlst68dgeBYuvPM1xRpBdRs8fdF0FQPHnrZ664O9d8dgAys65kPJOJaQfRUweTDoBCd3tyqSEYDeUFVc1nzQRzUdJpUSQO82QVd3tzZAnzkoXCg3iMCQJyQRvpnX-y8e-wbC9-8Q5yTFlwnKtya_5y_hJWhXJEYLlwQC9mLXJe4FrwHLuea25PQRvWqFnyigS1bW6Ze8Mvk5oXLeAVLCmcCBpU0dEXd0rfXpcxp9AgBRIMKeAvSqCDNM5OUMIB5veBVOQcZa5462dFoLXAr9rEbHICLZ8P07gyxa5Cqe_nF-6wY1_XGez_1djdDUAXSXV9wZBOYFf46cf54nuZy7ABIH1FT4gW8d9MGD_sjyS82j7TIR0bReJ6pSegI4_e8d9MqR2iui8eCpB1.&spm=a1z09.2.0.0.13802e8dSiBGXc	2 meters
+XT30 Female Connector
+16AW
+	https://item.taobao.com/item.htm?_u=71klsj8907f4&id=598407253999&pisk=gT9rPNZvfYHrI9M1ciBFbQs9kVTRfT0s-p_CxHxhVabo9gM3LH-GA03K2ISHREnK2Tth8e8fkJsIw2eeuUtMN_TBNwjhoEx7FwMRTe-6WewIeQs3LEtdte9evJSHxenRR0hX23BdKVg68AtJ26rr-ZpPxZbDDMFuqAix3vmVKVgsLSZcw46HPL72CiVcXZquZ8YhntjCY9jhq9mVoMSTtzYhKmoVxM73r8fuoSjGj9VuZJjDmGjQZ8VuZxmVvZbH4uxkx-S1Zc142TF3i8GC73b4KJvopn_a0MjArKPfwN-uOs1v3dCPS3b4dVnsiIQFkd0jgnBpZUsv8AuVICL2L1XZO0CkYI8dFKm3ZNAWPefeMVy14TOV_LR-vrxk5aRGeHZZPn5HGLC9Fq2PICK5Fg-YJiMGAmlh5WClDi7s0mAyWk6kWbLGiWFdiOIV50s79WCkEi7s0bNL9_pc0Ni7J&spm=a1z09.2.0.0.13802e8dSiBGXc	8
+XT30 Male Connector
+16AW	https://item.taobao.com/item.htm?_u=71klsj8907f4&id=598407253999&pisk=gT9rPNZvfYHrI9M1ciBFbQs9kVTRfT0s-p_CxHxhVabo9gM3LH-GA03K2ISHREnK2Tth8e8fkJsIw2eeuUtMN_TBNwjhoEx7FwMRTe-6WewIeQs3LEtdte9evJSHxenRR0hX23BdKVg68AtJ26rr-ZpPxZbDDMFuqAix3vmVKVgsLSZcw46HPL72CiVcXZquZ8YhntjCY9jhq9mVoMSTtzYhKmoVxM73r8fuoSjGj9VuZJjDmGjQZ8VuZxmVvZbH4uxkx-S1Zc142TF3i8GC73b4KJvopn_a0MjArKPfwN-uOs1v3dCPS3b4dVnsiIQFkd0jgnBpZUsv8AuVICL2L1XZO0CkYI8dFKm3ZNAWPefeMVy14TOV_LR-vrxk5aRGeHZZPn5HGLC9Fq2PICK5Fg-YJiMGAmlh5WClDi7s0mAyWk6kWbLGiWFdiOIV50s79WCkEi7s0bNL9_pc0Ni7J&spm=a1z09.2.0.0.13802e8dSiBGXc	8
+
+4P 2.0 Line	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.13802e8dSiBGXc&id=520551443113&_u=71klsj892eca&pisk=gxZtPCAon6fGPOpe0I_nonLJbMl9loeaL5yWmjcMlWFLM8pgSqcmlmFzwqtc7c0xDWG3jf2ifxgbi7ai1PcDDoFU6hxmfSjxG8zF3fDgjKHbR5K0SRcgJKnaxPxms1oYh7mAZ_jlqRyZYm1lZqL3L7oSUjTXiqwBOmR8Cdv5qRyZgddfEyskMf7PgnTjGSsBAYGICAT6c93IExiXfqt6RBGEhmij1VwBOYMv1EtsG9KIHxT65VGjdXMmHhijcSMBq5CxOdGDDrl6TEve6GUzrkHtWbwdz61pcVOoKRwyDnBcnVlSqXKXckHade8L_3QmNzliroVCxhnYdxFKrPCJX7FZh-Hb6gJ-OleYvVzhVBHURR4bb5pvcArgqqhrJttqoDZoPrFGTnGgyJNKrkAh4bEu4VAr5qAsZ9BpuEusKlW0zS6K-nErpbXODE8q89kKZ9KMuEus5vhlKHL2u2Pl.	6
+4P 1.25 wire 20cm	https://item.taobao.com/item.htm?_u=71klsj8960b7&id=588775918268&pisk=g5osPNtPu1f_QY_ZynpUPdbyZNEHDjtyDtwxExINHlETliHZN-S4uF2fcWMJI58DSjgIMX4a6Sz4c-GztAS2IAJXcxH86oua_-hEGXbZ_mPqTnMoNPSZHmWi-bkRbc8g0iZgmodya3-yIAq0D-6eDkfGJ8yD0RQTMAb__ATJa3-rdFeg0vdrbByqe82PDoQTB6pQ3-6OMjUAvvF3n-CTHGpIpWVdXREAX6ELe85ODjeOp9e8ENBTWiUdJRVLMoUv4lW7hFNiCpASn35VXB1Y9iIxARap8zFKvXv4gP_ZCWIYKieg5VkTOiIxx2C2cJP9r9P0b54UCjxljlUjkcrKXBK8-rnK9Jhw3Z2IlxnujfO1S53ZOz2LJttuLbPKIc3Bn6Hta5ZQKmRhXSgKkczgmgr147q8kZxFAJ2Qap9CoZlesa4fZVyZSPe3CyJBd130WJ2Ilp9CohUTKJuWdp19Q&spm=a1z09.2.0.0.13802e8dSiBGXc&sku_properties=-2%3A-2	4
+Double-ended 10cm 4p Coplanar	https://detail.tmall.com/item.htm?_u=71klsj89d47f&id=550579148901&pisk=gnxKyWVcEfcHiX2a47gGruUYYc5KP3peQBJbq_f3PCd9wKeH-aflPgd2MaZo8MbR2C1Mx6vhAT_WZIThOefu23dw9kqlAQmRNK8ZU6XHx8BW5BEk-pfHW8IejeqltXSJFIj-ijmmmpJFbgGmiaUMQISfn_ZQZ6s6CgPvdJ2jmpJFaJFSnFi0w6u4Hya5NQi_ft11d9aQVAQ1nTs7AaZQ551NFgs5Ow9_1t68OzZCNAE1nTaQOy_CCR6hF9s5VQ__53--w1wCZuLPO5zuQ5nM5FKOpwCXBqlt1RQ8i9vIJuEWXoqOipTzVutOpw--4Dim4wYW3Z-hu0ENxKL1fTKrhzCRyHSO6Inb4O8B9h_JjYyVGHJ60G_icxp6bBveXL2SVOAc1p-CcmPCZFvv2TKracIr9nxV-S7CrW1mBAUzzw6MYYY2NAQg2nWOivn8zz7ZQOCmBk4zzw_CBsDgXzzP7If..&spm=a1z09.2.0.0.13802e8dSiBGXc&sku_properties=122216547%3A20213	2
+Double-ended 10cm 4p Off-plane	https://item.taobao.com/item.htm?spm=a1z09.2.0.0.63912e8dtwKJPk&id=588775918268&_u=t1klsj8947e3&pisk=gqT__jgz0R2_J4_YGGcFO408So7HGXurkS1vZIUaMNQOcrdwFszV0cfbl9O-sOomjKtBHpjNBtSVls9PKCzqsCljlIdRBZ-NQspehpqwQEW2LqOkFGzwMEPMxLR87FoGur_GoZHrU4ursCbckxRcLkwgv_fSuoQYWNbLUONZ24uysBNN6bRKzFP6Nw1aDrpYXyFdKs1YWZpAvwCfpPCYWseKO9XLk1CTX2BdM1CYXKCT9WCRZlFOXrILv1XdHZUA6XOdKs_AH3jUNsi1ICGOHcTTBbaf69aYke1KnTdsxPCkS1Z1ECWCtmYd1LXJ69aYuOUq9KRB_AakTNXDF_JZJP9WMQxAAEwt_LppcKCHxxZfFndwq6L-guXeROJv5MhzPi7pzgQ9YDDN0N1vngYqEPX9MQYk4gl_zTbRDo0UR6fCUXGQmoJEIujbEh5wjGCh1MlIORKcX6fBcXGQmVIOt6-SOXwt_	2
+DC Head 0.1m
+	https://detail.tmall.com/item.htm?_u=71klsj891d42&id=598354258377&pisk=gshIybOVUMjIRKBEHQLaheX2m9Fix0O2waa-o4CFyWFLF_3Ecz5zUp45Nlgv-kJkK0Ms2c2UvuyzNzi4j25y-28WN43Yv7kUYznZVcXEYbrrbQgmcJ5Eyb7nImuATXJ3a_N3Z7K20IR2-2Vuwz_ww5jhBrzJayeRp2XQY29v0IRq5pU3aVKqTh5rCrzVw7BLJGL_zz5R90eR6VEgrzILy6LsWlqO9yFR9GFTkrSdw0Up6NU8l_U8J_EOXrET27E8p3kclz9Qx2TMc4AV4hCcmlCRwfaQBdPUX7rwzJeCv2ZGwPv38JMEJl1RwfDO4QaavKbaqWr3Qyiki6VLFYhU6XK9MR2-6cUtYUWu5Yg-iWmBA9qKLcw0WRQWiPo4X2cKCUjtJmrQ1Pcyj6ESBYhUK7jyGsr0M8Bk_1ag5o865TXrbHX0FiDU8v2LSyww5FsKEJUg5YT65TALpP4ZhFT1ve5..&spm=a1z09.2.0.0.13802e8dSiBGXc&sku_properties=122216547%3A20213	2
+
+
+Software Version Update:
+Method for updating firmware to V1.0:
+Instructions: 
+(1) Updated the new URDF to be consistent with the actual robot in fidelity
+(2) Optimized the training software architecture
+(3) Updated the hardware design and added different head solutions
+(4) Embedded software updated to OmniRobLabV1.0
+(1) Router Name: Tinker-2.4G-ID Number, Password: 11111111
+(2) HMI Host Computer Configuration for STM32 Board: Connect the Core and Extcan circuit boards via USB, complete the motor reverse checkbox and motor type selection according to the configuration diagram, and each motor completes CAN_ID configuration through its own Dami host computer:
+Left Leg	Type	STM32-Core CAN1
+Brushless Motor	Type	CAN ID Number
+Deflection	6006	1
+Side Exhibition	8006	2
+Thigh	8006	3
+calf	8006	4
+sole	6006	5
+waist	6006	6
+Head Heading	3507	7
+
+Right Leg	Type	STM32-Core CAN2
+Brushless Motor	Type	CAN ID Number
+Deflection	6006	1
+Side Exhibition	8006	2
+Thigh	8006	3
+calf	8006	4
+sole	6006	5
+
+Left Arm	Type	STM32-Core CAN1
+Brushless Motor	Type	CAN ID Number
+Motor 1	3507	1
+Motor 2	3507	2
+Motor 3	3507	3
+Motor 4	3507	4
+
+Right Arm	Type	STM32-Core CAN2
+Brushless Motor	Type	CAN ID Number
+Motor 1	3507	1
+Motor 2	3507	2
+Motor 3	3507	3
+Motor 4	3507	4
+Configure the core STM32 of the HMI interface as follows:
+
+Configure the core ExtCan of the HMI interface as follows:
+
+(3) Update STM32 firmware:
+2025/7/14
+[extcan.hex]
+[extcan.hex]
+(5) Update the firmware and parameters of the ODroid control software package: Update the software of the Odroid internal system via WinSCP
+(6) Modify rc.local to ensure the correct operation of the self-starting script:
+bash
+sleep 5
+sudo /home/odroid/Tinker/hardware_task_tinker2 &
+sleep 1
+sudo /home/odroid/Tinker/mission_task &
+sleep 1
+sudo /home/odroid/Tinker/navigation_task_tinker2 &
+sleep 1
+Hardware Wiring Diagram:
+
