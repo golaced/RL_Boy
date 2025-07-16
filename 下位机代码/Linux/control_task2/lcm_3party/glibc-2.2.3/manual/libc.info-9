@@ -1,0 +1,1091 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Converting Strings,  Next: Multibyte Conversion Example,  Prev: Converting a Character,  Up: Restartable multibyte conversion
+
+Converting Multibyte and Wide Character Strings
+-----------------------------------------------
+
+   The functions described in the previous section only convert a single
+character at a time.  Most operations to be performed in real-world
+programs include strings and therefore the ISO C standard also defines
+conversions on entire strings.  However, the defined set of functions
+is quite limited, thus the GNU C library contains a few extensions
+which can help in some important situations.
+
+ - Function: size_t mbsrtowcs (wchar_t *restrict DST, const char
+          **restrict SRC, size_t LEN, mbstate_t *restrict PS)
+     The `mbsrtowcs' function ("multibyte string restartable to wide
+     character string") converts an NUL terminated multibyte character
+     string at `*SRC' into an equivalent wide character string,
+     including the NUL wide character at the end.  The conversion is
+     started using the state information from the object pointed to by
+     PS or from an internal object of `mbsrtowcs' if PS is a null
+     pointer.  Before returning the state object to match the state
+     after the last converted character.  The state is the initial
+     state if the terminating NUL byte is reached and converted.
+
+     If DST is not a null pointer the result is stored in the array
+     pointed to by DST, otherwise the conversion result is not
+     available since it is stored in an internal buffer.
+
+     If LEN wide characters are stored in the array DST before reaching
+     the end of the input string the conversion stops and LEN is
+     returned.  If DST is a null pointer LEN is never checked.
+
+     Another reason for a premature return from the function call is if
+     the input string contains an invalid multibyte sequence.  In this
+     case the global variable `errno' is set to `EILSEQ' and the
+     function returns `(size_t) -1'.
+
+     In all other cases the function returns the number of wide
+     characters converted during this call.  If DST is not null
+     `mbsrtowcs' stores in the pointer pointed to by SRC a null pointer
+     (if the NUL byte in the input string was reached) or the address
+     of the byte following the last converted multibyte character.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   The definition of this function has one limitation which has to be
+understood.  The requirement that DST has to be a NUL terminated string
+provides problems if one wants to convert buffers with text.  A buffer
+is normally no collection of NUL terminated strings but instead a
+continuous collection of lines, separated by newline characters.  Now
+assume a function to convert one line from a buffer is needed.  Since
+the line is not NUL terminated the source pointer cannot directly point
+into the unmodified text buffer.  This means, either one inserts the NUL
+byte at the appropriate place for the time of the `mbsrtowcs' function
+call (which is not doable for a read-only buffer or in a multi-threaded
+application) or one copies the line in an extra buffer where it can be
+terminated by a NUL byte.  Note that it is not in general possible to
+limit the number of characters to convert by setting the parameter LEN
+to any specific value.  Since it is not known how many bytes each
+multibyte character sequence is in length one always could do only a
+guess.
+
+   There is still a problem with the method of NUL-terminating a line
+right after the newline character which could lead to very strange
+results.  As said in the description of the MBSRTOWCS function above the
+conversion state is guaranteed to be in the initial shift state after
+processing the NUL byte at the end of the input string.  But this NUL
+byte is not really part of the text.  I.e., the conversion state after
+the newline in the original text could be something different than the
+initial shift state and therefore the first character of the next line
+is encoded using this state.  But the state in question is never
+accessible to the user since the conversion stops after the NUL byte
+(which resets the state).  Most stateful character sets in use today
+require that the shift state after a newline is the initial state-but
+this is not a strict guarantee.  Therefore simply NUL terminating a
+piece of a running text is not always an adequate solution and therefore
+never should be used in generally used code.
+
+   The generic conversion interface (*note Generic Charset Conversion::)
+does not have this limitation (it simply works on buffers, not
+strings), and the GNU C library contains a set of functions which take
+additional parameters specifying the maximal number of bytes which are
+consumed from the input string.  This way the problem of `mbsrtowcs''s
+example above could be solved by determining the line length and
+passing this length to the function.
+
+ - Function: size_t wcsrtombs (char *restrict DST, const wchar_t
+          **restrict SRC, size_t LEN, mbstate_t *restrict PS)
+     The `wcsrtombs' function ("wide character string restartable to
+     multibyte string") converts the NUL terminated wide character
+     string at `*SRC' into an equivalent multibyte character string and
+     stores the result in the array pointed to by DST.  The NUL wide
+     character is also converted.  The conversion starts in the state
+     described in the object pointed to by PS or by a state object
+     locally to `wcsrtombs' in case PS is a null pointer.  If DST is a
+     null pointer the conversion is performed as usual but the result
+     is not available.  If all characters of the input string were
+     successfully converted and if DST is not a null pointer the
+     pointer pointed to by SRC gets assigned a null pointer.
+
+     If one of the wide characters in the input string has no valid
+     multibyte character equivalent the conversion stops early, sets
+     the global variable `errno' to `EILSEQ', and returns `(size_t) -1'.
+
+     Another reason for a premature stop is if DST is not a null
+     pointer and the next converted character would require more than
+     LEN bytes in total to the array DST.  In this case (and if DEST is
+     not a null pointer) the pointer pointed to by SRC is assigned a
+     value pointing to the wide character right after the last one
+     successfully converted.
+
+     Except in the case of an encoding error the return value of the
+     function is the number of bytes in all the multibyte character
+     sequences stored in DST.  Before returning the state in the object
+     pointed to by PS (or the internal object in case PS is a null
+     pointer) is updated to reflect the state after the last
+     conversion.  The state is the initial shift state in case the
+     terminating NUL wide character was converted.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   The restriction mentions above for the `mbsrtowcs' function applies
+also here.  There is no possibility to directly control the number of
+input characters.  One has to place the NUL wide character at the
+correct place or control the consumed input indirectly via the available
+output array size (the LEN parameter).
+
+ - Function: size_t mbsnrtowcs (wchar_t *restrict DST, const char
+          **restrict SRC, size_t NMC, size_t LEN, mbstate_t *restrict
+          PS)
+     The `mbsnrtowcs' function is very similar to the `mbsrtowcs'
+     function.  All the parameters are the same except for NMC which is
+     new.  The return value is the same as for `mbsrtowcs'.
+
+     This new parameter specifies how many bytes at most can be used
+     from the multibyte character string.  I.e., the multibyte
+     character string `*SRC' need not be NUL terminated.  But if a NUL
+     byte is found within the NMC first bytes of the string the
+     conversion stops here.
+
+     This function is a GNU extensions.  It is meant to work around the
+     problems mentioned above.  Now it is possible to convert buffer
+     with multibyte character text piece for piece without having to
+     care about inserting NUL bytes and the effect of NUL bytes on the
+     conversion state.
+
+   A function to convert a multibyte string into a wide character string
+and display it could be written like this (this is not a really useful
+example):
+
+     void
+     showmbs (const char *src, FILE *fp)
+     {
+       mbstate_t state;
+       int cnt = 0;
+       memset (&state, '\0', sizeof (state));
+       while (1)
+         {
+           wchar_t linebuf[100];
+           const char *endp = strchr (src, '\n');
+           size_t n;
+     
+           /* Exit if there is no more line.  */
+           if (endp == NULL)
+             break;
+     
+           n = mbsnrtowcs (linebuf, &src, endp - src, 99, &state);
+           linebuf[n] = L'\0';
+           fprintf (fp, "line %d: \"%S\"\n", linebuf);
+         }
+     }
+
+   There is no problem with the state after a call to `mbsnrtowcs'.
+Since we don't insert characters in the strings which were not in there
+right from the beginning and we use STATE only for the conversion of
+the given buffer there is no problem with altering the state.
+
+ - Function: size_t wcsnrtombs (char *restrict DST, const wchar_t
+          **restrict SRC, size_t NWC, size_t LEN, mbstate_t *restrict
+          PS)
+     The `wcsnrtombs' function implements the conversion from wide
+     character strings to multibyte character strings.  It is similar to
+     `wcsrtombs' but it takes, just like `mbsnrtowcs', an extra
+     parameter which specifies the length of the input string.
+
+     No more than NWC wide characters from the input string `*SRC' are
+     converted.  If the input string contains a NUL wide character in
+     the first NWC character to conversion stops at this place.
+
+     This function is a GNU extension and just like `mbsnrtowcs' is
+     helps in situations where no NUL terminated input strings are
+     available.
+
+
+File: libc.info,  Node: Multibyte Conversion Example,  Prev: Converting Strings,  Up: Restartable multibyte conversion
+
+A Complete Multibyte Conversion Example
+---------------------------------------
+
+   The example programs given in the last sections are only brief and do
+not contain all the error checking etc.  Presented here is a complete
+and documented example.  It features the `mbrtowc' function but it
+should be easy to derive versions using the other functions.
+
+     int
+     file_mbsrtowcs (int input, int output)
+     {
+       /* Note the use of `MB_LEN_MAX'.
+          `MB_CUR_MAX' cannot portably be used here.  */
+       char buffer[BUFSIZ + MB_LEN_MAX];
+       mbstate_t state;
+       int filled = 0;
+       int eof = 0;
+     
+       /* Initialize the state.  */
+       memset (&state, '\0', sizeof (state));
+     
+       while (!eof)
+         {
+           ssize_t nread;
+           ssize_t nwrite;
+           char *inp = buffer;
+           wchar_t outbuf[BUFSIZ];
+           wchar_t *outp = outbuf;
+     
+           /* Fill up the buffer from the input file.  */
+           nread = read (input, buffer + filled, BUFSIZ);
+           if (nread < 0)
+             {
+               perror ("read");
+               return 0;
+             }
+           /* If we reach end of file, make a note to read no more. */
+           if (nread == 0)
+             eof = 1;
+     
+           /* `filled' is now the number of bytes in `buffer'. */
+           filled += nread;
+     
+           /* Convert those bytes to wide characters-as many as we can. */
+           while (1)
+             {
+               size_t thislen = mbrtowc (outp, inp, filled, &state);
+               /* Stop converting at invalid character;
+                  this can mean we have read just the first part
+                  of a valid character.  */
+               if (thislen == (size_t) -1)
+                 break;
+               /* We want to handle embedded NUL bytes
+                  but the return value is 0.  Correct this.  */
+               if (thislen == 0)
+                 thislen = 1;
+               /* Advance past this character. */
+               inp += thislen;
+               filled -= thislen;
+               ++outp;
+             }
+     
+           /* Write the wide characters we just made.  */
+           nwrite = write (output, outbuf,
+                           (outp - outbuf) * sizeof (wchar_t));
+           if (nwrite < 0)
+             {
+               perror ("write");
+               return 0;
+             }
+     
+           /* See if we have a _real_ invalid character. */
+           if ((eof && filled > 0) || filled >= MB_CUR_MAX)
+             {
+               error (0, 0, "invalid multibyte character");
+               return 0;
+             }
+     
+           /* If any characters must be carried forward,
+              put them at the beginning of `buffer'. */
+           if (filled > 0)
+             memmove (inp, buffer, filled);
+         }
+     
+       return 1;
+     }
+
+
+File: libc.info,  Node: Non-reentrant Conversion,  Next: Generic Charset Conversion,  Prev: Restartable multibyte conversion,  Up: Character Set Handling
+
+Non-reentrant Conversion Function
+=================================
+
+   The functions described in the last chapter are defined in
+Amendment 1 to ISO C90.  But the original ISO C90 standard also
+contained functions for character set conversion.  The reason that they
+are not described in the first place is that they are almost entirely
+useless.
+
+   The problem is that all the functions for conversion defined in
+ISO C90 use a local state.  This implies that multiple conversions at
+the same time (not only when using threads) cannot be done, and that you
+cannot first convert single characters and then strings since you cannot
+tell the conversion functions which state to use.
+
+   These functions are therefore usable only in a very limited set of
+situations.  One must complete converting the entire string before
+starting a new one and each string/text must be converted with the same
+function (there is no problem with the library itself; it is guaranteed
+that no library function changes the state of any of these functions).
+*For the above reasons it is highly requested that the functions from
+the last section are used in place of non-reentrant conversion
+functions.*
+
+* Menu:
+
+* Non-reentrant Character Conversion::  Non-reentrant Conversion of Single
+                                         Characters.
+* Non-reentrant String Conversion::     Non-reentrant Conversion of Strings.
+* Shift State::                         States in Non-reentrant Functions.
+
+
+File: libc.info,  Node: Non-reentrant Character Conversion,  Next: Non-reentrant String Conversion,  Up: Non-reentrant Conversion
+
+Non-reentrant Conversion of Single Characters
+---------------------------------------------
+
+ - Function: int mbtowc (wchar_t *restrict RESULT, const char *restrict
+          STRING, size_t SIZE)
+     The `mbtowc' ("multibyte to wide character") function when called
+     with non-null STRING converts the first multibyte character
+     beginning at STRING to its corresponding wide character code.  It
+     stores the result in `*RESULT'.
+
+     `mbtowc' never examines more than SIZE bytes.  (The idea is to
+     supply for SIZE the number of bytes of data you have in hand.)
+
+     `mbtowc' with non-null STRING distinguishes three possibilities:
+     the first SIZE bytes at STRING start with valid multibyte
+     character, they start with an invalid byte sequence or just part
+     of a character, or STRING points to an empty string (a null
+     character).
+
+     For a valid multibyte character, `mbtowc' converts it to a wide
+     character and stores that in `*RESULT', and returns the number of
+     bytes in that character (always at least 1, and never more than
+     SIZE).
+
+     For an invalid byte sequence, `mbtowc' returns -1.  For an empty
+     string, it returns 0, also storing `'\0'' in `*RESULT'.
+
+     If the multibyte character code uses shift characters, then
+     `mbtowc' maintains and updates a shift state as it scans.  If you
+     call `mbtowc' with a null pointer for STRING, that initializes the
+     shift state to its standard initial value.  It also returns
+     nonzero if the multibyte character code in use actually has a
+     shift state.  *Note Shift State::.
+
+ - Function: int wctomb (char *STRING, wchar_t WCHAR)
+     The `wctomb' ("wide character to multibyte") function converts the
+     wide character code WCHAR to its corresponding multibyte character
+     sequence, and stores the result in bytes starting at STRING.  At
+     most `MB_CUR_MAX' characters are stored.
+
+     `wctomb' with non-null STRING distinguishes three possibilities
+     for WCHAR: a valid wide character code (one that can be translated
+     to a multibyte character), an invalid code, and `L'\0''.
+
+     Given a valid code, `wctomb' converts it to a multibyte character,
+     storing the bytes starting at STRING.  Then it returns the number
+     of bytes in that character (always at least 1, and never more than
+     `MB_CUR_MAX').
+
+     If WCHAR is an invalid wide character code, `wctomb' returns -1.
+     If WCHAR is `L'\0'', it returns `0', also storing `'\0'' in
+     `*STRING'.
+
+     If the multibyte character code uses shift characters, then
+     `wctomb' maintains and updates a shift state as it scans.  If you
+     call `wctomb' with a null pointer for STRING, that initializes the
+     shift state to its standard initial value.  It also returns
+     nonzero if the multibyte character code in use actually has a
+     shift state.  *Note Shift State::.
+
+     Calling this function with a WCHAR argument of zero when STRING is
+     not null has the side-effect of reinitializing the stored shift
+     state _as well as_ storing the multibyte character `'\0'' and
+     returning 0.
+
+   Similar to `mbrlen' there is also a non-reentrant function which
+computes the length of a multibyte character.  It can be defined in
+terms of `mbtowc'.
+
+ - Function: int mblen (const char *STRING, size_t SIZE)
+     The `mblen' function with a non-null STRING argument returns the
+     number of bytes that make up the multibyte character beginning at
+     STRING, never examining more than SIZE bytes.  (The idea is to
+     supply for SIZE the number of bytes of data you have in hand.)
+
+     The return value of `mblen' distinguishes three possibilities: the
+     first SIZE bytes at STRING start with valid multibyte character,
+     they start with an invalid byte sequence or just part of a
+     character, or STRING points to an empty string (a null character).
+
+     For a valid multibyte character, `mblen' returns the number of
+     bytes in that character (always at least `1', and never more than
+     SIZE).  For an invalid byte sequence, `mblen' returns -1.  For an
+     empty string, it returns 0.
+
+     If the multibyte character code uses shift characters, then `mblen'
+     maintains and updates a shift state as it scans.  If you call
+     `mblen' with a null pointer for STRING, that initializes the shift
+     state to its standard initial value.  It also returns a nonzero
+     value if the multibyte character code in use actually has a shift
+     state.  *Note Shift State::.
+
+     The function `mblen' is declared in `stdlib.h'.
+
+
+File: libc.info,  Node: Non-reentrant String Conversion,  Next: Shift State,  Prev: Non-reentrant Character Conversion,  Up: Non-reentrant Conversion
+
+Non-reentrant Conversion of Strings
+-----------------------------------
+
+   For convenience reasons the ISO C90 standard defines also functions
+to convert entire strings instead of single characters.  These functions
+suffer from the same problems as their reentrant counterparts from
+Amendment 1 to ISO C90; see *Note Converting Strings::.
+
+ - Function: size_t mbstowcs (wchar_t *WSTRING, const char *STRING,
+          size_t SIZE)
+     The `mbstowcs' ("multibyte string to wide character string")
+     function converts the null-terminated string of multibyte
+     characters STRING to an array of wide character codes, storing not
+     more than SIZE wide characters into the array beginning at WSTRING.
+     The terminating null character counts towards the size, so if SIZE
+     is less than the actual number of wide characters resulting from
+     STRING, no terminating null character is stored.
+
+     The conversion of characters from STRING begins in the initial
+     shift state.
+
+     If an invalid multibyte character sequence is found, this function
+     returns a value of -1.  Otherwise, it returns the number of wide
+     characters stored in the array WSTRING.  This number does not
+     include the terminating null character, which is present if the
+     number is less than SIZE.
+
+     Here is an example showing how to convert a string of multibyte
+     characters, allocating enough space for the result.
+
+          wchar_t *
+          mbstowcs_alloc (const char *string)
+          {
+            size_t size = strlen (string) + 1;
+            wchar_t *buf = xmalloc (size * sizeof (wchar_t));
+          
+            size = mbstowcs (buf, string, size);
+            if (size == (size_t) -1)
+              return NULL;
+            buf = xrealloc (buf, (size + 1) * sizeof (wchar_t));
+            return buf;
+          }
+
+
+ - Function: size_t wcstombs (char *STRING, const wchar_t *WSTRING,
+          size_t SIZE)
+     The `wcstombs' ("wide character string to multibyte string")
+     function converts the null-terminated wide character array WSTRING
+     into a string containing multibyte characters, storing not more
+     than SIZE bytes starting at STRING, followed by a terminating null
+     character if there is room.  The conversion of characters begins in
+     the initial shift state.
+
+     The terminating null character counts towards the size, so if SIZE
+     is less than or equal to the number of bytes needed in WSTRING, no
+     terminating null character is stored.
+
+     If a code that does not correspond to a valid multibyte character
+     is found, this function returns a value of -1.  Otherwise, the
+     return value is the number of bytes stored in the array STRING.
+     This number does not include the terminating null character, which
+     is present if the number is less than SIZE.
+
+
+File: libc.info,  Node: Shift State,  Prev: Non-reentrant String Conversion,  Up: Non-reentrant Conversion
+
+States in Non-reentrant Functions
+---------------------------------
+
+   In some multibyte character codes, the _meaning_ of any particular
+byte sequence is not fixed; it depends on what other sequences have come
+earlier in the same string.  Typically there are just a few sequences
+that can change the meaning of other sequences; these few are called
+"shift sequences" and we say that they set the "shift state" for other
+sequences that follow.
+
+   To illustrate shift state and shift sequences, suppose we decide that
+the sequence `0200' (just one byte) enters Japanese mode, in which
+pairs of bytes in the range from `0240' to `0377' are single
+characters, while `0201' enters Latin-1 mode, in which single bytes in
+the range from `0240' to `0377' are characters, and interpreted
+according to the ISO Latin-1 character set.  This is a multibyte code
+which has two alternative shift states ("Japanese mode" and "Latin-1
+mode"), and two shift sequences that specify particular shift states.
+
+   When the multibyte character code in use has shift states, then
+`mblen', `mbtowc' and `wctomb' must maintain and update the current
+shift state as they scan the string.  To make this work properly, you
+must follow these rules:
+
+   * Before starting to scan a string, call the function with a null
+     pointer for the multibyte character address--for example, `mblen
+     (NULL, 0)'.  This initializes the shift state to its standard
+     initial value.
+
+   * Scan the string one character at a time, in order.  Do not "back
+     up" and rescan characters already scanned, and do not intersperse
+     the processing of different strings.
+
+   Here is an example of using `mblen' following these rules:
+
+     void
+     scan_string (char *s)
+     {
+       int length = strlen (s);
+     
+       /* Initialize shift state.  */
+       mblen (NULL, 0);
+     
+       while (1)
+         {
+           int thischar = mblen (s, length);
+           /* Deal with end of string and invalid characters.  */
+           if (thischar == 0)
+             break;
+           if (thischar == -1)
+             {
+               error ("invalid multibyte character");
+               break;
+             }
+           /* Advance past this character.  */
+           s += thischar;
+           length -= thischar;
+         }
+     }
+
+   The functions `mblen', `mbtowc' and `wctomb' are not reentrant when
+using a multibyte code that uses a shift state.  However, no other
+library functions call these functions, so you don't have to worry that
+the shift state will be changed mysteriously.
+
+
+File: libc.info,  Node: Generic Charset Conversion,  Prev: Non-reentrant Conversion,  Up: Character Set Handling
+
+Generic Charset Conversion
+==========================
+
+   The conversion functions mentioned so far in this chapter all had in
+common that they operate on character sets which are not directly
+specified by the functions.  The multibyte encoding used is specified by
+the currently selected locale for the `LC_CTYPE' category.  The wide
+character set is fixed by the implementation (in the case of GNU C
+library it always is UCS-4 encoded ISO 10646.
+
+   This has of course several problems when it comes to general
+character conversion:
+
+   * For every conversion where neither the source or destination
+     character set is the character set of the locale for the
+     `LC_CTYPE' category, one has to change the `LC_CTYPE' locale using
+     `setlocale'.
+
+     This introduces major problems for the rest of the programs since
+     several more functions (e.g., the character classification
+     functions, *note Classification of Characters::) use the
+     `LC_CTYPE' category.
+
+   * Parallel conversions to and from different character sets are not
+     possible since the `LC_CTYPE' selection is global and shared by all
+     threads.
+
+   * If neither the source nor the destination character set is the
+     character set used for `wchar_t' representation there is at least
+     a two-step process necessary to convert a text using the functions
+     above.  One would have to select the source character set as the
+     multibyte encoding, convert the text into a `wchar_t' text, select
+     the destination character set as the multibyte encoding and
+     convert the wide character text to the multibyte (= destination)
+     character set.
+
+     Even if this is possible (which is not guaranteed) it is a very
+     tiring work.  Plus it suffers from the other two raised points
+     even more due to the steady changing of the locale.
+
+   The XPG2 standard defines a completely new set of functions which has
+none of these limitations.  They are not at all coupled to the selected
+locales and they but no constraints on the character sets selected for
+source and destination.  Only the set of available conversions is
+limiting them.  The standard does not specify that any conversion at all
+must be available.  It is a measure of the quality of the
+implementation.
+
+   In the following text first the interface to `iconv', the conversion
+function, will be described.  Comparisons with other implementations
+will show what pitfalls lie on the way of portable applications.  At
+last, the implementation is described as far as interesting to the
+advanced user who wants to extend the conversion capabilities.
+
+* Menu:
+
+* Generic Conversion Interface::    Generic Character Set Conversion Interface.
+* iconv Examples::                  A complete `iconv' example.
+* Other iconv Implementations::     Some Details about other `iconv'
+                                     Implementations.
+* glibc iconv Implementation::      The `iconv' Implementation in the GNU C
+                                     library.
+
+
+File: libc.info,  Node: Generic Conversion Interface,  Next: iconv Examples,  Up: Generic Charset Conversion
+
+Generic Character Set Conversion Interface
+------------------------------------------
+
+   This set of functions follows the traditional cycle of using a
+resource: open-use-close.  The interface consists of three functions,
+each of which implement one step.
+
+   Before the interfaces are described it is necessary to introduce a
+datatype.  Just like other open-use-close interface the functions
+introduced here work using a handles and the `iconv.h' header defines a
+special type for the handles used.
+
+ - Data Type: iconv_t
+     This data type is an abstract type defined in `iconv.h'.  The user
+     must not assume anything about the definition of this type, it
+     must be completely opaque.
+
+     Objects of this type can get assigned handles for the conversions
+     using the `iconv' functions.  The objects themselves need not be
+     freed but the conversions for which the handles stand for have to.
+
+The first step is the function to create a handle.
+
+ - Function: iconv_t iconv_open (const char *TOCODE, const char
+          *FROMCODE)
+     The `iconv_open' function has to be used before starting a
+     conversion.  The two parameters this function takes determine the
+     source and destination character set for the conversion and if the
+     implementation has the possibility to perform such a conversion the
+     function returns a handle.
+
+     If the wanted conversion is not available the function returns
+     `(iconv_t) -1'.  In this case the global variable `errno' can have
+     the following values:
+
+    `EMFILE'
+          The process already has `OPEN_MAX' file descriptors open.
+
+    `ENFILE'
+          The system limit of open file is reached.
+
+    `ENOMEM'
+          Not enough memory to carry out the operation.
+
+    `EINVAL'
+          The conversion from FROMCODE to TOCODE is not supported.
+
+     It is not possible to use the same descriptor in different threads
+     to perform independent conversions.  Within the data structures
+     associated with the descriptor there is information about the
+     conversion state.  This must not be messed up by using it in
+     different conversions.
+
+     An `iconv' descriptor is like a file descriptor as for every use a
+     new descriptor must be created.  The descriptor does not stand for
+     all of the conversions from FROMSET to TOSET.
+
+     The GNU C library implementation of `iconv_open' has one
+     significant extension to other implementations.  To ease the
+     extension of the set of available conversions the implementation
+     allows storing the necessary files with data and code in
+     arbitrarily many directories.  How this extension has to be
+     written will be explained below (*note glibc iconv
+     Implementation::).  Here it is only important to say that all
+     directories mentioned in the `GCONV_PATH' environment variable are
+     considered if they contain a file `gconv-modules'.  These
+     directories need not necessarily be created by the system
+     administrator.  In fact, this extension is introduced to help users
+     writing and using their own, new conversions.  Of course this does
+     not work for security reasons in SUID binaries; in this case only
+     the system directory is considered and this normally is
+     `PREFIX/lib/gconv'.  The `GCONV_PATH' environment variable is
+     examined exactly once at the first call of the `iconv_open'
+     function.  Later modifications of the variable have no effect.
+
+     This function got introduced early in the X/Open Portability Guide,
+     version 2.  It is supported by all commercial Unices as it is
+     required for the Unix branding.  However, the quality and
+     completeness of the implementation varies widely.  The function is
+     declared in `iconv.h'.
+
+   The `iconv' implementation can associate large data structure with
+the handle returned by `iconv_open'.  Therefore it is crucial to free
+all the resources once all conversions are carried out and the
+conversion is not needed anymore.
+
+ - Function: int iconv_close (iconv_t CD)
+     The `iconv_close' function frees all resources associated with the
+     handle CD which must have been returned by a successful call to
+     the `iconv_open' function.
+
+     If the function call was successful the return value is 0.
+     Otherwise it is -1 and `errno' is set appropriately.  Defined
+     error are:
+
+    `EBADF'
+          The conversion descriptor is invalid.
+
+     This function was introduced together with the rest of the `iconv'
+     functions in XPG2 and it is declared in `iconv.h'.
+
+   The standard defines only one actual conversion function.  This has
+therefore the most general interface: it allows conversion from one
+buffer to another.  Conversion from a file to a buffer, vice versa, or
+even file to file can be implemented on top of it.
+
+ - Function: size_t iconv (iconv_t CD, char **INBUF, size_t
+          *INBYTESLEFT, char **OUTBUF, size_t *OUTBYTESLEFT)
+     The `iconv' function converts the text in the input buffer
+     according to the rules associated with the descriptor CD and
+     stores the result in the output buffer.  It is possible to call the
+     function for the same text several times in a row since for
+     stateful character sets the necessary state information is kept in
+     the data structures associated with the descriptor.
+
+     The input buffer is specified by `*INBUF' and it contains
+     `*INBYTESLEFT' bytes.  The extra indirection is necessary for
+     communicating the used input back to the caller (see below).  It is
+     important to note that the buffer pointer is of type `char' and the
+     length is measured in bytes even if the input text is encoded in
+     wide characters.
+
+     The output buffer is specified in a similar way.  `*OUTBUF' points
+     to the beginning of the buffer with at least `*OUTBYTESLEFT' bytes
+     room for the result.  The buffer pointer again is of type `char'
+     and the length is measured in bytes.  If OUTBUF or `*OUTBUF' is a
+     null pointer the conversion is performed but no output is
+     available.
+
+     If INBUF is a null pointer the `iconv' function performs the
+     necessary action to put the state of the conversion into the
+     initial state.  This is obviously a no-op for non-stateful
+     encodings, but if the encoding has a state such a function call
+     might put some byte sequences in the output buffer which perform
+     the necessary state changes.  The next call with INBUF not being a
+     null pointer then simply goes on from the initial state.  It is
+     important that the programmer never makes any assumption on
+     whether the conversion has to deal with states or not.  Even if
+     the input and output character sets are not stateful the
+     implementation might still have to keep states.  This is due to the
+     implementation chosen for the GNU C library as it is described
+     below.  Therefore an `iconv' call to reset the state should always
+     be performed if some protocol requires this for the output text.
+
+     The conversion stops for three reasons.  The first is that all
+     characters from the input buffer are converted.  This actually can
+     mean two things: really all bytes from the input buffer are
+     consumed or there are some bytes at the end of the buffer which
+     possibly can form a complete character but the input is
+     incomplete.  The second reason for a stop is when the output
+     buffer is full.  And the third reason is that the input contains
+     invalid characters.
+
+     In all these cases the buffer pointers after the last successful
+     conversion, for input and output buffer, are stored in INBUF and
+     OUTBUF and the available room in each buffer is stored in
+     INBYTESLEFT and OUTBYTESLEFT.
+
+     Since the character sets selected in the `iconv_open' call can be
+     almost arbitrary there can be situations where the input buffer
+     contains valid characters which have no identical representation
+     in the output character set.  The behavior in this situation is
+     undefined.  The _current_ behavior of the GNU C library in this
+     situation is to return with an error immediately.  This certainly
+     is not the most desirable solution.  Therefore future versions
+     will provide better ones but they are not yet finished.
+
+     If all input from the input buffer is successfully converted and
+     stored in the output buffer the function returns the number of
+     non-reversible conversions performed.  In all other cases the
+     return value is `(size_t) -1' and `errno' is set appropriately.
+     In this case the value pointed to by INBYTESLEFT is nonzero.
+
+    `EILSEQ'
+          The conversion stopped because of an invalid byte sequence in
+          the input.  After the call `*INBUF' points at the first byte
+          of the invalid byte sequence.
+
+    `E2BIG'
+          The conversion stopped because it ran out of space in the
+          output buffer.
+
+    `EINVAL'
+          The conversion stopped because of an incomplete byte sequence
+          at the end of the input buffer.
+
+    `EBADF'
+          The CD argument is invalid.
+
+     This function was introduced in the XPG2 standard and is declared
+     in the `iconv.h' header.
+
+   The definition of the `iconv' function is quite good overall.  It
+provides quite flexible functionality.  The only problems lie in the
+boundary cases which are incomplete byte sequences at the end of the
+input buffer and invalid input.  A third problem, which is not really a
+design problem, is the way conversions are selected.  The standard does
+not say anything about the legitimate names, a minimal set of available
+conversions.  We will see how this negatively impacts other
+implementations, as is demonstrated below.
+
+
+File: libc.info,  Node: iconv Examples,  Next: Other iconv Implementations,  Prev: Generic Conversion Interface,  Up: Generic Charset Conversion
+
+A complete `iconv' example
+--------------------------
+
+   The example below features a solution for a common problem.  Given
+that one knows the internal encoding used by the system for `wchar_t'
+strings one often is in the position to read text from a file and store
+it in wide character buffers.  One can do this using `mbsrtowcs' but
+then we run into the problems discussed above.
+
+     int
+     file2wcs (int fd, const char *charset, wchar_t *outbuf, size_t avail)
+     {
+       char inbuf[BUFSIZ];
+       size_t insize = 0;
+       char *wrptr = (char *) outbuf;
+       int result = 0;
+       iconv_t cd;
+     
+       cd = iconv_open ("WCHAR_T", charset);
+       if (cd == (iconv_t) -1)
+         {
+           /* Something went wrong.  */
+           if (errno == EINVAL)
+             error (0, 0, "conversion from '%s' to wchar_t not available",
+                    charset);
+           else
+             perror ("iconv_open");
+     
+           /* Terminate the output string.  */
+           *outbuf = L'\0';
+     
+           return -1;
+         }
+     
+       while (avail > 0)
+         {
+           size_t nread;
+           size_t nconv;
+           char *inptr = inbuf;
+     
+           /* Read more input.  */
+           nread = read (fd, inbuf + insize, sizeof (inbuf) - insize);
+           if (nread == 0)
+             {
+               /* When we come here the file is completely read.
+                  This still could mean there are some unused
+                  characters in the `inbuf'.  Put them back.  */
+               if (lseek (fd, -insize, SEEK_CUR) == -1)
+                 result = -1;
+     
+               /* Now write out the byte sequence to get into the
+                  initial state if this is necessary.  */
+               iconv (cd, NULL, NULL, &wrptr, &avail);
+     
+               break;
+             }
+           insize += nread;
+     
+           /* Do the conversion.  */
+           nconv = iconv (cd, &inptr, &insize, &wrptr, &avail);
+           if (nconv == (size_t) -1)
+             {
+               /* Not everything went right.  It might only be
+                  an unfinished byte sequence at the end of the
+                  buffer.  Or it is a real problem.  */
+               if (errno == EINVAL)
+                 /* This is harmless.  Simply move the unused
+                    bytes to the beginning of the buffer so that
+                    they can be used in the next round.  */
+                 memmove (inbuf, inptr, insize);
+               else
+                 {
+                   /* It is a real problem.  Maybe we ran out of
+                      space in the output buffer or we have invalid
+                      input.  In any case back the file pointer to
+                      the position of the last processed byte.  */
+                   lseek (fd, -insize, SEEK_CUR);
+                   result = -1;
+                   break;
+                 }
+             }
+         }
+     
+       /* Terminate the output string.  */
+       if (avail >= sizeof (wchar_t))
+         *((wchar_t *) wrptr) = L'\0';
+     
+       if (iconv_close (cd) != 0)
+         perror ("iconv_close");
+     
+       return (wchar_t *) wrptr - outbuf;
+     }
+
+   This example shows the most important aspects of using the `iconv'
+functions.  It shows how successive calls to `iconv' can be used to
+convert large amounts of text.  The user does not have to care about
+stateful encodings as the functions take care of everything.
+
+   An interesting point is the case where `iconv' return an error and
+`errno' is set to `EINVAL'.  This is not really an error in the
+transformation.  It can happen whenever the input character set
+contains byte sequences of more than one byte for some character and
+texts are not processed in one piece.  In this case there is a chance
+that a multibyte sequence is cut.  The caller than can simply read the
+remainder of the takes and feed the offending bytes together with new
+character from the input to `iconv' and continue the work.  The
+internal state kept in the descriptor is _not_ unspecified after such
+an event as it is the case with the conversion functions from the ISO C
+standard.
+
+   The example also shows the problem of using wide character strings
+with `iconv'.  As explained in the description of the `iconv' function
+above the function always takes a pointer to a `char' array and the
+available space is measured in bytes.  In the example the output buffer
+is a wide character buffer.  Therefore we use a local variable WRPTR of
+type `char *' which is used in the `iconv' calls.
+
+   This looks rather innocent but can lead to problems on platforms
+which have tight restriction on alignment.  Therefore the caller of
+`iconv' has to make sure that the pointers passed are suitable for
+access of characters from the appropriate character set.  Since in the
+above case the input parameter to the function is a `wchar_t' pointer
+this is the case (unless the user violates alignment when computing the
+parameter).  But in other situations, especially when writing generic
+functions where one does not know what type of character set one uses
+and therefore treats text as a sequence of bytes, it might become
+tricky.
+
+
+File: libc.info,  Node: Other iconv Implementations,  Next: glibc iconv Implementation,  Prev: iconv Examples,  Up: Generic Charset Conversion
+
+Some Details about other `iconv' Implementations
+------------------------------------------------
+
+   This is not really the place to discuss the `iconv' implementation
+of other systems but it is necessary to know a bit about them to write
+portable programs.  The above mentioned problems with the specification
+of the `iconv' functions can lead to portability issues.
+
+   The first thing to notice is that due to the large number of
+character sets in use it is certainly not practical to encode the
+conversions directly in the C library.  Therefore the conversion
+information must come from files outside the C library.  This is
+usually done in one or both of the following ways:
+
+   * The C library contains a set of generic conversion functions which
+     can read the needed conversion tables and other information from
+     data files.  These files get loaded when necessary.
+
+     This solution is problematic as it requires a great deal of effort
+     to apply to all character sets (potentially an infinite set).  The
+     differences in the structure of the different character sets is so
+     large that many different variants of the table processing
+     functions must be developed.  On top of this the generic nature of
+     these functions make them slower than specifically implemented
+     functions.
+
+   * The C library only contains a framework which can dynamically load
+     object files and execute the therein contained conversion
+     functions.
+
+     This solution provides much more flexibility.  The C library itself
+     contains only very little code and therefore reduces the general
+     memory footprint.  Also, with a documented interface between the C
+     library and the loadable modules it is possible for third parties
+     to extend the set of available conversion modules.  A drawback of
+     this solution is that dynamic loading must be available.
+
+   Some implementations in commercial Unices implement a mixture of
+these these possibilities, the majority only the second solution.  Using
+loadable modules moves the code out of the library itself and keeps the
+door open for extensions and improvements.  But this design is also
+limiting on some platforms since not many platforms support dynamic
+loading in statically linked programs.  On platforms without his
+capability it is therefore not possible to use this interface in
+statically linked programs.  The GNU C library has on ELF platforms no
+problems with dynamic loading in in these situations and therefore this
+point is moot.  The danger is that one gets acquainted with this and
+forgets about the restrictions on other systems.
+
+   A second thing to know about other `iconv' implementations is that
+the number of available conversions is often very limited.  Some
+implementations provide in the standard release (not special
+international or developer releases) at most 100 to 200 conversion
+possibilities.  This does not mean 200 different character sets are
+supported.  E.g., conversions from one character set to a set of, say,
+10 others counts as 10 conversion.  Together with the other direction
+this makes already 20.  One can imagine the thin coverage these platform
+provide.  Some Unix vendors even provide only a handful of conversions
+which renders them useless for almost all uses.
+
+   This directly leads to a third and probably the most problematic
+point.  The way the `iconv' conversion functions are implemented on all
+known Unix system and the availability of the conversion functions from
+character set A to B and the conversion from B to C does _not_ imply
+that the conversion from A to C is available.
+
+   This might not seem unreasonable and problematic at first but it is a
+quite big problem as one will notice shortly after hitting it.  To show
+the problem we assume to write a program which has to convert from A to
+C.  A call like
+
+     cd = iconv_open ("C", "A");
+
+does fail according to the assumption above.  But what does the program
+do now?  The conversion is really necessary and therefore simply giving
+up is no possibility.
+
+   This is a nuisance.  The `iconv' function should take care of this.
+But how should the program proceed from here on?  If it would try to
+convert to character set B first the two `iconv_open' calls
+
+     cd1 = iconv_open ("B", "A");
+
+and
+
+     cd2 = iconv_open ("C", "B");
+
+will succeed but how to find B?
+
+   Unfortunately, the answer is: there is no general solution.  On some
+systems guessing might help.  On those systems most character sets can
+convert to and from UTF-8 encoded ISO 10646 or Unicode text.  Beside
+this only some very system-specific methods can help.  Since the
+conversion functions come from loadable modules and these modules must
+be stored somewhere in the filesystem, one _could_ try to find them and
+determine from the available file which conversions are available and
+whether there is an indirect route from A to C.
+
+   This shows one of the design errors of `iconv' mentioned above.  It
+should at least be possible to determine the list of available
+conversion programmatically so that if `iconv_open' says there is no
+such conversion, one could make sure this also is true for indirect
+routes.
+

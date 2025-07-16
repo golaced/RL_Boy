@@ -1,0 +1,1222 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Setting an Alarm,  Next: Sleeping,  Prev: Calendar Time,  Up: Date and Time
+
+Setting an Alarm
+================
+
+   The `alarm' and `setitimer' functions provide a mechanism for a
+process to interrupt itself in the future.  They do this by setting a
+timer; when the timer expires, the process receives a signal.
+
+   Each process has three independent interval timers available:
+
+   * A real-time timer that counts elapsed time.  This timer sends a
+     `SIGALRM' signal to the process when it expires.
+
+   * A virtual timer that counts processor time used by the process.
+     This timer sends a `SIGVTALRM' signal to the process when it
+     expires.
+
+   * A profiling timer that counts both processor time used by the
+     process, and processor time spent in system calls on behalf of the
+     process.  This timer sends a `SIGPROF' signal to the process when
+     it expires.
+
+     This timer is useful for profiling in interpreters.  The interval
+     timer mechanism does not have the fine granularity necessary for
+     profiling native code.
+
+   You can only have one timer of each kind set at any given time.  If
+you set a timer that has not yet expired, that timer is simply reset to
+the new value.
+
+   You should establish a handler for the appropriate alarm signal using
+`signal' or `sigaction' before issuing a call to `setitimer' or
+`alarm'.  Otherwise, an unusual chain of events could cause the timer
+to expire before your program establishes the handler.  In this case it
+would be terminated, since termination is the default action for the
+alarm signals.  *Note Signal Handling::.
+
+   The `setitimer' function is the primary means for setting an alarm.
+This facility is declared in the header file `sys/time.h'.  The `alarm'
+function, declared in `unistd.h', provides a somewhat simpler interface
+for setting the real-time timer.
+
+ - Data Type: struct itimerval
+     This structure is used to specify when a timer should expire.  It
+     contains the following members:
+    `struct timeval it_interval'
+          This is the period between successive timer interrupts.  If
+          zero, the alarm will only be sent once.
+
+    `struct timeval it_value'
+          This is the period between now and the first timer interrupt.
+          If zero, the alarm is disabled.
+
+     The `struct timeval' data type is described in *Note Elapsed
+     Time::.
+
+ - Function: int setitimer (int WHICH, struct itimerval *NEW, struct
+          itimerval *OLD)
+     The `setitimer' function sets the timer specified by WHICH
+     according to NEW.  The WHICH argument can have a value of
+     `ITIMER_REAL', `ITIMER_VIRTUAL', or `ITIMER_PROF'.
+
+     If OLD is not a null pointer, `setitimer' returns information
+     about any previous unexpired timer of the same kind in the
+     structure it points to.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EINVAL'
+          The timer period is too large.
+
+ - Function: int getitimer (int WHICH, struct itimerval *OLD)
+     The `getitimer' function stores information about the timer
+     specified by WHICH in the structure pointed at by OLD.
+
+     The return value and error conditions are the same as for
+     `setitimer'.
+
+`ITIMER_REAL'
+     This constant can be used as the WHICH argument to the `setitimer'
+     and `getitimer' functions to specify the real-time timer.
+
+`ITIMER_VIRTUAL'
+     This constant can be used as the WHICH argument to the `setitimer'
+     and `getitimer' functions to specify the virtual timer.
+
+`ITIMER_PROF'
+     This constant can be used as the WHICH argument to the `setitimer'
+     and `getitimer' functions to specify the profiling timer.
+
+ - Function: unsigned int alarm (unsigned int SECONDS)
+     The `alarm' function sets the real-time timer to expire in SECONDS
+     seconds.  If you want to cancel any existing alarm, you can do
+     this by calling `alarm' with a SECONDS argument of zero.
+
+     The return value indicates how many seconds remain before the
+     previous alarm would have been sent.  If there is no previous
+     alarm, `alarm' returns zero.
+
+   The `alarm' function could be defined in terms of `setitimer' like
+this:
+
+     unsigned int
+     alarm (unsigned int seconds)
+     {
+       struct itimerval old, new;
+       new.it_interval.tv_usec = 0;
+       new.it_interval.tv_sec = 0;
+       new.it_value.tv_usec = 0;
+       new.it_value.tv_sec = (long int) seconds;
+       if (setitimer (ITIMER_REAL, &new, &old) < 0)
+         return 0;
+       else
+         return old.it_value.tv_sec;
+     }
+
+   There is an example showing the use of the `alarm' function in *Note
+Handler Returns::.
+
+   If you simply want your process to wait for a given number of
+seconds, you should use the `sleep' function.  *Note Sleeping::.
+
+   You shouldn't count on the signal arriving precisely when the timer
+expires.  In a multiprocessing environment there is typically some
+amount of delay involved.
+
+   *Portability Note:* The `setitimer' and `getitimer' functions are
+derived from BSD Unix, while the `alarm' function is specified by the
+POSIX.1 standard.  `setitimer' is more powerful than `alarm', but
+`alarm' is more widely used.
+
+
+File: libc.info,  Node: Sleeping,  Prev: Setting an Alarm,  Up: Date and Time
+
+Sleeping
+========
+
+   The function `sleep' gives a simple way to make the program wait for
+a short interval.  If your program doesn't use signals (except to
+terminate), then you can expect `sleep' to wait reliably throughout the
+specified interval.  Otherwise, `sleep' can return sooner if a signal
+arrives; if you want to wait for a given interval regardless of
+signals, use `select' (*note Waiting for I/O::) and don't specify any
+descriptors to wait for.
+
+ - Function: unsigned int sleep (unsigned int SECONDS)
+     The `sleep' function waits for SECONDS or until a signal is
+     delivered, whichever happens first.
+
+     If `sleep' function returns because the requested interval is over,
+     it returns a value of zero.  If it returns because of delivery of a
+     signal, its return value is the remaining time in the sleep
+     interval.
+
+     The `sleep' function is declared in `unistd.h'.
+
+   Resist the temptation to implement a sleep for a fixed amount of
+time by using the return value of `sleep', when nonzero, to call
+`sleep' again.  This will work with a certain amount of accuracy as
+long as signals arrive infrequently.  But each signal can cause the
+eventual wakeup time to be off by an additional second or so.  Suppose a
+few signals happen to arrive in rapid succession by bad luck--there is
+no limit on how much this could shorten or lengthen the wait.
+
+   Instead, compute the calendar time at which the program should stop
+waiting, and keep trying to wait until that calendar time.  This won't
+be off by more than a second.  With just a little more work, you can use
+`select' and make the waiting period quite accurate.  (Of course, heavy
+system load can cause additional unavoidable delays--unless the machine
+is dedicated to one application, there is no way you can avoid this.)
+
+   On some systems, `sleep' can do strange things if your program uses
+`SIGALRM' explicitly.  Even if `SIGALRM' signals are being ignored or
+blocked when `sleep' is called, `sleep' might return prematurely on
+delivery of a `SIGALRM' signal.  If you have established a handler for
+`SIGALRM' signals and a `SIGALRM' signal is delivered while the process
+is sleeping, the action taken might be just to cause `sleep' to return
+instead of invoking your handler.  And, if `sleep' is interrupted by
+delivery of a signal whose handler requests an alarm or alters the
+handling of `SIGALRM', this handler and `sleep' will interfere.
+
+   On the GNU system, it is safe to use `sleep' and `SIGALRM' in the
+same program, because `sleep' does not work by means of `SIGALRM'.
+
+ - Function: int nanosleep (const struct timespec *REQUESTED_TIME,
+          struct timespec *REMAINING)
+     If resolution to seconds is not enough the `nanosleep' function can
+     be used.  As the name suggests the sleep interval can be specified
+     in nanoseconds.  The actual elapsed time of the sleep interval
+     might be longer since the system rounds the elapsed time you
+     request up to the next integer multiple of the actual resolution
+     the system can deliver.
+
+     *`requested_time' is the elapsed time of the interval you want to
+     sleep.
+
+     The function returns as *`remaining' the elapsed time left in the
+     interval for which you requested to sleep.  If the interval
+     completed without getting interrupted by a signal, this is zero.
+
+     `struct timespec' is described in *Note Elapsed Time::.
+
+     If the function returns because the interval is over the return
+     value is zero.  If the function returns -1 the global variable
+     ERRNO is set to the following values:
+
+    `EINTR'
+          The call was interrupted because a signal was delivered to
+          the thread.  If the REMAINING parameter is not the null
+          pointer the structure pointed to by REMAINING is updated to
+          contain the remaining elapsed time.
+
+    `EINVAL'
+          The nanosecond value in the REQUESTED_TIME parameter contains
+          an illegal value.  Either the value is negative or greater
+          than or equal to 1000 million.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `nanosleep' is called.  If the thread gets canceled these
+     resources stay allocated until the program ends.  To avoid this
+     calls to `nanosleep' should be protected using cancellation
+     handlers.
+
+     The `nanosleep' function is declared in `time.h'.
+
+
+File: libc.info,  Node: Resource Usage And Limitation,  Next: Non-Local Exits,  Prev: Date and Time,  Up: Top
+
+Resource Usage And Limitation
+*****************************
+
+   This chapter describes functions for examining how much of various
+kinds of resources (CPU time, memory, etc.) a process has used and
+getting and setting limits on future usage.
+
+* Menu:
+
+* Resource Usage::		Measuring various resources used.
+* Limits on Resources::		Specifying limits on resource usage.
+* Priority::			Reading or setting process run priority.
+* Memory Resources::            Querying memory available resources.
+* Processor Resources::         Learn about the processors available.
+
+
+File: libc.info,  Node: Resource Usage,  Next: Limits on Resources,  Up: Resource Usage And Limitation
+
+Resource Usage
+==============
+
+   The function `getrusage' and the data type `struct rusage' are used
+to examine the resource usage of a process.  They are declared in
+`sys/resource.h'.
+
+ - Function: int getrusage (int PROCESSES, struct rusage *RUSAGE)
+     This function reports resource usage totals for processes
+     specified by PROCESSES, storing the information in `*RUSAGE'.
+
+     In most systems, PROCESSES has only two valid values:
+
+    `RUSAGE_SELF'
+          Just the current process.
+
+    `RUSAGE_CHILDREN'
+          All child processes (direct and indirect) that have already
+          terminated.
+
+     In the GNU system, you can also inquire about a particular child
+     process by specifying its process ID.
+
+     The return value of `getrusage' is zero for success, and `-1' for
+     failure.
+
+    `EINVAL'
+          The argument PROCESSES is not valid.
+
+   One way of getting resource usage for a particular child process is
+with the function `wait4', which returns totals for a child when it
+terminates.  *Note BSD Wait Functions::.
+
+ - Data Type: struct rusage
+     This data type stores various resource usage statistics.  It has
+     the following members, and possibly others:
+
+    `struct timeval ru_utime'
+          Time spent executing user instructions.
+
+    `struct timeval ru_stime'
+          Time spent in operating system code on behalf of PROCESSES.
+
+    `long int ru_maxrss'
+          The maximum resident set size used, in kilobytes.  That is,
+          the maximum number of kilobytes of physical memory that
+          PROCESSES used simultaneously.
+
+    `long int ru_ixrss'
+          An integral value expressed in kilobytes times ticks of
+          execution, which indicates the amount of memory used by text
+          that was shared with other processes.
+
+    `long int ru_idrss'
+          An integral value expressed the same way, which is the amount
+          of unshared memory used for data.
+
+    `long int ru_isrss'
+          An integral value expressed the same way, which is the amount
+          of unshared memory used for stack space.
+
+    `long int ru_minflt'
+          The number of page faults which were serviced without
+          requiring any I/O.
+
+    `long int ru_majflt'
+          The number of page faults which were serviced by doing I/O.
+
+    `long int ru_nswap'
+          The number of times PROCESSES was swapped entirely out of
+          main memory.
+
+    `long int ru_inblock'
+          The number of times the file system had to read from the disk
+          on behalf of PROCESSES.
+
+    `long int ru_oublock'
+          The number of times the file system had to write to the disk
+          on behalf of PROCESSES.
+
+    `long int ru_msgsnd'
+          Number of IPC messages sent.
+
+    `long int ru_msgrcv'
+          Number of IPC messages received.
+
+    `long int ru_nsignals'
+          Number of signals received.
+
+    `long int ru_nvcsw'
+          The number of times PROCESSES voluntarily invoked a context
+          switch (usually to wait for some service).
+
+    `long int ru_nivcsw'
+          The number of times an involuntary context switch took place
+          (because a time slice expired, or another process of higher
+          priority was scheduled).
+
+   `vtimes' is a historical function that does some of what `getrusage'
+does.  `getrusage' is a better choice.
+
+   `vtimes' and its `vtimes' data structure are declared in
+`sys/vtimes.h'.
+
+ - Function: int vtimes (struct vtimes CURRENT, struct vtimes CHILD)
+     `vtimes' reports resource usage totals for a process.
+
+     If CURRENT is non-null, `vtimes' stores resource usage totals for
+     the invoking process alone in the structure to which it points.  If
+     CHILD is non-null, `vtimes' stores resource usage totals for all
+     past children (which have terminated) of the invoking process in
+     the structure to which it points.
+
+      - Data Type: struct vtimes
+          This data type contains information about the resource usage
+          of a process.  Each member corresponds to a member of the
+          `struct rusage' data type described above.
+
+         `vm_utime'
+               User CPU time.  Analogous to `ru_utime' in `struct
+               rusage'
+
+         `vm_stime'
+               System CPU time.  Analogous to `ru_stime' in `struct
+               rusage'
+
+         `vm_idsrss'
+               Data and stack memory.  The sum of the values that would
+               be reported as `ru_idrss' and `ru_isrss' in `struct
+               rusage'
+
+         `vm_ixrss'
+               Shared memory.  Analogous to `ru_ixrss' in `struct
+               rusage'
+
+         `vm_maxrss'
+               Maximent resident set size.  Analogous to `ru_maxrss' in
+               `struct rusage'
+
+         `vm_majflt'
+               Major page faults.  Analogous to `ru_majflt' in `struct
+               rusage'
+
+         `vm_minflt'
+               Minor page faults.  Analogous to `ru_minflt' in `struct
+               rusage'
+
+         `vm_nswap'
+               Swap count.  Analogous to `ru_nswap' in `struct rusage'
+
+         `vm_inblk'
+               Disk reads.  Analogous to `ru_inblk' in `struct rusage'
+
+         `vm_oublk'
+               Disk writes.  Analogous to `ru_oublk' in `struct rusage'
+
+     The return value is zero if the function succeeds; `-1' otherwise.
+
+   An additional historical function for examining resource usage,
+`vtimes', is supported but not documented here.  It is declared in
+`sys/vtimes.h'.
+
+
+File: libc.info,  Node: Limits on Resources,  Next: Priority,  Prev: Resource Usage,  Up: Resource Usage And Limitation
+
+Limiting Resource Usage
+=======================
+
+   You can specify limits for the resource usage of a process.  When the
+process tries to exceed a limit, it may get a signal, or the system call
+by which it tried to do so may fail, depending on the resource.  Each
+process initially inherits its limit values from its parent, but it can
+subsequently change them.
+
+   There are two per-process limits associated with a resource:
+
+"current limit"
+     The current limit is the value the system will not allow usage to
+     exceed.  It is also called the "soft limit" because the process
+     being limited can generally raise the current limit at will.
+
+"maximum limit"
+     The maximum limit is the maximum value to which a process is
+     allowed to set its current limit.  It is also called the "hard
+     limit" because there is no way for a process to get around it.  A
+     process may lower its own maximum limit, but only the superuser
+     may increase a maximum limit.
+
+   The symbols for use with `getrlimit', `setrlimit', `getrlimit64',
+and `seterlimit64' are defined in `sys/resource.h'.
+
+ - Function: int getrlimit (int RESOURCE, struct rlimit *RLP)
+     Read the current and maximum limits for the resource RESOURCE and
+     store them in `*RLP'.
+
+     The return value is `0' on success and `-1' on failure.  The only
+     possible `errno' error condition is `EFAULT'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32-bit system this function is in fact `getrlimit64'.  Thus, the
+     LFS interface transparently replaces the old interface.
+
+ - Function: int getrlimit64 (int RESOURCE, struct rlimit64 *RLP)
+     This function is similar to `getrlimit' but its second parameter is
+     a pointer to a variable of type `struct rlimit64', which allows it
+     to read values which wouldn't fit in the member of a `struct
+     rlimit'.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32-bit machine, this function is available under the name
+     `getrlimit' and so transparently replaces the old interface.
+
+ - Function: int setrlimit (int RESOURCE, const struct rlimit *RLP)
+     Store the current and maximum limits for the resource RESOURCE in
+     `*RLP'.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error condition is possible:
+
+    `EPERM'
+             * The process tried to raise a current limit beyond the
+               maximum limit.
+
+             * The process tried to raise a maximum limit, but is not
+               superuser.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32-bit system this function is in fact `setrlimit64'.  Thus, the
+     LFS interface transparently replaces the old interface.
+
+ - Function: int setrlimit64 (int RESOURCE, const struct rlimit64 *RLP)
+     This function is similar to `setrlimit' but its second parameter is
+     a pointer to a variable of type `struct rlimit64' which allows it
+     to set values which wouldn't fit in the member of a `struct
+     rlimit'.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32-bit machine this function is available under the name
+     `setrlimit' and so transparently replaces the old interface.
+
+ - Data Type: struct rlimit
+     This structure is used with `getrlimit' to receive limit values,
+     and with `setrlimit' to specify limit values for a particular
+     process and resource.  It has two fields:
+
+    `rlim_t rlim_cur'
+          The current limit
+
+    `rlim_t rlim_max'
+          The maximum limit.
+
+     For `getrlimit', the structure is an output; it receives the
+     current values.  For `setrlimit', it specifies the new values.
+
+   For the LFS functions a similar type is defined in `sys/resource.h'.
+
+ - Data Type: struct rlimit64
+     This structure is analogous to the `rlimit' structure above, but
+     its components have wider ranges.  It has two fields:
+
+    `rlim64_t rlim_cur'
+          This is analogous to `rlimit.rlim_cur', but with a different
+          type.
+
+    `rlim64_t rlim_max'
+          This is analogous to `rlimit.rlim_max', but with a different
+          type.
+
+
+   Here is a list of resources for which you can specify a limit.
+Memory and file sizes are measured in bytes.
+
+`RLIMIT_CPU'
+     The maximum amount of CPU time the process can use.  If it runs for
+     longer than this, it gets a signal: `SIGXCPU'.  The value is
+     measured in seconds.  *Note Operation Error Signals::.
+
+`RLIMIT_FSIZE'
+     The maximum size of file the process can create.  Trying to write a
+     larger file causes a signal: `SIGXFSZ'.  *Note Operation Error
+     Signals::.
+
+`RLIMIT_DATA'
+     The maximum size of data memory for the process.  If the process
+     tries to allocate data memory beyond this amount, the allocation
+     function fails.
+
+`RLIMIT_STACK'
+     The maximum stack size for the process.  If the process tries to
+     extend its stack past this size, it gets a `SIGSEGV' signal.
+     *Note Program Error Signals::.
+
+`RLIMIT_CORE'
+     The maximum size core file that this process can create.  If the
+     process terminates and would dump a core file larger than this,
+     then no core file is created.  So setting this limit to zero
+     prevents core files from ever being created.
+
+`RLIMIT_RSS'
+     The maximum amount of physical memory that this process should get.
+     This parameter is a guide for the system's scheduler and memory
+     allocator; the system may give the process more memory when there
+     is a surplus.
+
+`RLIMIT_MEMLOCK'
+     The maximum amount of memory that can be locked into physical
+     memory (so it will never be paged out).
+
+`RLIMIT_NPROC'
+     The maximum number of processes that can be created with the same
+     user ID.  If you have reached the limit for your user ID, `fork'
+     will fail with `EAGAIN'.  *Note Creating a Process::.
+
+`RLIMIT_NOFILE'
+`RLIMIT_OFILE'
+     The maximum number of files that the process can open.  If it
+     tries to open more files than this, its open attempt fails with
+     `errno' `EMFILE'.  *Note Error Codes::.  Not all systems support
+     this limit; GNU does, and 4.4 BSD does.
+
+`RLIMIT_AS'
+     The maximum size of total memory that this process should get.  If
+     the process tries to allocate more memory beyond this amount with,
+     for example, `brk', `malloc', `mmap' or `sbrk', the allocation
+     function fails.
+
+`RLIM_NLIMITS'
+     The number of different resource limits.  Any valid RESOURCE
+     operand must be less than `RLIM_NLIMITS'.
+
+ - Constant: int RLIM_INFINITY
+     This constant stands for a value of "infinity" when supplied as
+     the limit value in `setrlimit'.
+
+   The following are historical functions to do some of what the
+functions above do.  The functions above are better choices.
+
+   `ulimit' and the command symbols are declared in `ulimit.h'.
+
+ - Function: int ulimit (int CMD, ...)
+     `ulimit' gets the current limit or sets the current and maximum
+     limit for a particular resource for the calling process according
+     to the command CMD.a
+
+     If you are getting a limit, the command argument is the only
+     argument.  If you are setting a limit, there is a second argument:
+     `long int' LIMIT which is the value to which you are setting the
+     limit.
+
+     The CMD values and the operations they specify are:
+    `GETFSIZE'
+          Get the current limit on the size of a file, in units of 512
+          bytes.
+
+    `SETFSIZE'
+          Set the current and maximum limit on the size of a file to
+          LIMIT * 512 bytes.
+
+     There are also some other CMD values that may do things on some
+     systems, but they are not supported.
+
+     Only the superuser may increase a maximum limit.
+
+     When you successfully get a limit, the return value of `ulimit' is
+     that limit, which is never negative.  When you successfully set a
+     limit, the return value is zero.  When the function fails, the
+     return value is `-1' and `errno' is set according to the reason:
+
+    `EPERM'
+          A process tried to increase a maximum limit, but is not
+          superuser.
+
+
+   `vlimit' and its resource symbols are declared in `sys/vlimit.h'.
+
+ - Function: int vlimit (int RESOURCE, int LIMIT)
+     `vlimit' sets the current limit for a resource for a process.
+
+     RESOURCE identifies the resource:
+
+    `LIM_CPU'
+          Maximum CPU time.  Same as `RLIMIT_CPU' for `setrlimit'.
+
+    `LIM_FSIZE'
+          Maximum file size.  Same as `RLIMIT_FSIZE' for `setrlimit'.
+
+    `LIM_DATA'
+          Maximum data memory.  Same as `RLIMIT_DATA' for `setrlimit'.
+
+    `LIM_STACK'
+          Maximum stack size.  Same as `RLIMIT_STACK' for `setrlimit'.
+
+    `LIM_CORE'
+          Maximum core file size.  Same as `RLIMIT_COR' for `setrlimit'.
+
+    `LIM_MAXRSS'
+          Maximum physical memory.  Same as `RLIMIT_RSS' for
+          `setrlimit'.
+
+     The return value is zero for success, and `-1' with `errno' set
+     accordingly for failure:
+
+    `EPERM'
+          The process tried to set its current limit beyond its maximum
+          limit.
+
+
+
+File: libc.info,  Node: Priority,  Next: Memory Resources,  Prev: Limits on Resources,  Up: Resource Usage And Limitation
+
+Process CPU Priority And Scheduling
+===================================
+
+   When multiple processes simultaneously require CPU time, the system's
+scheduling policy and process CPU priorities determine which processes
+get it.  This section describes how that determination is made and GNU
+C library functions to control it.
+
+   It is common to refer to CPU scheduling simply as scheduling and a
+process' CPU priority simply as the process' priority, with the CPU
+resource being implied.  Bear in mind, though, that CPU time is not the
+only resource a process uses or that processes contend for.  In some
+cases, it is not even particularly important.  Giving a process a high
+"priority" may have very little effect on how fast a process runs with
+respect to other processes.  The priorities discussed in this section
+apply only to CPU time.
+
+   CPU scheduling is a complex issue and different systems do it in
+wildly different ways.  New ideas continually develop and find their
+way into the intricacies of the various systems' scheduling algorithms.
+This section discusses the general concepts, some specifics of systems
+that commonly use the GNU C library, and some standards.
+
+   For simplicity, we talk about CPU contention as if there is only one
+CPU in the system.  But all the same principles apply when a processor
+has multiple CPUs, and knowing that the number of processes that can
+run at any one time is equal to the number of CPUs, you can easily
+extrapolate the information.
+
+   The functions described in this section are all defined by the
+POSIX.1 and POSIX.1b standards (the `sched...' functions are POSIX.1b).
+However, POSIX does not define any semantics for the values that these
+functions get and set.  In this chapter, the semantics are based on the
+Linux kernel's implementation of the POSIX standard.  As you will see,
+the Linux implementation is quite the inverse of what the authors of the
+POSIX syntax had in mind.
+
+* Menu:
+
+* Absolute Priority::               The first tier of priority.  Posix
+* Realtime Scheduling::             Scheduling among the process nobility
+* Basic Scheduling Functions::      Get/set scheduling policy, priority
+* Traditional Scheduling::          Scheduling among the vulgar masses
+
+
+File: libc.info,  Node: Absolute Priority,  Next: Realtime Scheduling,  Up: Priority
+
+Absolute Priority
+-----------------
+
+   Every process has an absolute priority, and it is represented by a
+number.  The higher the number, the higher the absolute priority.
+
+   On systems of the past, and most systems today, all processes have
+absolute priority 0 and this section is irrelevant.  In that case,
+*Note Traditional Scheduling::.  Absolute priorities were invented to
+accomodate realtime systems, in which it is vital that certain processes
+be able to respond to external events happening in real time, which
+means they cannot wait around while some other process that _wants to_,
+but doesn't _need to_ run occupies the CPU.
+
+   When two processes are in contention to use the CPU at any instant,
+the one with the higher absolute priority always gets it.  This is true
+even if the process with the lower priority is already using the CPU
+(i.e. the scheduling is preemptive).  Of course, we're only talking
+about processes that are running or "ready to run," which means they are
+ready to execute instructions right now.  When a process blocks to wait
+for something like I/O, its absolute priority is irrelevant.
+
+   *Note:*  The term "runnable" is a synonym for "ready to run."
+
+   When two processes are running or ready to run and both have the same
+absolute priority, it's more interesting.  In that case, who gets the
+CPU is determined by the scheduling policy.  If the processeses have
+absolute priority 0, the traditional scheduling policy described in
+*Note Traditional Scheduling:: applies.  Otherwise, the policies
+described in *Note Realtime Scheduling:: apply.
+
+   You normally give an absolute priority above 0 only to a process that
+can be trusted not to hog the CPU.  Such processes are designed to block
+(or terminate) after relatively short CPU runs.
+
+   A process begins life with the same absolute priority as its parent
+process.  Functions described in *Note Basic Scheduling Functions:: can
+change it.
+
+   Only a privileged process can change a process' absolute priority to
+something other than `0'.  Only a privileged process or the target
+process' owner can change its absolute priority at all.
+
+   POSIX requires absolute priority values used with the realtime
+scheduling policies to be consecutive with a range of at least 32.  On
+Linux, they are 1 through 99.  The functions `sched_get_priority_max'
+and `sched_set_priority_min' portably tell you what the range is on a
+particular system.
+
+Using Absolute Priority
+.......................
+
+   One thing you must keep in mind when designing real time
+applications is that having higher absolute priority than any other
+process doesn't guarantee the process can run continuously.  Two things
+that can wreck a good CPU run are interrupts and page faults.
+
+   Interrupt handlers live in that limbo between processes.  The CPU is
+executing instructions, but they aren't part of any process.  An
+interrupt will stop even the highest priority process.  So you must
+allow for slight delays and make sure that no device in the system has
+an interrupt handler that could cause too long a delay between
+instructions for your process.
+
+   Similarly, a page fault causes what looks like a straightforward
+sequence of instructions to take a long time.  The fact that other
+processes get to run while the page faults in is of no consequence,
+because as soon as the I/O is complete, the high priority process will
+kick them out and run again, but the wait for the I/O itself could be a
+problem.  To neutralize this threat, use `mlock' or `mlockall'.
+
+   There are a few ramifications of the absoluteness of this priority
+on a single-CPU system that you need to keep in mind when you choose to
+set a priority and also when you're working on a program that runs with
+high absolute priority.  Consider a process that has higher absolute
+priority than any other process in the system and due to a bug in its
+program, it gets into an infinite loop.  It will never cede the CPU.
+You can't run a command to kill it because your command would need to
+get the CPU in order to run.  The errant program is in complete
+control.  It controls the vertical, it controls the horizontal.
+
+   There are two ways to avoid this: 1) keep a shell running somewhere
+with a higher absolute priority.  2) keep a controlling terminal
+attached to the high priority process group.  All the priority in the
+world won't stop an interrupt handler from running and delivering a
+signal to the process if you hit Control-C.
+
+   Some systems use absolute priority as a means of allocating a fixed
+per centage of CPU time to a process.  To do this, a super high priority
+privileged process constantly monitors the process' CPU usage and raises
+its absolute priority when the process isn't getting its entitled share
+and lowers it when the process is exceeding it.
+
+   *Note:*  The absolute priority is sometimes called the "static
+priority."  We don't use that term in this manual because it misses the
+most important feature of the absolute priority:  its absoluteness.
+
+
+File: libc.info,  Node: Realtime Scheduling,  Next: Basic Scheduling Functions,  Prev: Absolute Priority,  Up: Priority
+
+Realtime Scheduling
+-------------------
+
+   Whenever two processes with the same absolute priority are ready to
+run, the kernel has a decision to make, because only one can run at a
+time.  If the processes have absolute priority 0, the kernel makes this
+decision as described in *Note Traditional Scheduling::.  Otherwise,
+the decision is as described in this section.
+
+   If two processes are ready to run but have different absolute
+priorities, the decision is much simpler, and is described in *Note
+Absolute Priority::.
+
+   Each process has a scheduling policy.  For processes with absolute
+priority other than zero, there are two available:
+
+  1. First Come First Served
+
+  2. Round Robin
+
+   The most sensible case is where all the processes with a certain
+absolute priority have the same scheduling policy.  We'll discuss that
+first.
+
+   In Round Robin, processes share the CPU, each one running for a small
+quantum of time ("time slice") and then yielding to another in a
+circular fashion.  Of course, only processes that are ready to run and
+have the same absolute priority are in this circle.
+
+   In First Come First Served, the process that has been waiting the
+longest to run gets the CPU, and it keeps it until it voluntarily
+relinquishes the CPU, runs out of things to do (blocks), or gets
+preempted by a higher priority process.
+
+   First Come First Served, along with maximal absolute priority and
+careful control of interrupts and page faults, is the one to use when a
+process absolutely, positively has to run at full CPU speed or not at
+all.
+
+   Judicious use of `sched_yield' function invocations by processes
+with First Come First Served scheduling policy forms a good compromise
+between Round Robin and First Come First Served.
+
+   To understand how scheduling works when processes of different
+scheduling policies occupy the same absolute priority, you have to know
+the nitty gritty details of how processes enter and exit the ready to
+run list:
+
+   In both cases, the ready to run list is organized as a true queue,
+where a process gets pushed onto the tail when it becomes ready to run
+and is popped off the head when the scheduler decides to run it.  Note
+that ready to run and running are two mutually exclusive states.  When
+the scheduler runs a process, that process is no longer ready to run
+and no longer in the ready to run list.  When the process stops
+running, it may go back to being ready to run again.
+
+   The only difference between a process that is assigned the Round
+Robin scheduling policy and a process that is assigned First Come First
+Serve is that in the former case, the process is automatically booted
+off the CPU after a certain amount of time.  When that happens, the
+process goes back to being ready to run, which means it enters the
+queue at the tail.  The time quantum we're talking about is small.
+Really small.  This is not your father's timesharing.  For example,
+with the Linux kernel, the round robin time slice is a thousand times
+shorter than its typical time slice for traditional scheduling.
+
+   A process begins life with the same scheduling policy as its parent
+process.  Functions described in *Note Basic Scheduling Functions:: can
+change it.
+
+   Only a privileged process can set the scheduling policy of a process
+that has absolute priority higher than 0.
+
+
+File: libc.info,  Node: Basic Scheduling Functions,  Next: Traditional Scheduling,  Prev: Realtime Scheduling,  Up: Priority
+
+Basic Scheduling Functions
+--------------------------
+
+   This section describes functions in the GNU C library for setting the
+absolute priority and scheduling policy of a process.
+
+   *Portability Note:*  On systems that have the functions in this
+section, the macro _POSIX_PRIORITY_SCHEDULING is defined in
+`<unistd.h>'.
+
+   For the case that the scheduling policy is traditional scheduling,
+more functions to fine tune the scheduling are in *Note Traditional
+Scheduling::.
+
+   Don't try to make too much out of the naming and structure of these
+functions.  They don't match the concepts described in this manual
+because the functions are as defined by POSIX.1b, but the implementation
+on systems that use the GNU C library is the inverse of what the POSIX
+structure contemplates.  The POSIX scheme assumes that the primary
+scheduling parameter is the scheduling policy and that the priority
+value, if any, is a parameter of the scheduling policy.  In the
+implementation, though, the priority value is king and the scheduling
+policy, if anything, only fine tunes the effect of that priority.
+
+   The symbols in this section are declared by including file `sched.h'.
+
+ - Data Type: struct sched_param
+     This structure describes an absolute priority.
+    `int sched_priority'
+          absolute priority value
+
+ - Function: int sched_setscheduler (pid_t PID, int POLICY, const
+          struct sched_param *PARAM)
+     This function sets both the absolute priority and the scheduling
+     policy for a process.
+
+     It assigns the absolute priority value given by PARAM and the
+     scheduling policy POLICY to the process with Process ID PID, or
+     the calling process if PID is zero.  If POLICY is negative,
+     `sched_setschedule' keeps the existing scheduling policy.
+
+     The following macros represent the valid values for POLICY:
+
+    `SCHED_OTHER'
+          Traditional Scheduling
+
+    `SCHED_FIFO'
+          First In First Out
+
+    `SCHED_RR'
+          Round Robin
+
+     On success, the return value is `0'.  Otherwise, it is `-1' and
+     `ERRNO' is set accordingly.  The `errno' values specific to this
+     function are:
+
+    `EPERM'
+             * The calling process does not have `CAP_SYS_NICE'
+               permission and POLICY is not `SCHED_OTHER' (or it's
+               negative and the existing policy is not `SCHED_OTHER'.
+
+             * The calling process does not have `CAP_SYS_NICE'
+               permission and its owner is not the target process'
+               owner.  I.e.  the effective uid of the calling process
+               is neither the effective nor the real uid of process PID.
+
+    `ESRCH'
+          There is no process with pid PID and PID is not zero.
+
+    `EINVAL'
+             * POLICY does not identify an existing scheduling policy.
+
+             * The absolute priority value identified by *PARAM is
+               outside the valid range for the scheduling policy POLICY
+               (or the existing scheduling policy if POLICY is
+               negative) or PARAM is null.  `sched_get_priority_max'
+               and `sched_get_priority_min' tell you what the valid
+               range is.
+
+             * PID is negative.
+
+
+ - Function: int sched_getscheduler (pid_t PID)
+     This function returns the scheduling policy assigned to the
+     process with Process ID (pid) PID, or the calling process if PID
+     is zero.
+
+     The return value is the scheduling policy.  See
+     `sched_setscheduler' for the possible values.
+
+     If the function fails, the return value is instead `-1' and
+     `errno' is set accordingly.
+
+     The `errno' values specific to this function are:
+
+    `ESRCH'
+          There is no process with pid PID and it is not zero.
+
+    `EINVAL'
+          PID is negative.
+
+     Note that this function is not an exact mate to
+     `sched_setscheduler' because while that function sets the
+     scheduling policy and the absolute priority, this function gets
+     only the scheduling policy.  To get the absolute priority, use
+     `sched_getparam'.
+
+
+ - Function: int sched_setparam (pid_t PID, const struct sched_param
+          *PARAM)
+     This function sets a process' absolute priority.
+
+     It is functionally identical to `sched_setscheduler' with POLICY =
+     `-1'.
+
+
+ - Function: int sched_getparam (pid_t PID, const struct sched_param
+          *PARAM)
+     This function returns a process' absolute priority.
+
+     PID is the Process ID (pid) of the process whose absolute priority
+     you want to know.
+
+     PARAM is a pointer to a structure in which the function stores the
+     absolute priority of the process.
+
+     On success, the return value is `0'.  Otherwise, it is `-1' and
+     `ERRNO' is set accordingly.  The `errno' values specific to this
+     function are:
+
+    `ESRCH'
+          There is no process with pid PID and it is not zero.
+
+    `EINVAL'
+          PID is negative.
+
+
+ - Function: int sched_get_priority_min (int *POLICY);
+     This function returns the lowest absolute priority value that is
+     allowable for a process with scheduling policy POLICY.
+
+     On Linux, it is 0 for SCHED_OTHER and 1 for everything else.
+
+     On success, the return value is `0'.  Otherwise, it is `-1' and
+     `ERRNO' is set accordingly.  The `errno' values specific to this
+     function are:
+
+    `EINVAL'
+          POLICY does not identify an existing scheduling policy.
+
+
+ - Function: int sched_get_priority_max (int *POLICY);
+     This function returns the highest absolute priority value that is
+     allowable for a process that with scheduling policy POLICY.
+
+     On Linux, it is 0 for SCHED_OTHER and 99 for everything else.
+
+     On success, the return value is `0'.  Otherwise, it is `-1' and
+     `ERRNO' is set accordingly.  The `errno' values specific to this
+     function are:
+
+    `EINVAL'
+          POLICY does not identify an existing scheduling policy.
+
+
+ - Function: int sched_rr_get_interval (pid_t PID, struct timespec
+          *INTERVAL)
+     This function returns the length of the quantum (time slice) used
+     with the Round Robin scheduling policy, if it is used, for the
+     process with Process ID PID.
+
+     It returns the length of time as INTERVAL.
+
+     With a Linux kernel, the round robin time slice is always 150
+     microseconds, and PID need not even be a real pid.
+
+     The return value is `0' on success and in the pathological case
+     that it fails, the return value is `-1' and `errno' is set
+     accordingly.  There is nothing specific that can go wrong with this
+     function, so there are no specific `errno' values.
+
+
+ - Function: int sched_yield (void)
+     This function voluntarily gives up the process' claim on the CPU.
+
+     Technically, `sched_yield' causes the calling process to be made
+     immediately ready to run (as opposed to running, which is what it
+     was before).  This means that if it has absolute priority higher
+     than 0, it gets pushed onto the tail of the queue of processes
+     that share its absolute priority and are ready to run, and it will
+     run again when its turn next arrives.  If its absolute priority is
+     0, it is more complicated, but still has the effect of yielding
+     the CPU to other processes.
+
+     If there are no other processes that share the calling process'
+     absolute priority, this function doesn't have any effect.
+
+     To the extent that the containing program is oblivious to what
+     other processes in the system are doing and how fast it executes,
+     this function appears as a no-op.
+
+     The return value is `0' on success and in the pathological case
+     that it fails, the return value is `-1' and `errno' is set
+     accordingly.  There is nothing specific that can go wrong with this
+     function, so there are no specific `errno' values.
+
+
+
+File: libc.info,  Node: Traditional Scheduling,  Prev: Basic Scheduling Functions,  Up: Priority
+
+Traditional Scheduling
+----------------------
+
+   This section is about the scheduling among processes whose absolute
+priority is 0.  When the system hands out the scraps of CPU time that
+are left over after the processes with higher absolulte priority have
+taken all they want, the scheduling described herein determines who
+among the great unwashed processes gets them.
+
+* Menu:
+
+* Traditional Scheduling Intro::
+* Traditional Scheduling Functions::
+
+
+File: libc.info,  Node: Traditional Scheduling Intro,  Next: Traditional Scheduling Functions,  Up: Traditional Scheduling
+
+Introduction To Traditional Scheduling
+......................................
+
+   Long before there was absolute priority (See *Note Absolute
+Priority::), Unix systems were scheduling the CPU using this system.
+When Posix came in like the Romans and imposed absolute priorities to
+accomodate the needs of realtime processing, it left the indigenous
+Absolute Priority Zero processes to govern themselves by their own
+familiar scheduling policy.
+
+   Indeed, absolute priorities higher than zero are not available on
+many systems today and are not typically used when they are, being
+intended mainly for computers that do realtime processing.  So this
+section describes the only scheduling many programmers need to be
+concerned about.
+
+   But just to be clear about the scope of this scheduling: Any time a
+process with a absolute priority of 0 and a process with an absolute
+priority higher than 0 are ready to run at the same time, the one with
+absolute priority 0 does not run.  If it's already running when the
+higher priority ready-to-run process comes into existence, it stops
+immediately.
+
+   In addition to its absolute priority of zero, every process has
+another priority, which we will refer to as "dynamic priority" because
+it changes over time.  The dynamic priority is meaningless for
+processes with an absolute priority higher than zero.
+
+   The dynamic priority sometimes determines who gets the next turn on
+the CPU.  Sometimes it determines how long turns last.  Sometimes it
+determines whether a process can kick another off the CPU.
+
+   In Linux, the value is a combination of these things, but mostly it
+is just determines the length of the time slice.  The higher a process'
+dynamic priority, the longer a shot it gets on the CPU when it gets one.
+If it doesn't use up its time slice before giving up the CPU to do
+something like wait for I/O, it is favored for getting the CPU back when
+it's ready for it, to finish out its time slice.  Other than that,
+selection of processes for new time slices is basically round robin.
+But the scheduler does throw a bone to the low priority processes: A
+process' dynamic priority rises every time it is snubbed in the
+scheduling process.  In Linux, even the fat kid gets to play.
+
+   The fluctuation of a process' dynamic priority is regulated by
+another value: The "nice" value.  The nice value is an integer, usually
+in the range -20 to 20, and represents an upper limit on a process'
+dynamic priority.  The higher the nice number, the lower that limit.
+
+   On a typical Linux system, for example, a process with a nice value
+of 20 can get only 10 milliseconds on the CPU at a time, whereas a
+process with a nice value of -20 can achieve a high enough priority to
+get 400 milliseconds.
+
+   The idea of the nice value is deferential courtesy.  In the
+beginning, in the Unix garden of Eden, all processes shared equally in
+the bounty of the computer system.  But not all processes really need
+the same share of CPU time, so the nice value gave a courteous process
+the ability to refuse its equal share of CPU time that others might
+prosper.  Hence, the higher a process' nice value, the nicer the
+process is.  (Then a snake came along and offered some process a
+negative nice value and the system became the crass resource allocation
+system we know today).
+
+   Dynamic priorities tend upward and downward with an objective of
+smoothing out allocation of CPU time and giving quick response time to
+infrequent requests.  But they never exceed their nice limits, so on a
+heavily loaded CPU, the nice value effectively determines how fast a
+process runs.
+
+   In keeping with the socialistic heritage of Unix process priority, a
+process begins life with the same nice value as its parent process and
+can raise it at will.  A process can also raise the nice value of any
+other process owned by the same user (or effective user).  But only a
+privileged process can lower its nice value.  A privileged process can
+also raise or lower another process' nice value.
+
+   GNU C Library functions for getting and setting nice values are
+described in *Note Traditional Scheduling Functions::.
+

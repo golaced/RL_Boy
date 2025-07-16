@@ -1,0 +1,1042 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Memory-mapped I/O,  Next: Waiting for I/O,  Prev: Scatter-Gather,  Up: Low-Level I/O
+
+Memory-mapped I/O
+=================
+
+   On modern operating systems, it is possible to "mmap" (pronounced
+"em-map") a file to a region of memory.  When this is done, the file can
+be accessed just like an array in the program.
+
+   This is more efficent than `read' or `write', as only the regions of
+the file that a program actually accesses are loaded.  Accesses to
+not-yet-loaded parts of the mmapped region are handled in the same way
+as swapped out pages.
+
+   Since mmapped pages can be stored back to their file when physical
+memory is low, it is possible to mmap files orders of magnitude larger
+than both the physical memory _and_ swap space.  The only limit is
+address space.  The theoretical limit is 4GB on a 32-bit machine -
+however, the actual limit will be smaller since some areas will be
+reserved for other purposes.  If the LFS interface is used the file size
+on 32-bit systems is not limited to 2GB (offsets are signed which
+reduces the addressable area of 4GB by half); the full 64-bit are
+available.
+
+   Memory mapping only works on entire pages of memory.  Thus, addresses
+for mapping must be page-aligned, and length values will be rounded up.
+To determine the size of a page the machine uses one should use
+
+     size_t page_size = (size_t) sysconf (_SC_PAGESIZE);
+
+These functions are declared in `sys/mman.h'.
+
+ - Function: void * mmap (void *ADDRESS, size_t LENGTH,int PROTECT, int
+          FLAGS, int FILEDES, off_t OFFSET)
+     The `mmap' function creates a new mapping, connected to bytes
+     (OFFSET) to (OFFSET + LENGTH) in the file open on FILEDES.
+
+     ADDRESS gives a preferred starting address for the mapping.
+     `NULL' expresses no preference. Any previous mapping at that
+     address is automatically removed. The address you give may still be
+     changed, unless you use the `MAP_FIXED' flag.
+
+     PROTECT contains flags that control what kind of access is
+     permitted.  They include `PROT_READ', `PROT_WRITE', and
+     `PROT_EXEC', which permit reading, writing, and execution,
+     respectively.  Inappropriate access will cause a segfault (*note
+     Program Error Signals::).
+
+     Note that most hardware designs cannot support write permission
+     without read permission, and many do not distinguish read and
+     execute permission.  Thus, you may receive wider permissions than
+     you ask for, and mappings of write-only files may be denied even
+     if you do not use `PROT_READ'.
+
+     FLAGS contains flags that control the nature of the map.  One of
+     `MAP_SHARED' or `MAP_PRIVATE' must be specified.
+
+     They include:
+
+    `MAP_PRIVATE'
+          This specifies that writes to the region should never be
+          written back to the attached file.  Instead, a copy is made
+          for the process, and the region will be swapped normally if
+          memory runs low.  No other process will see the changes.
+
+          Since private mappings effectively revert to ordinary memory
+          when written to, you must have enough virtual memory for a
+          copy of the entire mmapped region if you use this mode with
+          `PROT_WRITE'.
+
+    `MAP_SHARED'
+          This specifies that writes to the region will be written back
+          to the file.  Changes made will be shared immediately with
+          other processes mmaping the same file.
+
+          Note that actual writing may take place at any time.  You
+          need to use `msync', described below, if it is important that
+          other processes using conventional I/O get a consistent view
+          of the file.
+
+    `MAP_FIXED'
+          This forces the system to use the exact mapping address
+          specified in ADDRESS and fail if it can't.
+
+    `MAP_ANONYMOUS'
+    `MAP_ANON'
+          This flag tells the system to create an anonymous mapping,
+          not connected to a file.  FILEDES and OFF are ignored, and
+          the region is initialized with zeros.
+
+          Anonymous maps are used as the basic primitive to extend the
+          heap on some systems.  They are also useful to share data
+          between multiple tasks without creating a file.
+
+          On some systems using private anonymous mmaps is more
+          efficient than using `malloc' for large blocks.  This is not
+          an issue with the GNU C library, as the included `malloc'
+          automatically uses `mmap' where appropriate.
+
+     `mmap' returns the address of the new mapping, or -1 for an error.
+
+     Possible errors include:
+
+    `EINVAL'
+          Either ADDRESS was unusable, or inconsistent FLAGS were given.
+
+    `EACCES'
+          FILEDES was not open for the type of access specified in
+          PROTECT.
+
+    `ENOMEM'
+          Either there is not enough memory for the operation, or the
+          process is out of address space.
+
+    `ENODEV'
+          This file is of a type that doesn't support mapping.
+
+    `ENOEXEC'
+          The file is on a filesystem that doesn't support mapping.
+
+
+ - Function: void * mmap64 (void *ADDRESS, size_t LENGTH,int PROTECT,
+          int FLAGS, int FILEDES, off64_t OFFSET)
+     The `mmap64' function is equivalent to the `mmap' function but the
+     OFFSET parameter is of type `off64_t'.  On 32-bit systems this
+     allows the file associated with the FILEDES descriptor to be
+     larger than 2GB.  FILEDES must be a descriptor returned from a
+     call to `open64' or `fopen64' and `freopen64' where the descriptor
+     is retrieved with `fileno'.
+
+     When the sources are translated with `_FILE_OFFSET_BITS == 64' this
+     function is actually available under the name `mmap'.  I.e., the
+     new, extended API using 64 bit file sizes and offsets transparently
+     replaces the old API.
+
+ - Function: int munmap (void *ADDR, size_t LENGTH)
+     `munmap' removes any memory maps from (ADDR) to (ADDR + LENGTH).
+     LENGTH should be the length of the mapping.
+
+     It is safe to unmap multiple mappings in one command, or include
+     unmapped space in the range.  It is also possible to unmap only
+     part of an existing mapping.  However, only entire pages can be
+     removed.  If LENGTH is not an even number of pages, it will be
+     rounded up.
+
+     It returns 0 for success and -1 for an error.
+
+     One error is possible:
+
+    `EINVAL'
+          The memory range given was outside the user mmap range or
+          wasn't page aligned.
+
+
+ - Function: int msync (void *ADDRESS, size_t LENGTH, int FLAGS)
+     When using shared mappings, the kernel can write the file at any
+     time before the mapping is removed.  To be certain data has
+     actually been written to the file and will be accessible to
+     non-memory-mapped I/O, it is necessary to use this function.
+
+     It operates on the region ADDRESS to (ADDRESS + LENGTH).  It may
+     be used on part of a mapping or multiple mappings, however the
+     region given should not contain any unmapped space.
+
+     FLAGS can contain some options:
+
+    `MS_SYNC'
+          This flag makes sure the data is actually written _to disk_.
+          Normally `msync' only makes sure that accesses to a file with
+          conventional I/O reflect the recent changes.
+
+    `MS_ASYNC'
+          This tells `msync' to begin the synchronization, but not to
+          wait for it to complete.
+
+     `msync' returns 0 for success and -1 for error.  Errors include:
+
+    `EINVAL'
+          An invalid region was given, or the FLAGS were invalid.
+
+    `EFAULT'
+          There is no existing mapping in at least part of the given
+          region.
+
+
+ - Function: void * mremap (void *ADDRESS, size_t LENGTH, size_t
+          NEW_LENGTH, int FLAG)
+     This function can be used to change the size of an existing memory
+     area. ADDRESS and LENGTH must cover a region entirely mapped in
+     the same `mmap' statement. A new mapping with the same
+     characteristics will be returned with the length NEW_LENGTH.
+
+     One option is possible, `MREMAP_MAYMOVE'. If it is given in FLAGS,
+     the system may remove the existing mapping and create a new one of
+     the desired length in another location.
+
+     The address of the resulting mapping is returned, or -1. Possible
+     error codes include:
+
+    `EFAULT'
+          There is no existing mapping in at least part of the original
+          region, or the region covers two or more distinct mappings.
+
+    `EINVAL'
+          The address given is misaligned or inappropriate.
+
+    `EAGAIN'
+          The region has pages locked, and if extended it would exceed
+          the process's resource limit for locked pages.  *Note Limits
+          on Resources::.
+
+    `ENOMEM'
+          The region is private writeable, and insufficent virtual
+          memory is available to extend it.  Also, this error will
+          occur if `MREMAP_MAYMOVE' is not given and the extension
+          would collide with another mapped region.
+
+
+   This function is only available on a few systems.  Except for
+performing optional optimizations one should not rely on this function.
+
+   Not all file descriptors may be mapped.  Sockets, pipes, and most
+devices only allow sequential access and do not fit into the mapping
+abstraction.  In addition, some regular files may not be mmapable, and
+older kernels may not support mapping at all.  Thus, programs using
+`mmap' should have a fallback method to use should it fail. *Note Mmap:
+(standards)Mmap.
+
+
+File: libc.info,  Node: Waiting for I/O,  Next: Synchronizing I/O,  Prev: Memory-mapped I/O,  Up: Low-Level I/O
+
+Waiting for Input or Output
+===========================
+
+   Sometimes a program needs to accept input on multiple input channels
+whenever input arrives.  For example, some workstations may have devices
+such as a digitizing tablet, function button box, or dial box that are
+connected via normal asynchronous serial interfaces; good user interface
+style requires responding immediately to input on any device.  Another
+example is a program that acts as a server to several other processes
+via pipes or sockets.
+
+   You cannot normally use `read' for this purpose, because this blocks
+the program until input is available on one particular file descriptor;
+input on other channels won't wake it up.  You could set nonblocking
+mode and poll each file descriptor in turn, but this is very
+inefficient.
+
+   A better solution is to use the `select' function.  This blocks the
+program until input or output is ready on a specified set of file
+descriptors, or until a timer expires, whichever comes first.  This
+facility is declared in the header file `sys/types.h'.
+
+   In the case of a server socket (*note Listening::), we say that
+"input" is available when there are pending connections that could be
+accepted (*note Accepting Connections::).  `accept' for server sockets
+blocks and interacts with `select' just as `read' does for normal input.
+
+   The file descriptor sets for the `select' function are specified as
+`fd_set' objects.  Here is the description of the data type and some
+macros for manipulating these objects.
+
+ - Data Type: fd_set
+     The `fd_set' data type represents file descriptor sets for the
+     `select' function.  It is actually a bit array.
+
+ - Macro: int FD_SETSIZE
+     The value of this macro is the maximum number of file descriptors
+     that a `fd_set' object can hold information about.  On systems
+     with a fixed maximum number, `FD_SETSIZE' is at least that number.
+     On some systems, including GNU, there is no absolute limit on the
+     number of descriptors open, but this macro still has a constant
+     value which controls the number of bits in an `fd_set'; if you get
+     a file descriptor with a value as high as `FD_SETSIZE', you cannot
+     put that descriptor into an `fd_set'.
+
+ - Macro: void FD_ZERO (fd_set *SET)
+     This macro initializes the file descriptor set SET to be the empty
+     set.
+
+ - Macro: void FD_SET (int FILEDES, fd_set *SET)
+     This macro adds FILEDES to the file descriptor set SET.
+
+ - Macro: void FD_CLR (int FILEDES, fd_set *SET)
+     This macro removes FILEDES from the file descriptor set SET.
+
+ - Macro: int FD_ISSET (int FILEDES, fd_set *SET)
+     This macro returns a nonzero value (true) if FILEDES is a member
+     of the file descriptor set SET, and zero (false) otherwise.
+
+   Next, here is the description of the `select' function itself.
+
+ - Function: int select (int NFDS, fd_set *READ-FDS, fd_set *WRITE-FDS,
+          fd_set *EXCEPT-FDS, struct timeval *TIMEOUT)
+     The `select' function blocks the calling process until there is
+     activity on any of the specified sets of file descriptors, or
+     until the timeout period has expired.
+
+     The file descriptors specified by the READ-FDS argument are
+     checked to see if they are ready for reading; the WRITE-FDS file
+     descriptors are checked to see if they are ready for writing; and
+     the EXCEPT-FDS file descriptors are checked for exceptional
+     conditions.  You can pass a null pointer for any of these
+     arguments if you are not interested in checking for that kind of
+     condition.
+
+     A file descriptor is considered ready for reading if it is not at
+     end of file.  A server socket is considered ready for reading if
+     there is a pending connection which can be accepted with `accept';
+     *note Accepting Connections::.  A client socket is ready for
+     writing when its connection is fully established; *note
+     Connecting::.
+
+     "Exceptional conditions" does not mean errors--errors are reported
+     immediately when an erroneous system call is executed, and do not
+     constitute a state of the descriptor.  Rather, they include
+     conditions such as the presence of an urgent message on a socket.
+     (*Note Sockets::, for information on urgent messages.)
+
+     The `select' function checks only the first NFDS file descriptors.
+     The usual thing is to pass `FD_SETSIZE' as the value of this
+     argument.
+
+     The TIMEOUT specifies the maximum time to wait.  If you pass a
+     null pointer for this argument, it means to block indefinitely
+     until one of the file descriptors is ready.  Otherwise, you should
+     provide the time in `struct timeval' format; see *Note
+     High-Resolution Calendar::.  Specify zero as the time (a `struct
+     timeval' containing all zeros) if you want to find out which
+     descriptors are ready without waiting if none are ready.
+
+     The normal return value from `select' is the total number of ready
+     file descriptors in all of the sets.  Each of the argument sets is
+     overwritten with information about the descriptors that are ready
+     for the corresponding operation.  Thus, to see if a particular
+     descriptor DESC has input, use `FD_ISSET (DESC, READ-FDS)' after
+     `select' returns.
+
+     If `select' returns because the timeout period expires, it returns
+     a value of zero.
+
+     Any signal will cause `select' to return immediately.  So if your
+     program uses signals, you can't rely on `select' to keep waiting
+     for the full time specified.  If you want to be sure of waiting
+     for a particular amount of time, you must check for `EINTR' and
+     repeat the `select' with a newly calculated timeout based on the
+     current time.  See the example below.  See also *Note Interrupted
+     Primitives::.
+
+     If an error occurs, `select' returns `-1' and does not modify the
+     argument file descriptor sets.  The following `errno' error
+     conditions are defined for this function:
+
+    `EBADF'
+          One of the file descriptor sets specified an invalid file
+          descriptor.
+
+    `EINTR'
+          The operation was interrupted by a signal.  *Note Interrupted
+          Primitives::.
+
+    `EINVAL'
+          The TIMEOUT argument is invalid; one of the components is
+          negative or too large.
+
+   *Portability Note:*  The `select' function is a BSD Unix feature.
+
+   Here is an example showing how you can use `select' to establish a
+timeout period for reading from a file descriptor.  The `input_timeout'
+function blocks the calling process until input is available on the
+file descriptor, or until the timeout period expires.
+
+     #include <stdio.h>
+     #include <unistd.h>
+     #include <sys/types.h>
+     #include <sys/time.h>
+     
+     int
+     input_timeout (int filedes, unsigned int seconds)
+     {
+       fd_set set;
+       struct timeval timeout;
+     
+       /* Initialize the file descriptor set. */
+       FD_ZERO (&set);
+       FD_SET (filedes, &set);
+     
+       /* Initialize the timeout data structure. */
+       timeout.tv_sec = seconds;
+       timeout.tv_usec = 0;
+     
+       /* `select' returns 0 if timeout, 1 if input available, -1 if error. */
+       return TEMP_FAILURE_RETRY (select (FD_SETSIZE,
+                                          &set, NULL, NULL,
+                                          &timeout));
+     }
+     
+     int
+     main (void)
+     {
+       fprintf (stderr, "select returned %d.\n",
+                input_timeout (STDIN_FILENO, 5));
+       return 0;
+     }
+
+   There is another example showing the use of `select' to multiplex
+input from multiple sockets in *Note Server Example::.
+
+
+File: libc.info,  Node: Synchronizing I/O,  Next: Asynchronous I/O,  Prev: Waiting for I/O,  Up: Low-Level I/O
+
+Synchronizing I/O operations
+============================
+
+   In most modern operating systems the normal I/O operations are not
+executed synchronously.  I.e., even if a `write' system call returns
+this does not mean the data is actually written to the media, e.g., the
+disk.
+
+   In situations where synchronization points are necessary,you can use
+special functions which ensure that all operations finish before they
+return.
+
+ - Function: int sync (void)
+     A call to this function will not return as long as there is data
+     which has not been written to the device.  All dirty buffers in
+     the kernel will be written and so an overall consistent system can
+     be achieved (if no other process in parallel writes data).
+
+     A prototype for `sync' can be found in `unistd.h'.
+
+     The return value is zero to indicate no error.
+
+   Programs more often want to ensure that data written to a given file
+is committed, rather than all data in the system.  For this, `sync' is
+overkill.
+
+ - Function: int fsync (int FILDES)
+     The `fsync' can be used to make sure all data associated with the
+     open file FILDES is written to the device associated with the
+     descriptor.  The function call does not return unless all actions
+     have finished.
+
+     A prototype for `fsync' can be found in `unistd.h'.
+
+     This function is a cancellation point in multi-threaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `fsync' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this, calls to
+     `fsync' should be protected using cancellation handlers.
+
+     The return value of the function is zero if no error occurred.
+     Otherwise it is -1 and the global variable ERRNO is set to the
+     following values:
+    `EBADF'
+          The descriptor FILDES is not valid.
+
+    `EINVAL'
+          No synchronization is possible since the system does not
+          implement this.
+
+   Sometimes it is not even necessary to write all data associated with
+a file descriptor.  E.g., in database files which do not change in size
+it is enough to write all the file content data to the device.
+Meta-information like the modification time etc. are not that important
+and leaving such information uncommitted does not prevent a successful
+recovering of the file in case of a problem.
+
+ - Function: int fdatasync (int FILDES)
+     When a call to the `fdatasync' function returns, it is ensured
+     that all of the file data is written to the device.  For all
+     pending I/O operations, the parts guaranteeing data integrity
+     finished.
+
+     Not all systems implement the `fdatasync' operation.  On systems
+     missing this functionality `fdatasync' is emulated by a call to
+     `fsync' since the performed actions are a superset of those
+     required by `fdatasyn'.
+
+     The prototype for `fdatasync' is in `unistd.h'.
+
+     The return value of the function is zero if no error occurred.
+     Otherwise it is -1 and the global variable ERRNO is set to the
+     following values:
+    `EBADF'
+          The descriptor FILDES is not valid.
+
+    `EINVAL'
+          No synchronization is possible since the system does not
+          implement this.
+
+
+File: libc.info,  Node: Asynchronous I/O,  Next: Control Operations,  Prev: Synchronizing I/O,  Up: Low-Level I/O
+
+Perform I/O Operations in Parallel
+==================================
+
+   The POSIX.1b standard defines a new set of I/O operations which can
+significantly reduce the time an application spends waiting at I/O.  The
+new functions allow a program to initiate one or more I/O operations and
+then immediately resume normal work while the I/O operations are
+executed in parallel.  This functionality is available if the
+`unistd.h' file defines the symbol `_POSIX_ASYNCHRONOUS_IO'.
+
+   These functions are part of the library with realtime functions named
+`librt'.  They are not actually part of the `libc' binary.  The
+implementation of these functions can be done using support in the
+kernel (if available) or using an implementation based on threads at
+userlevel.  In the latter case it might be necessary to link
+applications with the thread library `libpthread' in addition to
+`librt'.
+
+   All AIO operations operate on files which were opened previously.
+There might be arbitrarily many operations running for one file.  The
+asynchronous I/O operations are controlled using a data structure named
+`struct aiocb' ("AIO control block").  It is defined in `aio.h' as
+follows.
+
+ - Data Type: struct aiocb
+     The POSIX.1b standard mandates that the `struct aiocb' structure
+     contains at least the members described in the following table.
+     There might be more elements which are used by the implementation,
+     but depending on these elements is not portable and is highly
+     deprecated.
+
+    `int aio_fildes'
+          This element specifies the file descriptor which is used for
+          the operation.  It must be a legal descriptor since otherwise
+          the operation fails.
+
+          The device on which the file is opened must allow the seek
+          operation.  I.e., it is not possible to use any of the AIO
+          operations on devices like terminals where an `lseek' call
+          would lead to an error.
+
+    `off_t aio_offset'
+          This element specifies at which offset in the file the
+          operation (input or output) is performed.  Since the
+          operations are carried out in arbitrary order and more than
+          one operation for one file descriptor can be started, one
+          cannot expect a current read/write position of the file
+          descriptor.
+
+    `volatile void *aio_buf'
+          This is a pointer to the buffer with the data to be written
+          or the place where the read data is stored.
+
+    `size_t aio_nbytes'
+          This element specifies the length of the buffer pointed to by
+          `aio_buf'.
+
+    `int aio_reqprio'
+          If the platform has defined `_POSIX_PRIORITIZED_IO' and
+          `_POSIX_PRIORITY_SCHEDULING' the AIO requests are processed
+          based on the current scheduling priority.  The `aio_reqprio'
+          element can then be used to lower the priority of the AIO
+          operation.
+
+    `struct sigevent aio_sigevent'
+          This element specifies how the calling process is notified
+          once the operation terminates.  If the `sigev_notify' element
+          is `SIGEV_NONE' no notification is send.  If it is
+          `SIGEV_SIGNAL' the signal determined by `sigev_signo' is
+          send.  Otherwise `sigev_notify' must be `SIGEV_THREAD'.  In
+          this case a thread is created which starts executing the
+          function pointed to by `sigev_notify_function'.
+
+    `int aio_lio_opcode'
+          This element is only used by the `lio_listio' and
+          `lio_listio64' functions.  Since these functions allow an
+          arbitrary number of operations to start at once, and each
+          operation can be input or output (or nothing), the
+          information must be stored in the control block.  The
+          possible values are:
+
+         `LIO_READ'
+               Start a read operation.  Read from the file at position
+               `aio_offset' and store the next `aio_nbytes' bytes in the
+               buffer pointed to by `aio_buf'.
+
+         `LIO_WRITE'
+               Start a write operation.  Write `aio_nbytes' bytes
+               starting at `aio_buf' into the file starting at position
+               `aio_offset'.
+
+         `LIO_NOP'
+               Do nothing for this control block.  This value is useful
+               sometimes when an array of `struct aiocb' values
+               contains holes, i.e., some of the values must not be
+               handled although the whole array is presented to the
+               `lio_listio' function.
+
+     When the sources are compiled using `_FILE_OFFSET_BITS == 64' on a
+     32 bit machine this type is in fact `struct aiocb64' since the LFS
+     interface transparently replaces the `struct aiocb' definition.
+
+   For use with the AIO functions defined in the LFS there is a similar
+type defined which replaces the types of the appropriate members with
+larger types but otherwise is equivalent to `struct aiocb'.
+Particularly, all member names are the same.
+
+ - Data Type: struct aiocb64
+    `int aio_fildes'
+          This element specifies the file descriptor which is used for
+          the operation.  It must be a legal descriptor since otherwise
+          the operation fails for obvious reasons.
+
+          The device on which the file is opened must allow the seek
+          operation.  I.e., it is not possible to use any of the AIO
+          operations on devices like terminals where an `lseek' call
+          would lead to an error.
+
+    `off64_t aio_offset'
+          This element specifies at which offset in the file the
+          operation (input or output) is performed.  Since the
+          operation are carried in arbitrary order and more than one
+          operation for one file descriptor can be started, one cannot
+          expect a current read/write position of the file descriptor.
+
+    `volatile void *aio_buf'
+          This is a pointer to the buffer with the data to be written
+          or the place where the ead data is stored.
+
+    `size_t aio_nbytes'
+          This element specifies the length of the buffer pointed to by
+          `aio_buf'.
+
+    `int aio_reqprio'
+          If for the platform `_POSIX_PRIORITIZED_IO' and
+          `_POSIX_PRIORITY_SCHEDULING' are defined the AIO requests are
+          processed based on the current scheduling priority.  The
+          `aio_reqprio' element can then be used to lower the priority
+          of the AIO operation.
+
+    `struct sigevent aio_sigevent'
+          This element specifies how the calling process is notified
+          once the operation terminates.  If the `sigev_notify' element
+          is `SIGEV_NONE' no notification is sent.  If it is
+          `SIGEV_SIGNAL' the signal determined by `sigev_signo' is
+          sent.  Otherwise `sigev_notify' must be `SIGEV_THREAD' in
+          which case a thread which starts executing the function
+          pointed to by `sigev_notify_function'.
+
+    `int aio_lio_opcode'
+          This element is only used by the `lio_listio' and
+          `[lio_listio64' functions.  Since these functions allow an
+          arbitrary number of operations to start at once, and since
+          each operation can be input or output (or nothing), the
+          information must be stored in the control block.  See the
+          description of `struct aiocb' for a description of the
+          possible values.
+
+     When the sources are compiled using `_FILE_OFFSET_BITS == 64' on a
+     32 bit machine this type is available under the name `struct
+     aiocb64' since the LFS replaces transparently the old interface.
+
+* Menu:
+
+* Asynchronous Reads/Writes::    Asynchronous Read and Write Operations.
+* Status of AIO Operations::     Getting the Status of AIO Operations.
+* Synchronizing AIO Operations:: Getting into a consistent state.
+* Cancel AIO Operations::        Cancellation of AIO Operations.
+* Configuration of AIO::         How to optimize the AIO implementation.
+
+
+File: libc.info,  Node: Asynchronous Reads/Writes,  Next: Status of AIO Operations,  Up: Asynchronous I/O
+
+Asynchronous Read and Write Operations
+--------------------------------------
+
+ - Function: int aio_read (struct aiocb *AIOCBP)
+     This function initiates an asynchronous read operation.  It
+     immediately returns after the operation was enqueued or when an
+     error was encountered.
+
+     The first `aiocbp->aio_nbytes' bytes of the file for which
+     `aiocbp->aio_fildes' is a descriptor are written to the buffer
+     starting at `aiocbp->aio_buf'.  Reading starts at the absolute
+     position `aiocbp->aio_offset' in the file.
+
+     If prioritized I/O is supported by the platform the
+     `aiocbp->aio_reqprio' value is used to adjust the priority before
+     the request is actually enqueued.
+
+     The calling process is notified about the termination of the read
+     request according to the `aiocbp->aio_sigevent' value.
+
+     When `aio_read' returns, the return value is zero if no error
+     occurred that can be found before the process is enqueued.  If
+     such an early error is found, the function returns -1 and sets
+     `errno' to one of the following values:
+
+    `EAGAIN'
+          The request was not enqueued due to (temporarily) exceeded
+          resource limitations.
+
+    `ENOSYS'
+          The `aio_read' function is not implemented.
+
+    `EBADF'
+          The `aiocbp->aio_fildes' descriptor is not valid.  This
+          condition need not be recognized before enqueueing the
+          request and so this error might also be signaled
+          asynchronously.
+
+    `EINVAL'
+          The `aiocbp->aio_offset' or `aiocbp->aio_reqpiro' value is
+          invalid.  This condition need not be recognized before
+          enqueueing the request and so this error might also be
+          signaled asynchronously.
+
+     If `aio_read' returns zero, the current status of the request can
+     be queried using `aio_error' and `aio_return' functions.  As long
+     as the value returned by `aio_error' is `EINPROGRESS' the
+     operation has not yet completed.  If `aio_error' returns zero, the
+     operation successfully terminated, otherwise the value is to be
+     interpreted as an error code.  If the function terminated, the
+     result of the operation can be obtained using a call to
+     `aio_return'.  The returned value is the same as an equivalent
+     call to `read' would have returned.  Possible error codes returned
+     by `aio_error' are:
+
+    `EBADF'
+          The `aiocbp->aio_fildes' descriptor is not valid.
+
+    `ECANCELED'
+          The operation was cancelled before the operation was finished
+          (*note Cancel AIO Operations::)
+
+    `EINVAL'
+          The `aiocbp->aio_offset' value is invalid.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `aio_read64' since the LFS interface
+     transparently replaces the normal implementation.
+
+ - Function: int aio_read64 (struct aiocb *AIOCBP)
+     This function is similar to the `aio_read' function.  The only
+     difference is that on 32 bit machines the file descriptor should
+     be opened in the large file mode.  Internally `aio_read64' uses
+     functionality equivalent to `lseek64' (*note File Position
+     Primitive::) to position the file descriptor correctly for the
+     reading, as opposed to `lseek' functionality used in `aio_read'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `aio_read' and so
+     transparently replaces the interface for small files on 32 bit
+     machines.
+
+   To write data asynchronously to a file there exists an equivalent
+pair of functions with a very similar interface.
+
+ - Function: int aio_write (struct aiocb *AIOCBP)
+     This function initiates an asynchronous write operation.  The
+     function call immediately returns after the operation was enqueued
+     or if before this happens an error was encountered.
+
+     The first `aiocbp->aio_nbytes' bytes from the buffer starting at
+     `aiocbp->aio_buf' are written to the file for which
+     `aiocbp->aio_fildes' is an descriptor, starting at the absolute
+     position `aiocbp->aio_offset' in the file.
+
+     If prioritized I/O is supported by the platform the
+     `aiocbp->aio_reqprio' value is used to adjust the priority before
+     the request is actually enqueued.
+
+     The calling process is notified about the termination of the read
+     request according to the `aiocbp->aio_sigevent' value.
+
+     When `aio_write' returns the return value is zero if no error
+     occurred that can be found before the process is enqueued.  If
+     such an early error is found the function returns -1 and sets
+     `errno' to one of the following values.
+
+    `EAGAIN'
+          The request was not enqueued due to (temporarily) exceeded
+          resource limitations.
+
+    `ENOSYS'
+          The `aio_write' function is not implemented.
+
+    `EBADF'
+          The `aiocbp->aio_fildes' descriptor is not valid.  This
+          condition needs not be recognized before enqueueing the
+          request and so this error might also be signaled
+          asynchronously.
+
+    `EINVAL'
+          The `aiocbp->aio_offset' or `aiocbp->aio_reqpiro' value is
+          invalid.  This condition needs not be recognized before
+          enqueueing the request and so this error might also be
+          signaled asynchronously.
+
+     In the case `aio_write' returns zero the current status of the
+     request can be queried using `aio_error' and `aio_return'
+     functions.  As long as the value returned by `aio_error' is
+     `EINPROGRESS' the operation has not yet completed.  If `aio_error'
+     returns zero the operation successfully terminated, otherwise the
+     value is to be interpreted as an error code.  If the function
+     terminated the result of the operation can be get using a call to
+     `aio_return'.  The returned value is the same as an equivalent
+     call to `read' would have returned.  Possible error code returned
+     by `aio_error' are:
+
+    `EBADF'
+          The `aiocbp->aio_fildes' descriptor is not valid.
+
+    `ECANCELED'
+          The operation was cancelled before the operation was finished
+          (*note Cancel AIO Operations::)
+
+    `EINVAL'
+          The `aiocbp->aio_offset' value is invalid.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `aio_write64' since the LFS interface
+     transparently replaces the normal implementation.
+
+ - Function: int aio_write64 (struct aiocb *AIOCBP)
+     This function is similar to the `aio_write' function.  The only
+     difference is that on 32 bit machines the file descriptor should
+     be opened in the large file mode.  Internally `aio_write64' uses
+     functionality equivalent to `lseek64' (*note File Position
+     Primitive::) to position the file descriptor correctly for the
+     writing, as opposed to `lseek' functionality used in `aio_write'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `aio_write' and so
+     transparently replaces the interface for small files on 32 bit
+     machines.
+
+   Beside these functions with the more or less traditional interface
+POSIX.1b also defines a function with can initiate more than one
+operation at once and which can handled freely mixed read and write
+operation.  It is therefore similar to a combination of `readv' and
+`writev'.
+
+ - Function: int lio_listio (int MODE, struct aiocb *const LIST[], int
+          NENT, struct sigevent *SIG)
+     The `lio_listio' function can be used to enqueue an arbitrary
+     number of read and write requests at one time.  The requests can
+     all be meant for the same file, all for different files or every
+     solution in between.
+
+     `lio_listio' gets the NENT requests from the array pointed to by
+     LIST.  What operation has to be performed is determined by the
+     `aio_lio_opcode' member in each element of LIST.  If this field is
+     `LIO_READ' an read operation is queued, similar to a call of
+     `aio_read' for this element of the array (except that the way the
+     termination is signalled is different, as we will see below).  If
+     the `aio_lio_opcode' member is `LIO_WRITE' an write operation is
+     enqueued.  Otherwise the `aio_lio_opcode' must be `LIO_NOP' in
+     which case this element of LIST is simply ignored.  This
+     "operation" is useful in situations where one has a fixed array of
+     `struct aiocb' elements from which only a few need to be handled at
+     a time.  Another situation is where the `lio_listio' call was
+     cancelled before all requests are processed (*note Cancel AIO
+     Operations::) and the remaining requests have to be reissued.
+
+     The other members of each element of the array pointed to by
+     `list' must have values suitable for the operation as described in
+     the documentation for `aio_read' and `aio_write' above.
+
+     The MODE argument determines how `lio_listio' behaves after having
+     enqueued all the requests.  If MODE is `LIO_WAIT' it waits until
+     all requests terminated.  Otherwise MODE must be `LIO_NOWAIT' and
+     in this case the function returns immediately after having
+     enqueued all the requests.  In this case the caller gets a
+     notification of the termination of all requests according to the
+     SIG parameter.  If SIG is `NULL' no notification is send.
+     Otherwise a signal is sent or a thread is started, just as
+     described in the description for `aio_read' or `aio_write'.
+
+     If MODE is `LIO_WAIT' the return value of `lio_listio' is 0 when
+     all requests completed successfully.  Otherwise the function
+     return -1 and `errno' is set accordingly.  To find out which
+     request or requests failed one has to use the `aio_error' function
+     on all the elements of the array LIST.
+
+     In case MODE is `LIO_NOWAIT' the function return 0 if all requests
+     were enqueued correctly.  The current state of the requests can be
+     found using `aio_error' and `aio_return' as described above.  In
+     case `lio_listio' returns -1 in this mode the global variable
+     `errno' is set accordingly.  If a request did not yet terminate a
+     call to `aio_error' returns `EINPROGRESS'.  If the value is
+     different the request is finished and the error value (or 0) is
+     returned and the result of the operation can be retrieved using
+     `aio_return'.
+
+     Possible values for `errno' are:
+
+    `EAGAIN'
+          The resources necessary to queue all the requests are not
+          available in the moment.  The error status for each element
+          of LIST must be checked which request failed.
+
+          Another reason could be that the system wide limit of AIO
+          requests is exceeded.  This cannot be the case for the
+          implementation on GNU systems since no arbitrary limits exist.
+
+    `EINVAL'
+          The MODE parameter is invalid or NENT is larger than
+          `AIO_LISTIO_MAX'.
+
+    `EIO'
+          One or more of the request's I/O operations failed.  The
+          error status of each request should be checked for which one
+          failed.
+
+    `ENOSYS'
+          The `lio_listio' function is not supported.
+
+     If the MODE parameter is `LIO_NOWAIT' and the caller cancels an
+     request the error status for this request returned by `aio_error'
+     is `ECANCELED'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `lio_listio64' since the LFS interface
+     transparently replaces the normal implementation.
+
+ - Function: int lio_listio64 (int MODE, struct aiocb *const LIST, int
+          NENT, struct sigevent *SIG)
+     This function is similar to the `aio_listio' function.  The only
+     difference is that only 32 bit machines the file descriptor should
+     be opened in the large file mode.  Internally `lio_listio64' uses
+     functionality equivalent to `lseek64' (*note File Position
+     Primitive::) to position the file descriptor correctly for the
+     reading or writing, as opposed to `lseek' functionality used in
+     `lio_listio'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `lio_listio' and so
+     transparently replaces the interface for small files on 32 bit
+     machines.
+
+
+File: libc.info,  Node: Status of AIO Operations,  Next: Synchronizing AIO Operations,  Prev: Asynchronous Reads/Writes,  Up: Asynchronous I/O
+
+Getting the Status of AIO Operations
+------------------------------------
+
+   As already described in the documentation of the functions in the
+last section, it must be possible to get information about the status
+of an I/O request.  When the operation is performed truly
+asynchronously (as with `aio_read' and `aio_write' and with
+`aio_listio' when the mode is `LIO_NOWAIT') one sometimes needs to know
+whether a specific request already terminated and if yes, what the
+result was.  The following two functions allow you to get this kind of
+information.
+
+ - Function: int aio_error (const struct aiocb *AIOCBP)
+     This function determines the error state of the request described
+     by the `struct aiocb' variable pointed to by AIOCBP.  If the
+     request has not yet terminated the value returned is always
+     `EINPROGRESS'.  Once the request has terminated the value
+     `aio_error' returns is either 0 if the request completed
+     successfully or it returns the value which would be stored in the
+     `errno' variable if the request would have been done using `read',
+     `write', or `fsync'.
+
+     The function can return `ENOSYS' if it is not implemented.  It
+     could also return `EINVAL' if the AIOCBP parameter does not refer
+     to an asynchronous operation whose return status is not yet known.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `aio_error64' since the LFS interface
+     transparently replaces the normal implementation.
+
+ - Function: int aio_error64 (const struct aiocb64 *AIOCBP)
+     This function is similar to `aio_error' with the only difference
+     that the argument is a reference to a variable of type `struct
+     aiocb64'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `aio_error' and so
+     transparently replaces the interface for small files on 32 bit
+     machines.
+
+ - Function: ssize_t aio_return (const struct aiocb *AIOCBP)
+     This function can be used to retrieve the return status of the
+     operation carried out by the request described in the variable
+     pointed to by AIOCBP.  As long as the error status of this request
+     as returned by `aio_error' is `EINPROGRESS' the return of this
+     function is undefined.
+
+     Once the request is finished this function can be used exactly
+     once to retrieve the return value.  Following calls might lead to
+     undefined behaviour.  The return value itself is the value which
+     would have been returned by the `read', `write', or `fsync' call.
+
+     The function can return `ENOSYS' if it is not implemented.  It
+     could also return `EINVAL' if the AIOCBP parameter does not refer
+     to an asynchronous operation whose return status is not yet known.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is in fact `aio_return64' since the LFS interface
+     transparently replaces the normal implementation.
+
+ - Function: int aio_return64 (const struct aiocb64 *AIOCBP)
+     This function is similar to `aio_return' with the only difference
+     that the argument is a reference to a variable of type `struct
+     aiocb64'.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' this
+     function is available under the name `aio_return' and so
+     transparently replaces the interface for small files on 32 bit
+     machines.
+

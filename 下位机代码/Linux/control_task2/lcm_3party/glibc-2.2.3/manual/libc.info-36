@@ -1,0 +1,1098 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Traditional Scheduling Functions,  Prev: Traditional Scheduling Intro,  Up: Traditional Scheduling
+
+Functions For Traditional Scheduling
+....................................
+
+   This section describes how you can read and set the nice value of a
+process.  All these symbols are declared in `sys/resource.h'.
+
+   The function and macro names are defined by POSIX, and refer to
+"priority," but the functions actually have to do with nice values, as
+the terms are used both in the manual and POSIX.
+
+   The range of valid nice values depends on the kernel, but typically
+it runs from `-20' to `20'.  A lower nice value corresponds to higher
+priority for the process.  These constants describe the range of
+priority values:
+
+`PRIO_MIN'
+     The lowest valid nice value.
+
+`PRIO_MAX'
+     The highest valid nice value.
+
+ - Function: int getpriority (int CLASS, int ID)
+     Return the nice value of a set of processes; CLASS and ID specify
+     which ones (see below).  If the processes specified do not all
+     have the same nice value, this returns the lowest value that any
+     of them has.
+
+     On success, the return value is `0'.  Otherwise, it is `-1' and
+     `ERRNO' is set accordingly.  The `errno' values specific to this
+     function are:
+
+    `ESRCH'
+          The combination of CLASS and ID does not match any existing
+          process.
+
+    `EINVAL'
+          The value of CLASS is not valid.
+
+     If the return value is `-1', it could indicate failure, or it could
+     be the nice value.  The only way to make certain is to set `errno =
+     0' before calling `getpriority', then use `errno != 0' afterward
+     as the criterion for failure.
+
+ - Function: int setpriority (int CLASS, int ID, int NICEVAL)
+     Set the nice value of a set of processes to NICEVAL; CLASS and ID
+     specify which ones (see below).
+
+     The return value is the nice value on success, and `-1' on
+     failure.  The following `errno' error condition are possible for
+     this function:
+
+    `ESRCH'
+          The combination of CLASS and ID does not match any existing
+          process.
+
+    `EINVAL'
+          The value of CLASS is not valid.
+
+    `EPERM'
+          The call would set the nice value of a process which is owned
+          by a different user than the calling process (i.e. the target
+          process' real or effective uid does not match the calling
+          process' effective uid) and the calling process does not have
+          `CAP_SYS_NICE' permission.
+
+    `EACCES'
+          The call would lower the process' nice value and the process
+          does not have `CAP_SYS_NICE' permission.
+
+
+   The arguments CLASS and ID together specify a set of processes in
+which you are interested.  These are the possible values of CLASS:
+
+`PRIO_PROCESS'
+     One particular process.  The argument ID is a process ID (pid).
+
+`PRIO_PGRP'
+     All the processes in a particular process group.  The argument ID
+     is a process group ID (pgid).
+
+`PRIO_USER'
+     All the processes owned by a particular user (i.e. whose real uid
+     indicates the user).  The argument ID is a user ID (uid).
+
+   If the argument ID is 0, it stands for the calling process, its
+process group, or its owner (real uid), according to CLASS.
+
+ - Function: int nice (int INCREMENT)
+     Increment the nice value of the calling process by INCREMENT.  The
+     return value is the same as for `setpriority'.
+
+     Here is an equivalent definition of `nice':
+
+          int
+          nice (int increment)
+          {
+            int old = getpriority (PRIO_PROCESS, 0);
+            return setpriority (PRIO_PROCESS, 0, old + increment);
+          }
+
+
+File: libc.info,  Node: Memory Resources,  Next: Processor Resources,  Prev: Priority,  Up: Resource Usage And Limitation
+
+Querying memory available resources
+===================================
+
+   The amount of memory available in the system and the way it is
+organized determines oftentimes the way programs can and have to work.
+For functions like `mmap' it is necessary to know about the size of
+individual memory pages and knowing how much memory is available enables
+a program to select appropriate sizes for, say, caches.  Before we get
+into these details a few words about memory subsystems in traditional
+Unix systems will be given.
+
+* Menu:
+
+* Memory Subsystem::           Overview about traditional Unix memory handling.
+* Query Memory Parameters::    How to get information about the memory
+                                subsystem?
+
+
+File: libc.info,  Node: Memory Subsystem,  Next: Query Memory Parameters,  Up: Memory Resources
+
+Overview about traditional Unix memory handling
+-----------------------------------------------
+
+   Unix systems normally provide processes virtual address spaces.  This
+means that the addresses of the memory regions do not have to correspond
+directly to the addresses of the actual physical memory which stores the
+data.  An extra level of indirection is introduced which translates
+virtual addresses into physical addresses.  This is normally done by the
+hardware of the processor.
+
+   Using a virtual address space has several advantage.  The most
+important is process isolation.  The different processes running on the
+system cannot interfere directly with each other.  No process can write
+into the address space of another process (except when shared memory is
+used but then it is wanted and controlled).
+
+   Another advantage of virtual memory is that the address space the
+processes see can actually be larger than the physical memory available.
+The physical memory can be extended by storage on an external media
+where the content of currently unused memory regions is stored.  The
+address translation can then intercept accesses to these memory regions
+and make memory content available again by loading the data back into
+memory.  This concept makes it necessary that programs which have to use
+lots of memory know the difference between available virtual address
+space and available physical memory.  If the working set of virtual
+memory of all the processes is larger than the available physical memory
+the system will slow down dramatically due to constant swapping of
+memory content from the memory to the storage media and back.  This is
+called "thrashing".
+
+   A final aspect of virtual memory which is important and follows from
+what is said in the last paragraph is the granularity of the virtual
+address space handling.  When we said that the virtual address handling
+stores memory content externally it cannot do this on a byte-by-byte
+basis.  The administrative overhead does not allow this (leaving alone
+the processor hardware).  Instead several thousand bytes are handled
+together and form a "page".  The size of each page is always a power of
+two byte.  The smallest page size in use today is 4096, with 8192,
+16384, and 65536 being other popular sizes.
+
+
+File: libc.info,  Node: Query Memory Parameters,  Prev: Memory Subsystem,  Up: Memory Resources
+
+How to get information about the memory subsystem?
+--------------------------------------------------
+
+   The page size of the virtual memory the process sees is essential to
+know in several situations.  Some programming interface (e.g., `mmap',
+*note Memory-mapped I/O::) require the user to provide information
+adjusted to the page size.  In the case of `mmap' is it necessary to
+provide a length argument which is a multiple of the page size.
+Another place where the knowledge about the page size is useful is in
+memory allocation.  If one allocates pieces of memory in larger chunks
+which are then subdivided by the application code it is useful to
+adjust the size of the larger blocks to the page size.  If the total
+memory requirement for the block is close (but not larger) to a multiple
+of the page size the kernel's memory handling can work more effectively
+since it only has to allocate memory pages which are fully used.  (To do
+this optimization it is necessary to know a bit about the memory
+allocator which will require a bit of memory itself for each block and
+this overhead must not push the total size over the page size multiple.
+
+   The page size traditionally was a compile time constant.  But recent
+development of processors changed this.  Processors now support
+different page sizes and they can possibly even vary among different
+processes on the same system.  Therefore the system should be queried at
+runtime about the current page size and no assumptions (except about it
+being a power of two) should be made.
+
+   The correct interface to query about the page size is `sysconf'
+(*note Sysconf Definition::) with the parameter `_SC_PAGESIZE'.  There
+is a much older interface available, too.
+
+ - Function: int getpagesize (void)
+     The `getpagesize' function returns the page size of the process.
+     This value is fixed for the runtime of the process but can vary in
+     different runs of the application.
+
+     The function is declared in `unistd.h'.
+
+   Widely available on System V derived systems is a method to get
+information about the physical memory the system has.  The call
+
+       sysconf (_SC_PHYS_PAGES)
+
+returns the total number of pages of physical the system has.  This
+does not mean all this memory is available.  This information can be
+found using
+
+       sysconf (_SC_AVPHYS_PAGES)
+
+   These two values help to optimize applications.  The value returned
+for `_SC_AVPHYS_PAGES' is the amount of memory the application can use
+without hindering any other process (given that no other process
+increases its memory usage).  The value returned for `_SC_PHYS_PAGES'
+is more or less a hard limit for the working set.  If all applications
+together constantly use more than that amount of memory the system is
+in trouble.
+
+   The GNU C library provides in addition to these already described
+way to get this information two functions.  They are declared in the
+file `sys/sysinfo.h'.  Programmers should prefer to use the `sysconf'
+method described above.
+
+ - Function: long int get_phys_pages (void)
+     The `get_phys_pages' function returns the total number of pages of
+     physical the system has.  To get the amount of memory this number
+     has to be multiplied by the page size.
+
+     This function is a GNU extension.
+
+ - Function: long int get_avphys_pages (void)
+     The `get_phys_pages' function returns the number of available
+     pages of physical the system has.  To get the amount of memory
+     this number has to be multiplied by the page size.
+
+     This function is a GNU extension.
+
+
+File: libc.info,  Node: Processor Resources,  Prev: Memory Resources,  Up: Resource Usage And Limitation
+
+Learn about the processors available
+====================================
+
+   The use of threads or processes with shared memory allows an
+application to take advantage of all the processing power a system can
+provide.  If the task can be parallelized the optimal way to write an
+application is to have at any time as many processes running as there
+are processors.  To determine the number of processors available to the
+system one can run
+
+       sysconf (_SC_NPROCESSORS_CONF)
+
+which returns the number of processors the operating system configured.
+But it might be possible for the operating system to disable individual
+processors and so the call
+
+       sysconf (_SC_NPROCESSORS_ONLN)
+
+returns the number of processors which are currently inline (i.e.,
+available).
+
+   For these two pieces of information the GNU C library also provides
+functions to get the information directly.  The functions are declared
+in `sys/sysinfo.h'.
+
+ - Function: int get_nprocs_conf (void)
+     The `get_nprocs_conf' function returns the number of processors the
+     operating system configured.
+
+     This function is a GNU extension.
+
+ - Function: int get_nprocs (void)
+     The `get_nprocs' function returns the number of available
+     processors.
+
+     This function is a GNU extension.
+
+   Before starting more threads it should be checked whether the
+processors are not already overused.  Unix systems calculate something
+called the "load average".  This is a number indicating how many
+processes were running.  This number is average over different periods
+of times (normally 1, 5, and 15 minutes).
+
+ - Function: int getloadavg (double LOADAVG[], int NELEM)
+     This function gets the 1, 5 and 15 minute load averages of the
+     system. The values are placed in LOADAVG.  `getloadavg' will place
+     at most NELEM elements into the array but never more than three
+     elements.  The return value is the number of elements written to
+     LOADAVG, or -1 on error.
+
+     This function is declared in `stdlib.h'.
+
+
+File: libc.info,  Node: Non-Local Exits,  Next: Signal Handling,  Prev: Resource Usage And Limitation,  Up: Top
+
+Non-Local Exits
+***************
+
+   Sometimes when your program detects an unusual situation inside a
+deeply nested set of function calls, you would like to be able to
+immediately return to an outer level of control.  This section
+describes how you can do such "non-local exits" using the `setjmp' and
+`longjmp' functions.
+
+* Menu:
+
+* Intro: Non-Local Intro.        When and how to use these facilities.
+* Details: Non-Local Details.    Functions for non-local exits.
+* Non-Local Exits and Signals::  Portability issues.
+* System V contexts::            Complete context control a la System V.
+
+
+File: libc.info,  Node: Non-Local Intro,  Next: Non-Local Details,  Up: Non-Local Exits
+
+Introduction to Non-Local Exits
+===============================
+
+   As an example of a situation where a non-local exit can be useful,
+suppose you have an interactive program that has a "main loop" that
+prompts for and executes commands.  Suppose the "read" command reads
+input from a file, doing some lexical analysis and parsing of the input
+while processing it.  If a low-level input error is detected, it would
+be useful to be able to return immediately to the "main loop" instead
+of having to make each of the lexical analysis, parsing, and processing
+phases all have to explicitly deal with error situations initially
+detected by nested calls.
+
+   (On the other hand, if each of these phases has to do a substantial
+amount of cleanup when it exits--such as closing files, deallocating
+buffers or other data structures, and the like--then it can be more
+appropriate to do a normal return and have each phase do its own
+cleanup, because a non-local exit would bypass the intervening phases
+and their associated cleanup code entirely.  Alternatively, you could
+use a non-local exit but do the cleanup explicitly either before or
+after returning to the "main loop".)
+
+   In some ways, a non-local exit is similar to using the `return'
+statement to return from a function.  But while `return' abandons only
+a single function call, transferring control back to the point at which
+it was called, a non-local exit can potentially abandon many levels of
+nested function calls.
+
+   You identify return points for non-local exits by calling the
+function `setjmp'.  This function saves information about the execution
+environment in which the call to `setjmp' appears in an object of type
+`jmp_buf'.  Execution of the program continues normally after the call
+to `setjmp', but if an exit is later made to this return point by
+calling `longjmp' with the corresponding `jmp_buf' object, control is
+transferred back to the point where `setjmp' was called.  The return
+value from `setjmp' is used to distinguish between an ordinary return
+and a return made by a call to `longjmp', so calls to `setjmp' usually
+appear in an `if' statement.
+
+   Here is how the example program described above might be set up:
+
+     #include <setjmp.h>
+     #include <stdlib.h>
+     #include <stdio.h>
+     
+     jmp_buf main_loop;
+     
+     void
+     abort_to_main_loop (int status)
+     {
+       longjmp (main_loop, status);
+     }
+     
+     int
+     main (void)
+     {
+       while (1)
+         if (setjmp (main_loop))
+           puts ("Back at main loop....");
+         else
+           do_command ();
+     }
+     
+     
+     void
+     do_command (void)
+     {
+       char buffer[128];
+       if (fgets (buffer, 128, stdin) == NULL)
+         abort_to_main_loop (-1);
+       else
+         exit (EXIT_SUCCESS);
+     }
+
+   The function `abort_to_main_loop' causes an immediate transfer of
+control back to the main loop of the program, no matter where it is
+called from.
+
+   The flow of control inside the `main' function may appear a little
+mysterious at first, but it is actually a common idiom with `setjmp'.
+A normal call to `setjmp' returns zero, so the "else" clause of the
+conditional is executed.  If `abort_to_main_loop' is called somewhere
+within the execution of `do_command', then it actually appears as if
+the _same_ call to `setjmp' in `main' were returning a second time with
+a value of `-1'.
+
+   So, the general pattern for using `setjmp' looks something like:
+
+     if (setjmp (BUFFER))
+       /* Code to clean up after premature return. */
+       ...
+     else
+       /* Code to be executed normally after setting up the return point. */
+       ...
+
+
+File: libc.info,  Node: Non-Local Details,  Next: Non-Local Exits and Signals,  Prev: Non-Local Intro,  Up: Non-Local Exits
+
+Details of Non-Local Exits
+==========================
+
+   Here are the details on the functions and data structures used for
+performing non-local exits.  These facilities are declared in
+`setjmp.h'.
+
+ - Data Type: jmp_buf
+     Objects of type `jmp_buf' hold the state information to be
+     restored by a non-local exit.  The contents of a `jmp_buf'
+     identify a specific place to return to.
+
+ - Macro: int setjmp (jmp_buf STATE)
+     When called normally, `setjmp' stores information about the
+     execution state of the program in STATE and returns zero.  If
+     `longjmp' is later used to perform a non-local exit to this STATE,
+     `setjmp' returns a nonzero value.
+
+ - Function: void longjmp (jmp_buf STATE, int VALUE)
+     This function restores current execution to the state saved in
+     STATE, and continues execution from the call to `setjmp' that
+     established that return point.  Returning from `setjmp' by means of
+     `longjmp' returns the VALUE argument that was passed to `longjmp',
+     rather than `0'.  (But if VALUE is given as `0', `setjmp' returns
+     `1').
+
+   There are a lot of obscure but important restrictions on the use of
+`setjmp' and `longjmp'.  Most of these restrictions are present because
+non-local exits require a fair amount of magic on the part of the C
+compiler and can interact with other parts of the language in strange
+ways.
+
+   The `setjmp' function is actually a macro without an actual function
+definition, so you shouldn't try to `#undef' it or take its address.
+In addition, calls to `setjmp' are safe in only the following contexts:
+
+   * As the test expression of a selection or iteration statement (such
+     as `if', `switch', or `while').
+
+   * As one operand of a equality or comparison operator that appears
+     as the test expression of a selection or iteration statement.  The
+     other operand must be an integer constant expression.
+
+   * As the operand of a unary `!' operator, that appears as the test
+     expression of a selection or iteration statement.
+
+   * By itself as an expression statement.
+
+   Return points are valid only during the dynamic extent of the
+function that called `setjmp' to establish them.  If you `longjmp' to a
+return point that was established in a function that has already
+returned, unpredictable and disastrous things are likely to happen.
+
+   You should use a nonzero VALUE argument to `longjmp'.  While
+`longjmp' refuses to pass back a zero argument as the return value from
+`setjmp', this is intended as a safety net against accidental misuse
+and is not really good programming style.
+
+   When you perform a non-local exit, accessible objects generally
+retain whatever values they had at the time `longjmp' was called.  The
+exception is that the values of automatic variables local to the
+function containing the `setjmp' call that have been changed since the
+call to `setjmp' are indeterminate, unless you have declared them
+`volatile'.
+
+
+File: libc.info,  Node: Non-Local Exits and Signals,  Next: System V contexts,  Prev: Non-Local Details,  Up: Non-Local Exits
+
+Non-Local Exits and Signals
+===========================
+
+   In BSD Unix systems, `setjmp' and `longjmp' also save and restore
+the set of blocked signals; see *Note Blocking Signals::.  However, the
+POSIX.1 standard requires `setjmp' and `longjmp' not to change the set
+of blocked signals, and provides an additional pair of functions
+(`sigsetjmp' and `siglongjmp') to get the BSD behavior.
+
+   The behavior of `setjmp' and `longjmp' in the GNU library is
+controlled by feature test macros; see *Note Feature Test Macros::.  The
+default in the GNU system is the POSIX.1 behavior rather than the BSD
+behavior.
+
+   The facilities in this section are declared in the header file
+`setjmp.h'.
+
+ - Data Type: sigjmp_buf
+     This is similar to `jmp_buf', except that it can also store state
+     information about the set of blocked signals.
+
+ - Function: int sigsetjmp (sigjmp_buf STATE, int SAVESIGS)
+     This is similar to `setjmp'.  If SAVESIGS is nonzero, the set of
+     blocked signals is saved in STATE and will be restored if a
+     `siglongjmp' is later performed with this STATE.
+
+ - Function: void siglongjmp (sigjmp_buf STATE, int VALUE)
+     This is similar to `longjmp' except for the type of its STATE
+     argument.  If the `sigsetjmp' call that set this STATE used a
+     nonzero SAVESIGS flag, `siglongjmp' also restores the set of
+     blocked signals.
+
+
+File: libc.info,  Node: System V contexts,  Prev: Non-Local Exits and Signals,  Up: Non-Local Exits
+
+Complete Context Control
+========================
+
+   The Unix standard one more set of function to control the execution
+path and these functions are more powerful than those discussed in this
+chapter so far.  These function were part of the original System V API
+and by this route were added to the Unix API.  Beside on branded Unix
+implementations these interfaces are not widely available.  Not all
+platforms and/or architectures the GNU C Library is available on provide
+this interface.  Use `configure' to detect the availability.
+
+   Similar to the `jmp_buf' and `sigjmp_buf' types used for the
+variables to contain the state of the `longjmp' functions the
+interfaces of interest here have an appropriate type as well.  Objects
+of this type are normally much larger since more information is
+contained.  The type is also used in a few more places as we will see.
+The types and functions described in this section are all defined and
+declared respectively in the `ucontext.h' header file.
+
+ - Data Type: ucontext_t
+     The `ucontext_t' type is defined as a structure with as least the
+     following elements:
+
+    `ucontext_t *uc_link'
+          This is a pointer to the next context structure which is used
+          if the context described in the current structure returns.
+
+    `sigset_t uc_sigmask'
+          Set of signals which are blocked when this context is used.
+
+    `stack_t uc_stack'
+          Stack used for this context.  The value need not be (and
+          normally is not) the stack pointer.  *Note Signal Stack::.
+
+    `mcontext_t uc_mcontext'
+          This element contains the actual state of the process.  The
+          `mcontext_t' type is also defined in this header but the
+          definition should be treated as opaque.  Any use of knowledge
+          of the type makes applications less portable.
+
+
+   Objects of this type have to be created by the user.  The
+initialization and modification happens through one of the following
+functions:
+
+ - Function: int getcontext (ucontext_t *UCP)
+     The `getcontext' function initializes the variable pointed to by
+     UCP with the context of the calling thread.  The context contains
+     the content of the registers, the signal mask, and the current
+     stack.  Executing the contents would start at the point where the
+     `getcontext' call just returned.
+
+     The function returns `0' if succesful.  Otherwise it returns `-1'
+     and sets ERRNO accordingly.
+
+   The `getcontext' function is similar to `setjmp' but it does not
+provide an indication of whether the function returns for the first
+time or whether the initialized context was used and the execution is
+resumed at just that point.  If this is necessary the user has to take
+determine this herself.  This must be done carefully since the context
+contains registers which might contain register variables.  This is a
+good situation to define variables with `volatile'.
+
+   Once the context variable is initialized it can be used as is or it
+can be modified.  The latter is normally done to implement co-routines
+or similar constructs.  The `makecontext' function is what has to be
+used to do that.
+
+ - Function: void makecontext (ucontext_t *UCP, void (*FUNC) (void),
+          int ARGC, ...)
+     The UCP parameter passed to the `makecontext' shall be initialized
+     by a call to `getcontext'.  The context will be modified to in a
+     way so that if the context is resumed it will start by calling the
+     function `func' which gets ARGC integer arguments passed.  The
+     integer arguments which are to be passed should follow the ARGC
+     parameter in the call to `makecontext'.
+
+     Before the call to this function the `uc_stack' and `uc_link'
+     element of the UCP structure should be initialized.  The
+     `uc_stack' element describes the stack which is used for this
+     context.  No two contexts which are used at the same time should
+     use the same memory region for a stack.
+
+     The `uc_link' element of the object pointed to by UCP should be a
+     pointer to the context to be executed when the function FUNC
+     returns or it should be a null pointer.  See `setcontext' for more
+     information about the exact use.
+
+   While allocating the memory for the stack one has to be careful.
+Most modern processors keep track of whether a certain memory region is
+allowed to contain code which is executed or not.  Data segments and
+heap memory is normally not tagged to allow this.  The result is that
+programs would fail.  Examples for such code include the calling
+sequences the GNU C compiler generates for calls to nested functions.
+Safe ways to allocate stacks correctly include using memory on the
+original threads stack or explicitly allocate memory tagged for
+execution using (*note Memory-mapped I/O::).
+
+   *Compatibility note*: The current Unix standard is very imprecise
+about the way the stack is allocated.  All implementations seem to agree
+that the `uc_stack' element must be used but the values stored in the
+elements of the `stack_t' value are unclear.  The GNU C library and
+most other Unix implementations require the `ss_sp' value of the
+`uc_stack' element to point to the base of the memory region allocated
+for the stack and the size of the memory region is stored in `ss_size'.
+There are implements out there which require `ss_sp' to be set to the
+value the stack pointer will have (which can depending on the direction
+the stack grows be different).  This difference makes the `makecontext'
+function hard to use and it requires detection of the platform at
+compile time.
+
+ - Function: int setcontext (const ucontext_t *UCP)
+     The `setcontext' function restores the context described by UCP.
+     The context is not modified and can be reused as often as wanted.
+
+     If the context was created by `getcontext' execution resumes with
+     the registers filled with the same values and the same stack as if
+     the `getcontext' call just returned.
+
+     If the context was modified with a call to `makecontext' execution
+     continues with the function passed to `makecontext' which gets the
+     specified parameters passed.  If this function returns execution is
+     resumed in the context which was referenced by the `uc_link'
+     element of the context structure passed to `makecontext' at the
+     time of the call.  If `uc_link' was a null pointer the application
+     terminates in this case.
+
+     Since the context contains information about the stack no two
+     threads should use the same context at the same time.  The result
+     in most cases would be disastrous.
+
+     The `setcontext' function does not return unless an error occurred
+     in which case it returns `-1'.
+
+   The `setcontext' function simply replaces the current context with
+the one described by the UCP parameter.  This is often useful but there
+are situations where the current context has to be preserved.
+
+ - Function: int swapcontext (ucontext_t *restrict OUCP, const
+          ucontext_t *restrict UCP)
+     The `swapcontext' function is similar to `setcontext' but instead
+     of just replacing the current context the latter is first saved in
+     the object pointed to by OUCP as if this was a call to
+     `getcontext'.  The saved context would resume after the call to
+     `swapcontext'.
+
+     Once the current context is saved the context described in UCP is
+     installed and execution continues as described in this context.
+
+     If `swapcontext' succeeds the function does not return unless the
+     context OUCP is used without prior modification by `makecontext'.
+     The return value in this case is `0'.  If the function fails it
+     returns `-1' and set ERRNO accordingly.
+
+Example for SVID Context Handling
+=================================
+
+   The easiest way to use the context handling functions is as a
+replacement for `setjmp' and `longjmp'.  The context contains on most
+platforms more information which might lead to less surprises but this
+also means using these functions is more expensive (beside being less
+portable).
+
+     int
+     random_search (int n, int (*fp) (int, ucontext_t *))
+     {
+       volatile int cnt = 0;
+       ucontext_t uc;
+     
+       /* Safe current context.  */
+       if (getcontext (&uc) < 0)
+         return -1;
+     
+       /* If we have not tried N times try again.  */
+       if (cnt++ < n)
+         /* Call the function with a new random number
+            and the context.  */
+         if (fp (rand (), &uc) != 0)
+           /* We found what we were looking for.  */
+           return 1;
+     
+       /* Not found.  */
+       return 0;
+     }
+
+   Using contexts in such a way enables emulating exception handling.
+The search functions passed in the FP parameter could be very large,
+nested, and complex which would make it complicated (or at least would
+require a lot of code) to leave the function with an error value which
+has to be passed down to the caller.  By using the context it is
+possible to leave the search function in one step and allow restarting
+the search which also has the nice side effect that it can be
+significantly faster.
+
+   Something which is harder to implement with `setjmp' and `longjmp'
+is to switch temporarily to a different execution path and then resume
+where execution was stopped.
+
+     #include <signal.h>
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <ucontext.h>
+     #include <sys/time.h>
+     
+     /* Set by the signal handler. */
+     static volatile int expired;
+     
+     /* The contexts. */
+     static ucontext_t uc[3];
+     
+     /* We do only a certain number of switches. */
+     static int switches;
+     
+     
+     /* This is the function doing the work.  It is just a
+        skeleton, real code has to be filled in. */
+     static void
+     f (int n)
+     {
+       int m = 0;
+       while (1)
+         {
+           /* This is where the work would be done. */
+           if (++m % 100 == 0)
+             {
+               putchar ('.');
+               fflush (stdout);
+             }
+     
+           /* Regularly the EXPIRE variable must be checked. */
+           if (expired)
+             {
+               /* We do not want the program to run forever. */
+               if (++switches == 20)
+                 return;
+     
+               printf ("\nswitching from %d to %d\n", n, 3 - n);
+               expired = 0;
+               /* Switch to the other context, saving the current one. */
+               swapcontext (&uc[n], &uc[3 - n]);
+             }
+         }
+     }
+     
+     /* This is the signal handler which simply set the variable. */
+     void
+     handler (int signal)
+     {
+       expired = 1;
+     }
+     
+     
+     int
+     main (void)
+     {
+       struct sigaction sa;
+       struct itimerval it;
+       char st1[8192];
+       char st2[8192];
+     
+       /* Initialize the data structures for the interval timer. */
+       sa.sa_flags = SA_RESTART;
+       sigfillset (&sa.sa_mask);
+       sa.sa_handler = handler;
+       it.it_interval.tv_sec = 0;
+       it.it_interval.tv_usec = 1;
+       it.it_value = it.it_interval;
+     
+       /* Install the timer and get the context we can manipulate. */
+       if (sigaction (SIGPROF, &sa, NULL) < 0
+           || setitimer (ITIMER_PROF, &it, NULL) < 0
+           || getcontext (&uc[1]) == -1
+           || getcontext (&uc[2]) == -1)
+         abort ();
+     
+       /* Create a context with a separate stack which causes the
+          function `f' to be call with the parameter `1'.
+          Note that the `uc_link' points to the main context
+          which will cause the program to terminate once the function
+          return. */
+       uc[1].uc_link = &uc[0];
+       uc[1].uc_stack.ss_sp = st1;
+       uc[1].uc_stack.ss_size = sizeof st1;
+       makecontext (&uc[1], (void (*) (void)) f, 1, 1);
+     
+       /* Similarly, but `2' is passed as the parameter to `f'. */
+       uc[2].uc_link = &uc[0];
+       uc[2].uc_stack.ss_sp = st2;
+       uc[2].uc_stack.ss_size = sizeof st2;
+       makecontext (&uc[2], (void (*) (void)) f, 1, 2);
+     
+       /* Start running. */
+       swapcontext (&uc[0], &uc[1]);
+       putchar ('\n');
+     
+       return 0;
+     }
+
+   This an example how the context functions can be used to implement
+co-routines or cooperative multi-threading.  All that has to be done is
+to call every once in a while `swapcontext' to continue running a
+different context.  It is not allowed to do the context switching from
+the signal handler directly since neither `setcontext' nor
+`swapcontext' are functions which can be called from a signal handler.
+But setting a variable in the signal handler and checking it in the
+body of the functions which are executed.  Since `swapcontext' is
+saving the current context it is possible to have multiple different
+scheduling points in the code.  Execution will always resume where it
+was left.
+
+
+File: libc.info,  Node: Signal Handling,  Next: Program Basics,  Prev: Non-Local Exits,  Up: Top
+
+Signal Handling
+***************
+
+   A "signal" is a software interrupt delivered to a process.  The
+operating system uses signals to report exceptional situations to an
+executing program.  Some signals report errors such as references to
+invalid memory addresses; others report asynchronous events, such as
+disconnection of a phone line.
+
+   The GNU C library defines a variety of signal types, each for a
+particular kind of event.  Some kinds of events make it inadvisable or
+impossible for the program to proceed as usual, and the corresponding
+signals normally abort the program.  Other kinds of signals that report
+harmless events are ignored by default.
+
+   If you anticipate an event that causes signals, you can define a
+handler function and tell the operating system to run it when that
+particular type of signal arrives.
+
+   Finally, one process can send a signal to another process; this
+allows a parent process to abort a child, or two related processes to
+communicate and synchronize.
+
+* Menu:
+
+* Concepts of Signals::         Introduction to the signal facilities.
+* Standard Signals::            Particular kinds of signals with
+                                 standard names and meanings.
+* Signal Actions::              Specifying what happens when a
+                                 particular signal is delivered.
+* Defining Handlers::           How to write a signal handler function.
+* Interrupted Primitives::	Signal handlers affect use of `open',
+				 `read', `write' and other functions.
+* Generating Signals::          How to send a signal to a process.
+* Blocking Signals::            Making the system hold signals temporarily.
+* Waiting for a Signal::        Suspending your program until a signal
+                                 arrives.
+* Signal Stack::                Using a Separate Signal Stack.
+* BSD Signal Handling::         Additional functions for backward
+			         compatibility with BSD.
+
+
+File: libc.info,  Node: Concepts of Signals,  Next: Standard Signals,  Up: Signal Handling
+
+Basic Concepts of Signals
+=========================
+
+   This section explains basic concepts of how signals are generated,
+what happens after a signal is delivered, and how programs can handle
+signals.
+
+* Menu:
+
+* Kinds of Signals::            Some examples of what can cause a signal.
+* Signal Generation::           Concepts of why and how signals occur.
+* Delivery of Signal::          Concepts of what a signal does to the
+                                 process.
+
+
+File: libc.info,  Node: Kinds of Signals,  Next: Signal Generation,  Up: Concepts of Signals
+
+Some Kinds of Signals
+---------------------
+
+   A signal reports the occurrence of an exceptional event.  These are
+some of the events that can cause (or "generate", or "raise") a signal:
+
+   * A program error such as dividing by zero or issuing an address
+     outside the valid range.
+
+   * A user request to interrupt or terminate the program.  Most
+     environments are set up to let a user suspend the program by
+     typing `C-z', or terminate it with `C-c'.  Whatever key sequence
+     is used, the operating system sends the proper signal to interrupt
+     the process.
+
+   * The termination of a child process.
+
+   * Expiration of a timer or alarm.
+
+   * A call to `kill' or `raise' by the same process.
+
+   * A call to `kill' from another process.  Signals are a limited but
+     useful form of interprocess communication.
+
+   * An attempt to perform an I/O operation that cannot be done.
+     Examples are reading from a pipe that has no writer (*note Pipes
+     and FIFOs::), and reading or writing to a terminal in certain
+     situations (*note Job Control::).
+
+   Each of these kinds of events (excepting explicit calls to `kill'
+and `raise') generates its own particular kind of signal.  The various
+kinds of signals are listed and described in detail in *Note Standard
+Signals::.
+
+
+File: libc.info,  Node: Signal Generation,  Next: Delivery of Signal,  Prev: Kinds of Signals,  Up: Concepts of Signals
+
+Concepts of Signal Generation
+-----------------------------
+
+   In general, the events that generate signals fall into three major
+categories: errors, external events, and explicit requests.
+
+   An error means that a program has done something invalid and cannot
+continue execution.  But not all kinds of errors generate signals--in
+fact, most do not.  For example, opening a nonexistent file is an error,
+but it does not raise a signal; instead, `open' returns `-1'.  In
+general, errors that are necessarily associated with certain library
+functions are reported by returning a value that indicates an error.
+The errors which raise signals are those which can happen anywhere in
+the program, not just in library calls.  These include division by zero
+and invalid memory addresses.
+
+   An external event generally has to do with I/O or other processes.
+These include the arrival of input, the expiration of a timer, and the
+termination of a child process.
+
+   An explicit request means the use of a library function such as
+`kill' whose purpose is specifically to generate a signal.
+
+   Signals may be generated "synchronously" or "asynchronously".  A
+synchronous signal pertains to a specific action in the program, and is
+delivered (unless blocked) during that action.  Most errors generate
+signals synchronously, and so do explicit requests by a process to
+generate a signal for that same process.  On some machines, certain
+kinds of hardware errors (usually floating-point exceptions) are not
+reported completely synchronously, but may arrive a few instructions
+later.
+
+   Asynchronous signals are generated by events outside the control of
+the process that receives them.  These signals arrive at unpredictable
+times during execution.  External events generate signals
+asynchronously, and so do explicit requests that apply to some other
+process.
+
+   A given type of signal is either typically synchronous or typically
+asynchronous.  For example, signals for errors are typically synchronous
+because errors generate signals synchronously.  But any type of signal
+can be generated synchronously or asynchronously with an explicit
+request.
+
+
+File: libc.info,  Node: Delivery of Signal,  Prev: Signal Generation,  Up: Concepts of Signals
+
+How Signals Are Delivered
+-------------------------
+
+   When a signal is generated, it becomes "pending".  Normally it
+remains pending for just a short period of time and then is "delivered"
+to the process that was signaled.  However, if that kind of signal is
+currently "blocked", it may remain pending indefinitely--until signals
+of that kind are "unblocked".  Once unblocked, it will be delivered
+immediately.  *Note Blocking Signals::.
+
+   When the signal is delivered, whether right away or after a long
+delay, the "specified action" for that signal is taken.  For certain
+signals, such as `SIGKILL' and `SIGSTOP', the action is fixed, but for
+most signals, the program has a choice: ignore the signal, specify a
+"handler function", or accept the "default action" for that kind of
+signal.  The program specifies its choice using functions such as
+`signal' or `sigaction' (*note Signal Actions::).  We sometimes say
+that a handler "catches" the signal.  While the handler is running,
+that particular signal is normally blocked.
+
+   If the specified action for a kind of signal is to ignore it, then
+any such signal which is generated is discarded immediately.  This
+happens even if the signal is also blocked at the time.  A signal
+discarded in this way will never be delivered, not even if the program
+subsequently specifies a different action for that kind of signal and
+then unblocks it.
+
+   If a signal arrives which the program has neither handled nor
+ignored, its "default action" takes place.  Each kind of signal has its
+own default action, documented below (*note Standard Signals::).  For
+most kinds of signals, the default action is to terminate the process.
+For certain kinds of signals that represent "harmless" events, the
+default action is to do nothing.
+
+   When a signal terminates a process, its parent process can determine
+the cause of termination by examining the termination status code
+reported by the `wait' or `waitpid' functions.  (This is discussed in
+more detail in *Note Process Completion::.)  The information it can get
+includes the fact that termination was due to a signal and the kind of
+signal involved.  If a program you run from a shell is terminated by a
+signal, the shell typically prints some kind of error message.
+
+   The signals that normally represent program errors have a special
+property: when one of these signals terminates the process, it also
+writes a "core dump file" which records the state of the process at the
+time of termination.  You can examine the core dump with a debugger to
+investigate what caused the error.
+
+   If you raise a "program error" signal by explicit request, and this
+terminates the process, it makes a core dump file just as if the signal
+had been due directly to an error.
+
+
+File: libc.info,  Node: Standard Signals,  Next: Signal Actions,  Prev: Concepts of Signals,  Up: Signal Handling
+
+Standard Signals
+================
+
+   This section lists the names for various standard kinds of signals
+and describes what kind of event they mean.  Each signal name is a macro
+which stands for a positive integer--the "signal number" for that kind
+of signal.  Your programs should never make assumptions about the
+numeric code for a particular kind of signal, but rather refer to them
+always by the names defined here.  This is because the number for a
+given kind of signal can vary from system to system, but the meanings of
+the names are standardized and fairly uniform.
+
+   The signal names are defined in the header file `signal.h'.
+
+ - Macro: int NSIG
+     The value of this symbolic constant is the total number of signals
+     defined.  Since the signal numbers are allocated consecutively,
+     `NSIG' is also one greater than the largest defined signal number.
+
+* Menu:
+
+* Program Error Signals::       Used to report serious program errors.
+* Termination Signals::         Used to interrupt and/or terminate the
+                                 program.
+* Alarm Signals::               Used to indicate expiration of timers.
+* Asynchronous I/O Signals::    Used to indicate input is available.
+* Job Control Signals::         Signals used to support job control.
+* Operation Error Signals::     Used to report operational system errors.
+* Miscellaneous Signals::       Miscellaneous Signals.
+* Signal Messages::             Printing a message describing a signal.
+

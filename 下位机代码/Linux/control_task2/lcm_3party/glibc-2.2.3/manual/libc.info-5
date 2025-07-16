@@ -1,0 +1,1222 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Obstack Chunks,  Next: Summary of Obstacks,  Prev: Obstacks Data Alignment,  Up: Obstacks
+
+Obstack Chunks
+..............
+
+   Obstacks work by allocating space for themselves in large chunks, and
+then parceling out space in the chunks to satisfy your requests.  Chunks
+are normally 4096 bytes long unless you specify a different chunk size.
+The chunk size includes 8 bytes of overhead that are not actually used
+for storing objects.  Regardless of the specified size, longer chunks
+will be allocated when necessary for long objects.
+
+   The obstack library allocates chunks by calling the function
+`obstack_chunk_alloc', which you must define.  When a chunk is no
+longer needed because you have freed all the objects in it, the obstack
+library frees the chunk by calling `obstack_chunk_free', which you must
+also define.
+
+   These two must be defined (as macros) or declared (as functions) in
+each source file that uses `obstack_init' (*note Creating Obstacks::).
+Most often they are defined as macros like this:
+
+     #define obstack_chunk_alloc malloc
+     #define obstack_chunk_free free
+
+   Note that these are simple macros (no arguments).  Macro definitions
+with arguments will not work!  It is necessary that
+`obstack_chunk_alloc' or `obstack_chunk_free', alone, expand into a
+function name if it is not itself a function name.
+
+   If you allocate chunks with `malloc', the chunk size should be a
+power of 2.  The default chunk size, 4096, was chosen because it is long
+enough to satisfy many typical requests on the obstack yet short enough
+not to waste too much memory in the portion of the last chunk not yet
+used.
+
+ - Macro: int obstack_chunk_size (struct obstack *OBSTACK-PTR)
+     This returns the chunk size of the given obstack.
+
+   Since this macro expands to an lvalue, you can specify a new chunk
+size by assigning it a new value.  Doing so does not affect the chunks
+already allocated, but will change the size of chunks allocated for
+that particular obstack in the future.  It is unlikely to be useful to
+make the chunk size smaller, but making it larger might improve
+efficiency if you are allocating many objects whose size is comparable
+to the chunk size.  Here is how to do so cleanly:
+
+     if (obstack_chunk_size (obstack_ptr) < NEW-CHUNK-SIZE)
+       obstack_chunk_size (obstack_ptr) = NEW-CHUNK-SIZE;
+
+
+File: libc.info,  Node: Summary of Obstacks,  Prev: Obstack Chunks,  Up: Obstacks
+
+Summary of Obstack Functions
+............................
+
+   Here is a summary of all the functions associated with obstacks.
+Each takes the address of an obstack (`struct obstack *') as its first
+argument.
+
+`void obstack_init (struct obstack *OBSTACK-PTR)'
+     Initialize use of an obstack.  *Note Creating Obstacks::.
+
+`void *obstack_alloc (struct obstack *OBSTACK-PTR, int SIZE)'
+     Allocate an object of SIZE uninitialized bytes.  *Note Allocation
+     in an Obstack::.
+
+`void *obstack_copy (struct obstack *OBSTACK-PTR, void *ADDRESS, int SIZE)'
+     Allocate an object of SIZE bytes, with contents copied from
+     ADDRESS.  *Note Allocation in an Obstack::.
+
+`void *obstack_copy0 (struct obstack *OBSTACK-PTR, void *ADDRESS, int SIZE)'
+     Allocate an object of SIZE+1 bytes, with SIZE of them copied from
+     ADDRESS, followed by a null character at the end.  *Note
+     Allocation in an Obstack::.
+
+`void obstack_free (struct obstack *OBSTACK-PTR, void *OBJECT)'
+     Free OBJECT (and everything allocated in the specified obstack
+     more recently than OBJECT).  *Note Freeing Obstack Objects::.
+
+`void obstack_blank (struct obstack *OBSTACK-PTR, int SIZE)'
+     Add SIZE uninitialized bytes to a growing object.  *Note Growing
+     Objects::.
+
+`void obstack_grow (struct obstack *OBSTACK-PTR, void *ADDRESS, int SIZE)'
+     Add SIZE bytes, copied from ADDRESS, to a growing object.  *Note
+     Growing Objects::.
+
+`void obstack_grow0 (struct obstack *OBSTACK-PTR, void *ADDRESS, int SIZE)'
+     Add SIZE bytes, copied from ADDRESS, to a growing object, and then
+     add another byte containing a null character.  *Note Growing
+     Objects::.
+
+`void obstack_1grow (struct obstack *OBSTACK-PTR, char DATA-CHAR)'
+     Add one byte containing DATA-CHAR to a growing object.  *Note
+     Growing Objects::.
+
+`void *obstack_finish (struct obstack *OBSTACK-PTR)'
+     Finalize the object that is growing and return its permanent
+     address.  *Note Growing Objects::.
+
+`int obstack_object_size (struct obstack *OBSTACK-PTR)'
+     Get the current size of the currently growing object.  *Note
+     Growing Objects::.
+
+`void obstack_blank_fast (struct obstack *OBSTACK-PTR, int SIZE)'
+     Add SIZE uninitialized bytes to a growing object without checking
+     that there is enough room.  *Note Extra Fast Growing::.
+
+`void obstack_1grow_fast (struct obstack *OBSTACK-PTR, char DATA-CHAR)'
+     Add one byte containing DATA-CHAR to a growing object without
+     checking that there is enough room.  *Note Extra Fast Growing::.
+
+`int obstack_room (struct obstack *OBSTACK-PTR)'
+     Get the amount of room now available for growing the current
+     object.  *Note Extra Fast Growing::.
+
+`int obstack_alignment_mask (struct obstack *OBSTACK-PTR)'
+     The mask used for aligning the beginning of an object.  This is an
+     lvalue.  *Note Obstacks Data Alignment::.
+
+`int obstack_chunk_size (struct obstack *OBSTACK-PTR)'
+     The size for allocating chunks.  This is an lvalue.  *Note Obstack
+     Chunks::.
+
+`void *obstack_base (struct obstack *OBSTACK-PTR)'
+     Tentative starting address of the currently growing object.  *Note
+     Status of an Obstack::.
+
+`void *obstack_next_free (struct obstack *OBSTACK-PTR)'
+     Address just after the end of the currently growing object.  *Note
+     Status of an Obstack::.
+
+
+File: libc.info,  Node: Variable Size Automatic,  Prev: Obstacks,  Up: Memory Allocation
+
+Automatic Storage with Variable Size
+------------------------------------
+
+   The function `alloca' supports a kind of half-dynamic allocation in
+which blocks are allocated dynamically but freed automatically.
+
+   Allocating a block with `alloca' is an explicit action; you can
+allocate as many blocks as you wish, and compute the size at run time.
+But all the blocks are freed when you exit the function that `alloca'
+was called from, just as if they were automatic variables declared in
+that function.  There is no way to free the space explicitly.
+
+   The prototype for `alloca' is in `stdlib.h'.  This function is a BSD
+extension.
+
+ - Function: void * alloca (size_t SIZE);
+     The return value of `alloca' is the address of a block of SIZE
+     bytes of memory, allocated in the stack frame of the calling
+     function.
+
+   Do not use `alloca' inside the arguments of a function call--you
+will get unpredictable results, because the stack space for the
+`alloca' would appear on the stack in the middle of the space for the
+function arguments.  An example of what to avoid is `foo (x, alloca
+(4), y)'.
+
+* Menu:
+
+* Alloca Example::              Example of using `alloca'.
+* Advantages of Alloca::        Reasons to use `alloca'.
+* Disadvantages of Alloca::     Reasons to avoid `alloca'.
+* GNU C Variable-Size Arrays::  Only in GNU C, here is an alternative
+				 method of allocating dynamically and
+				 freeing automatically.
+
+
+File: libc.info,  Node: Alloca Example,  Next: Advantages of Alloca,  Up: Variable Size Automatic
+
+`alloca' Example
+................
+
+   As an example of the use of `alloca', here is a function that opens
+a file name made from concatenating two argument strings, and returns a
+file descriptor or minus one signifying failure:
+
+     int
+     open2 (char *str1, char *str2, int flags, int mode)
+     {
+       char *name = (char *) alloca (strlen (str1) + strlen (str2) + 1);
+       stpcpy (stpcpy (name, str1), str2);
+       return open (name, flags, mode);
+     }
+
+Here is how you would get the same results with `malloc' and `free':
+
+     int
+     open2 (char *str1, char *str2, int flags, int mode)
+     {
+       char *name = (char *) malloc (strlen (str1) + strlen (str2) + 1);
+       int desc;
+       if (name == 0)
+         fatal ("virtual memory exceeded");
+       stpcpy (stpcpy (name, str1), str2);
+       desc = open (name, flags, mode);
+       free (name);
+       return desc;
+     }
+
+   As you can see, it is simpler with `alloca'.  But `alloca' has
+other, more important advantages, and some disadvantages.
+
+
+File: libc.info,  Node: Advantages of Alloca,  Next: Disadvantages of Alloca,  Prev: Alloca Example,  Up: Variable Size Automatic
+
+Advantages of `alloca'
+......................
+
+   Here are the reasons why `alloca' may be preferable to `malloc':
+
+   * Using `alloca' wastes very little space and is very fast.  (It is
+     open-coded by the GNU C compiler.)
+
+   * Since `alloca' does not have separate pools for different sizes of
+     block, space used for any size block can be reused for any other
+     size.  `alloca' does not cause memory fragmentation.
+
+   * Nonlocal exits done with `longjmp' (*note Non-Local Exits::)
+     automatically free the space allocated with `alloca' when they exit
+     through the function that called `alloca'.  This is the most
+     important reason to use `alloca'.
+
+     To illustrate this, suppose you have a function
+     `open_or_report_error' which returns a descriptor, like `open', if
+     it succeeds, but does not return to its caller if it fails.  If
+     the file cannot be opened, it prints an error message and jumps
+     out to the command level of your program using `longjmp'.  Let's
+     change `open2' (*note Alloca Example::) to use this subroutine:
+
+          int
+          open2 (char *str1, char *str2, int flags, int mode)
+          {
+            char *name = (char *) alloca (strlen (str1) + strlen (str2) + 1);
+            stpcpy (stpcpy (name, str1), str2);
+            return open_or_report_error (name, flags, mode);
+          }
+
+     Because of the way `alloca' works, the memory it allocates is
+     freed even when an error occurs, with no special effort required.
+
+     By contrast, the previous definition of `open2' (which uses
+     `malloc' and `free') would develop a memory leak if it were
+     changed in this way.  Even if you are willing to make more changes
+     to fix it, there is no easy way to do so.
+
+
+File: libc.info,  Node: Disadvantages of Alloca,  Next: GNU C Variable-Size Arrays,  Prev: Advantages of Alloca,  Up: Variable Size Automatic
+
+Disadvantages of `alloca'
+.........................
+
+   These are the disadvantages of `alloca' in comparison with `malloc':
+
+   * If you try to allocate more memory than the machine can provide,
+     you don't get a clean error message.  Instead you get a fatal
+     signal like the one you would get from an infinite recursion;
+     probably a segmentation violation (*note Program Error Signals::).
+
+   * Some non-GNU systems fail to support `alloca', so it is less
+     portable.  However, a slower emulation of `alloca' written in C is
+     available for use on systems with this deficiency.
+
+
+File: libc.info,  Node: GNU C Variable-Size Arrays,  Prev: Disadvantages of Alloca,  Up: Variable Size Automatic
+
+GNU C Variable-Size Arrays
+..........................
+
+   In GNU C, you can replace most uses of `alloca' with an array of
+variable size.  Here is how `open2' would look then:
+
+     int open2 (char *str1, char *str2, int flags, int mode)
+     {
+       char name[strlen (str1) + strlen (str2) + 1];
+       stpcpy (stpcpy (name, str1), str2);
+       return open (name, flags, mode);
+     }
+
+   But `alloca' is not always equivalent to a variable-sized array, for
+several reasons:
+
+   * A variable size array's space is freed at the end of the scope of
+     the name of the array.  The space allocated with `alloca' remains
+     until the end of the function.
+
+   * It is possible to use `alloca' within a loop, allocating an
+     additional block on each iteration.  This is impossible with
+     variable-sized arrays.
+
+   *Note:* If you mix use of `alloca' and variable-sized arrays within
+one function, exiting a scope in which a variable-sized array was
+declared frees all blocks allocated with `alloca' during the execution
+of that scope.
+
+
+File: libc.info,  Node: Resizing the Data Segment,  Prev: Locking Pages,  Up: Memory
+
+Resizing the Data Segment
+=========================
+
+   The symbols in this section are declared in `unistd.h'.
+
+   You will not normally use the functions in this section, because the
+functions described in *Note Memory Allocation:: are easier to use.
+Those are interfaces to a GNU C Library memory allocator that uses the
+functions below itself.  The functions below are simple interfaces to
+system calls.
+
+ - Function: int brk (void *ADDR)
+     `brk' sets the high end of the calling process' data segment to
+     ADDR.
+
+     The address of the end of a segment is defined to be the address
+     of the last byte in the segment plus 1.
+
+     The function has no effect if ADDR is lower than the low end of
+     the data segment.  (This is considered success, by the way).
+
+     The function fails if it would cause the data segment to overlap
+     another segment or exceed the process' data storage limit (*note
+     Limits on Resources::).
+
+     The function is named for a common historical case where data
+     storage and the stack are in the same segment.  Data storage
+     allocation grows upward from the bottom of the segment while the
+     stack grows downward toward it from the top of the segment and the
+     curtain between them is called the "break".
+
+     The return value is zero on success.  On failure, the return value
+     is `-1' and `errno' is set accordingly.  The following `errno'
+     values are specific to this function:
+
+    `ENOMEM'
+          The request would cause the data segment to overlap another
+          segment or exceed the process' data storage limit.
+
+
+ - Function: int sbrk (ptrdiff_t DELTA)
+     This function is the same as `brk' except that you specify the new
+     end of the data segment as an offset DELTA from the current end
+     and on success the return value is the address of the resulting
+     end of the data segment instead of zero.
+
+     This means you can use `sbrk(0)' to find out what the current end
+     of the data segment is.
+
+
+
+File: libc.info,  Node: Locking Pages,  Next: Resizing the Data Segment,  Prev: Memory Allocation,  Up: Memory
+
+Locking Pages
+=============
+
+   You can tell the system to associate a particular virtual memory page
+with a real page frame and keep it that way -- i.e. cause the page to
+be paged in if it isn't already and mark it so it will never be paged
+out and consequently will never cause a page fault.  This is called
+"locking" a page.
+
+   The functions in this chapter lock and unlock the calling process'
+pages.
+
+* Menu:
+
+* Why Lock Pages::                Reasons to read this section.
+* Locked Memory Details::         Everything you need to know locked
+                                    memory
+* Page Lock Functions::           Here's how to do it.
+
+
+File: libc.info,  Node: Why Lock Pages,  Next: Locked Memory Details,  Up: Locking Pages
+
+Why Lock Pages
+--------------
+
+   Because page faults cause paged out pages to be paged in
+transparently, a process rarely needs to be concerned about locking
+pages.  However, there are two reasons people sometimes are:
+
+   * Speed.  A page fault is transparent only insofar as the process is
+     not sensitive to how long it takes to do a simple memory access.
+     Time-critical processes, especially realtime processes, may not be
+     able to wait or may not be able to tolerate variance in execution
+     speed.
+
+     A process that needs to lock pages for this reason probably also
+     needs priority among other processes for use of the CPU.  *Note
+     Priority::.
+
+     In some cases, the programmer knows better than the system's demand
+     paging allocator which pages should remain in real memory to
+     optimize system performance.  In this case, locking pages can help.
+
+   * Privacy.  If you keep secrets in virtual memory and that virtual
+     memory gets paged out, that increases the chance that the secrets
+     will get out.  If a password gets written out to disk swap space,
+     for example, it might still be there long after virtual and real
+     memory have been wiped clean.
+
+
+   Be aware that when you lock a page, that's one fewer page frame that
+can be used to back other virtual memory (by the same or other
+processes), which can mean more page faults, which means the system
+runs more slowly.  In fact, if you lock enough memory, some programs
+may not be able to run at all for lack of real memory.
+
+
+File: libc.info,  Node: Locked Memory Details,  Next: Page Lock Functions,  Prev: Why Lock Pages,  Up: Locking Pages
+
+Locked Memory Details
+---------------------
+
+   A memory lock is associated with a virtual page, not a real frame.
+The paging rule is: If a frame backs at least one locked page, don't
+page it out.
+
+   Memory locks do not stack.  I.e. you can't lock a particular page
+twice so that it has to be unlocked twice before it is truly unlocked.
+It is either locked or it isn't.
+
+   A memory lock persists until the process that owns the memory
+explicitly unlocks it.  (But process termination and exec cause the
+virtual memory to cease to exist, which you might say means it isn't
+locked any more).
+
+   Memory locks are not inherited by child processes.  (But note that
+on a modern Unix system, immediately after a fork, the parent's and the
+child's virtual address space are backed by the same real page frames,
+so the child enjoys the parent's locks).  *Note Creating a Process::.
+
+   Because of its ability to impact other processes, only the superuser
+can lock a page.  Any process can unlock its own page.
+
+   The system sets limits on the amount of memory a process can have
+locked and the amount of real memory it can have dedicated to it.
+*Note Limits on Resources::.
+
+   In Linux, locked pages aren't as locked as you might think.  Two
+virtual pages that are not shared memory can nonetheless be backed by
+the same real frame.  The kernel does this in the name of efficiency
+when it knows both virtual pages contain identical data, and does it
+even if one or both of the virtual pages are locked.
+
+   But when a process modifies one of those pages, the kernel must get
+it a separate frame and fill it with the page's data.  This is known as
+a "copy-on-write page fault".  It takes a small amount of time and in a
+pathological case, getting that frame may require I/O.
+
+   To make sure this doesn't happen to your program, don't just lock the
+pages.  Write to them as well, unless you know you won't write to them
+ever.  And to make sure you have pre-allocated frames for your stack,
+enter a scope that declares a C automatic variable larger than the
+maximum stack size you will need, set it to something, then return from
+its scope.
+
+
+File: libc.info,  Node: Page Lock Functions,  Prev: Locked Memory Details,  Up: Locking Pages
+
+Functions To Lock And Unlock Pages
+----------------------------------
+
+   The symbols in this section are declared in `sys/mman.h'.  These
+functions are defined by POSIX.1b, but their availability depends on
+your kernel.  If your kernel doesn't allow these functions, they exist
+but always fail.  They _are_ available with a Linux kernel.
+
+   *Portability Note:* POSIX.1b requires that when the `mlock' and
+`munlock' functions are available, the file `unistd.h' define the macro
+`_POSIX_MEMLOCK_RANGE' and the file `limits.h' define the macro
+`PAGESIZE' to be the size of a memory page in bytes.  It requires that
+when the `mlockall' and `munlockall' functions are available, the
+`unistd.h' file define the macro `_POSIX_MEMLOCK'.  The GNU C library
+conforms to this requirement.
+
+ - Function: int mlock (const void *ADDR, size_t LEN)
+     `mlock' locks a range of the calling process' virtual pages.
+
+     The range of memory starts at address ADDR and is LEN bytes long.
+     Actually, since you must lock whole pages, it is the range of
+     pages that include any part of the specified range.
+
+     When the function returns successfully, each of those pages is
+     backed by (connected to) a real frame (is resident) and is marked
+     to stay that way.  This means the function may cause page-ins and
+     have to wait for them.
+
+     When the function fails, it does not affect the lock status of any
+     pages.
+
+     The return value is zero if the function succeeds.  Otherwise, it
+     is `-1' and `errno' is set accordingly.  `errno' values specific
+     to this function are:
+
+    `ENOMEM'
+             * At least some of the specified address range does not
+               exist in the calling process' virtual address space.
+
+             * The locking would cause the process to exceed its locked
+               page limit.
+
+    `EPERM'
+          The calling process is not superuser.
+
+    `EINVAL'
+          LEN is not positive.
+
+    `ENOSYS'
+          The kernel does not provide `mlock' capability.
+
+     You can lock _all_ a process' memory with `mlockall'.  You unlock
+     memory with `munlock' or `munlockall'.
+
+     To avoid all page faults in a C program, you have to use
+     `mlockall', because some of the memory a program uses is hidden
+     from the C code, e.g. the stack and automatic variables, and you
+     wouldn't know what address to tell `mlock'.
+
+
+ - Function: int munlock (const void *ADDR, size_t LEN)
+     `mlock' unlocks a range of the calling process' virtual pages.
+
+     `munlock' is the inverse of `mlock' and functions completely
+     analogously to `mlock', except that there is no `EPERM' failure.
+
+
+ - Function: int mlockall (int FLAGS)
+     `mlockall' locks all the pages in a process' virtual memory address
+     space, and/or any that are added to it in the future.  This
+     includes the pages of the code, data and stack segment, as well as
+     shared libraries, user space kernel data, shared memory, and
+     memory mapped files.
+
+     FLAGS is a string of single bit flags represented by the following
+     macros.  They tell `mlockall' which of its functions you want.  All
+     other bits must be zero.
+
+    `MCL_CURRENT'
+          Lock all pages which currently exist in the calling process'
+          virtual address space.
+
+    `MCL_FUTURE'
+          Set a mode such that any pages added to the process' virtual
+          address space in the future will be locked from birth.  This
+          mode does not affect future address spaces owned by the same
+          process so exec, which replaces a process' address space,
+          wipes out `MCL_FUTURE'.  *Note Executing a File::.
+
+     When the function returns successfully, and you specified
+     `MCL_CURRENT', all of the process' pages are backed by (connected
+     to) real frames (they are resident) and are marked to stay that
+     way.  This means the function may cause page-ins and have to wait
+     for them.
+
+     When the process is in `MCL_FUTURE' mode because it successfully
+     executed this function and specified `MCL_CURRENT', any system call
+     by the process that requires space be added to its virtual address
+     space fails with `errno' = `ENOMEM' if locking the additional space
+     would cause the process to exceed its locked page limit.  In the
+     case that the address space addition that can't be accomodated is
+     stack expansion, the stack expansion fails and the kernel sends a
+     `SIGSEGV' signal to the process.
+
+     When the function fails, it does not affect the lock status of any
+     pages or the future locking mode.
+
+     The return value is zero if the function succeeds.  Otherwise, it
+     is `-1' and `errno' is set accordingly.  `errno' values specific
+     to this function are:
+
+    `ENOMEM'
+             * At least some of the specified address range does not
+               exist in the calling process' virtual address space.
+
+             * The locking would cause the process to exceed its locked
+               page limit.
+
+    `EPERM'
+          The calling process is not superuser.
+
+    `EINVAL'
+          Undefined bits in FLAGS are not zero.
+
+    `ENOSYS'
+          The kernel does not provide `mlockall' capability.
+
+     You can lock just specific pages with `mlock'.  You unlock pages
+     with `munlockall' and `munlock'.
+
+
+ - Function: int munlockall (void)
+     `munlockall' unlocks every page in the calling process' virtual
+     address space and turn off `MCL_FUTURE' future locking mode.
+
+     The return value is zero if the function succeeds.  Otherwise, it
+     is `-1' and `errno' is set accordingly.  The only way this
+     function can fail is for generic reasons that all functions and
+     system calls can fail, so there are no specific `errno' values.
+
+
+
+File: libc.info,  Node: Character Handling,  Next: String and Array Utilities,  Prev: Memory,  Up: Top
+
+Character Handling
+******************
+
+   Programs that work with characters and strings often need to
+classify a character--is it alphabetic, is it a digit, is it
+whitespace, and so on--and perform case conversion operations on
+characters.  The functions in the header file `ctype.h' are provided
+for this purpose.
+
+   Since the choice of locale and character set can alter the
+classifications of particular character codes, all of these functions
+are affected by the current locale.  (More precisely, they are affected
+by the locale currently selected for character classification--the
+`LC_CTYPE' category; see *Note Locale Categories::.)
+
+   The ISO C standard specifies two different sets of functions.  The
+one set works on `char' type characters, the other one on `wchar_t'
+wide characters (*note Extended Char Intro::).
+
+* Menu:
+
+* Classification of Characters::       Testing whether characters are
+			                letters, digits, punctuation, etc.
+
+* Case Conversion::                    Case mapping, and the like.
+* Classification of Wide Characters::  Character class determination for
+                                        wide characters.
+* Using Wide Char Classes::            Notes on using the wide character
+                                        classes.
+* Wide Character Case Conversion::     Mapping of wide characters.
+
+
+File: libc.info,  Node: Classification of Characters,  Next: Case Conversion,  Up: Character Handling
+
+Classification of Characters
+============================
+
+   This section explains the library functions for classifying
+characters.  For example, `isalpha' is the function to test for an
+alphabetic character.  It takes one argument, the character to test,
+and returns a nonzero integer if the character is alphabetic, and zero
+otherwise.  You would use it like this:
+
+     if (isalpha (c))
+       printf ("The character `%c' is alphabetic.\n", c);
+
+   Each of the functions in this section tests for membership in a
+particular class of characters; each has a name starting with `is'.
+Each of them takes one argument, which is a character to test, and
+returns an `int' which is treated as a boolean value.  The character
+argument is passed as an `int', and it may be the constant value `EOF'
+instead of a real character.
+
+   The attributes of any given character can vary between locales.
+*Note Locales::, for more information on locales.
+
+   These functions are declared in the header file `ctype.h'.
+
+ - Function: int islower (int C)
+     Returns true if C is a lower-case letter.  The letter need not be
+     from the Latin alphabet, any alphabet representable is valid.
+
+ - Function: int isupper (int C)
+     Returns true if C is an upper-case letter.  The letter need not be
+     from the Latin alphabet, any alphabet representable is valid.
+
+ - Function: int isalpha (int C)
+     Returns true if C is an alphabetic character (a letter).  If
+     `islower' or `isupper' is true of a character, then `isalpha' is
+     also true.
+
+     In some locales, there may be additional characters for which
+     `isalpha' is true--letters which are neither upper case nor lower
+     case.  But in the standard `"C"' locale, there are no such
+     additional characters.
+
+ - Function: int isdigit (int C)
+     Returns true if C is a decimal digit (`0' through `9').
+
+ - Function: int isalnum (int C)
+     Returns true if C is an alphanumeric character (a letter or
+     number); in other words, if either `isalpha' or `isdigit' is true
+     of a character, then `isalnum' is also true.
+
+ - Function: int isxdigit (int C)
+     Returns true if C is a hexadecimal digit.  Hexadecimal digits
+     include the normal decimal digits `0' through `9' and the letters
+     `A' through `F' and `a' through `f'.
+
+ - Function: int ispunct (int C)
+     Returns true if C is a punctuation character.  This means any
+     printing character that is not alphanumeric or a space character.
+
+ - Function: int isspace (int C)
+     Returns true if C is a "whitespace" character.  In the standard
+     `"C"' locale, `isspace' returns true for only the standard
+     whitespace characters:
+
+    `' ''
+          space
+
+    `'\f''
+          formfeed
+
+    `'\n''
+          newline
+
+    `'\r''
+          carriage return
+
+    `'\t''
+          horizontal tab
+
+    `'\v''
+          vertical tab
+
+ - Function: int isblank (int C)
+     Returns true if C is a blank character; that is, a space or a tab.
+     This function is a GNU extension.
+
+ - Function: int isgraph (int C)
+     Returns true if C is a graphic character; that is, a character
+     that has a glyph associated with it.  The whitespace characters
+     are not considered graphic.
+
+ - Function: int isprint (int C)
+     Returns true if C is a printing character.  Printing characters
+     include all the graphic characters, plus the space (` ') character.
+
+ - Function: int iscntrl (int C)
+     Returns true if C is a control character (that is, a character that
+     is not a printing character).
+
+ - Function: int isascii (int C)
+     Returns true if C is a 7-bit `unsigned char' value that fits into
+     the US/UK ASCII character set.  This function is a BSD extension
+     and is also an SVID extension.
+
+
+File: libc.info,  Node: Case Conversion,  Next: Classification of Wide Characters,  Prev: Classification of Characters,  Up: Character Handling
+
+Case Conversion
+===============
+
+   This section explains the library functions for performing
+conversions such as case mappings on characters.  For example, `toupper'
+converts any character to upper case if possible.  If the character
+can't be converted, `toupper' returns it unchanged.
+
+   These functions take one argument of type `int', which is the
+character to convert, and return the converted character as an `int'.
+If the conversion is not applicable to the argument given, the argument
+is returned unchanged.
+
+   *Compatibility Note:* In pre-ISO C dialects, instead of returning
+the argument unchanged, these functions may fail when the argument is
+not suitable for the conversion.  Thus for portability, you may need to
+write `islower(c) ? toupper(c) : c' rather than just `toupper(c)'.
+
+   These functions are declared in the header file `ctype.h'.
+
+ - Function: int tolower (int C)
+     If C is an upper-case letter, `tolower' returns the corresponding
+     lower-case letter.  If C is not an upper-case letter, C is
+     returned unchanged.
+
+ - Function: int toupper (int C)
+     If C is a lower-case letter, `toupper' returns the corresponding
+     upper-case letter.  Otherwise C is returned unchanged.
+
+ - Function: int toascii (int C)
+     This function converts C to a 7-bit `unsigned char' value that
+     fits into the US/UK ASCII character set, by clearing the high-order
+     bits.  This function is a BSD extension and is also an SVID
+     extension.
+
+ - Function: int _tolower (int C)
+     This is identical to `tolower', and is provided for compatibility
+     with the SVID.  *Note SVID::.
+
+ - Function: int _toupper (int C)
+     This is identical to `toupper', and is provided for compatibility
+     with the SVID.
+
+
+File: libc.info,  Node: Classification of Wide Characters,  Next: Using Wide Char Classes,  Prev: Case Conversion,  Up: Character Handling
+
+Character class determination for wide characters
+=================================================
+
+   Amendment 1 to ISO C90 defines functions to classify wide
+characters.  Although the original ISO C90 standard already defined the
+type `wchar_t', no functions operating on them were defined.
+
+   The general design of the classification functions for wide
+characters is more general.  It allows extensions to the set of
+available classifications, beyond those which are always available.
+The POSIX standard specifies how extensions can be made, and this is
+already implemented in the GNU C library implementation of the
+`localedef' program.
+
+   The character class functions are normally implemented with bitsets,
+with a bitset per character.  For a given character, the appropriate
+bitset is read from a table and a test is performed as to whether a
+certain bit is set.  Which bit is tested for is determined by the class.
+
+   For the wide character classification functions this is made visible.
+There is a type classification type defined, a function to retrieve this
+value for a given class, and a function to test whether a given
+character is in this class, using the classification value.  On top of
+this the normal character classification functions as used for `char'
+objects can be defined.
+
+ - Data type: wctype_t
+     The `wctype_t' can hold a value which represents a character class.
+     The only defined way to generate such a value is by using the
+     `wctype' function.
+
+     This type is defined in `wctype.h'.
+
+ - Function: wctype_t wctype (const char *PROPERTY)
+     The `wctype' returns a value representing a class of wide
+     characters which is identified by the string PROPERTY.  Beside
+     some standard properties each locale can define its own ones.  In
+     case no property with the given name is known for the current
+     locale selected for the `LC_CTYPE' category, the function returns
+     zero.
+
+     The properties known in every locale are:
+
+     `"alnum"'         `"alpha"'         `"cntrl"'         `"digit"'
+     `"graph"'         `"lower"'         `"print"'         `"punct"'
+     `"space"'         `"upper"'         `"xdigit"'        
+
+     This function is declared in `wctype.h'.
+
+   To test the membership of a character to one of the non-standard
+classes the ISO C standard defines a completely new function.
+
+ - Function: int iswctype (wint_t WC, wctype_t DESC)
+     This function returns a nonzero value if WC is in the character
+     class specified by DESC.  DESC must previously be returned by a
+     successful call to `wctype'.
+
+     This function is declared in `wctype.h'.
+
+   To make it easier to use the commonly-used classification functions,
+they are defined in the C library.  There is no need to use `wctype' if
+the property string is one of the known character classes.  In some
+situations it is desirable to construct the property strings, and then
+it is important that `wctype' can also handle the standard classes.
+
+ - Function: int iswalnum (wint_t WC)
+     This function returns a nonzero value if WC is an alphanumeric
+     character (a letter or number); in other words, if either
+     `iswalpha' or `iswdigit' is true of a character, then `iswalnum'
+     is also true.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("alnum"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswalpha (wint_t WC)
+     Returns true if WC is an alphabetic character (a letter).  If
+     `iswlower' or `iswupper' is true of a character, then `iswalpha'
+     is also true.
+
+     In some locales, there may be additional characters for which
+     `iswalpha' is true--letters which are neither upper case nor lower
+     case.  But in the standard `"C"' locale, there are no such
+     additional characters.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("alpha"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswcntrl (wint_t WC)
+     Returns true if WC is a control character (that is, a character
+     that is not a printing character).
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("cntrl"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswdigit (wint_t WC)
+     Returns true if WC is a digit (e.g., `0' through `9').  Please
+     note that this function does not only return a nonzero value for
+     _decimal_ digits, but for all kinds of digits.  A consequence is
+     that code like the following will *not* work unconditionally for
+     wide characters:
+
+          n = 0;
+          while (iswdigit (*wc))
+            {
+              n *= 10;
+              n += *wc++ - L'0';
+            }
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("digit"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswgraph (wint_t WC)
+     Returns true if WC is a graphic character; that is, a character
+     that has a glyph associated with it.  The whitespace characters
+     are not considered graphic.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("graph"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswlower (wint_t WC)
+     Returns true if WC is a lower-case letter.  The letter need not be
+     from the Latin alphabet, any alphabet representable is valid.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("lower"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswprint (wint_t WC)
+     Returns true if WC is a printing character.  Printing characters
+     include all the graphic characters, plus the space (` ') character.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("print"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswpunct (wint_t WC)
+     Returns true if WC is a punctuation character.  This means any
+     printing character that is not alphanumeric or a space character.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("punct"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswspace (wint_t WC)
+     Returns true if WC is a "whitespace" character.  In the standard
+     `"C"' locale, `iswspace' returns true for only the standard
+     whitespace characters:
+
+    `L' ''
+          space
+
+    `L'\f''
+          formfeed
+
+    `L'\n''
+          newline
+
+    `L'\r''
+          carriage return
+
+    `L'\t''
+          horizontal tab
+
+    `L'\v''
+          vertical tab
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("space"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswupper (wint_t WC)
+     Returns true if WC is an upper-case letter.  The letter need not be
+     from the Latin alphabet, any alphabet representable is valid.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("upper"))
+
+     It is declared in `wctype.h'.
+
+ - Function: int iswxdigit (wint_t WC)
+     Returns true if WC is a hexadecimal digit.  Hexadecimal digits
+     include the normal decimal digits `0' through `9' and the letters
+     `A' through `F' and `a' through `f'.
+
+     This function can be implemented using
+
+          iswctype (wc, wctype ("xdigit"))
+
+     It is declared in `wctype.h'.
+
+   The GNU C library also provides a function which is not defined in
+the ISO C standard but which is available as a version for single byte
+characters as well.
+
+ - Function: int iswblank (wint_t WC)
+     Returns true if WC is a blank character; that is, a space or a tab.
+     This function is a GNU extension.  It is declared in `wchar.h'.
+
+
+File: libc.info,  Node: Using Wide Char Classes,  Next: Wide Character Case Conversion,  Prev: Classification of Wide Characters,  Up: Character Handling
+
+Notes on using the wide character classes
+=========================================
+
+   The first note is probably not astonishing but still occasionally a
+cause of problems.  The `iswXXX' functions can be implemented using
+macros and in fact, the GNU C library does this.  They are still
+available as real functions but when the `wctype.h' header is included
+the macros will be used.  This is the same as the `char' type versions
+of these functions.
+
+   The second note covers something new.  It can be best illustrated by
+a (real-world) example.  The first piece of code is an excerpt from the
+original code.  It is truncated a bit but the intention should be clear.
+
+     int
+     is_in_class (int c, const char *class)
+     {
+       if (strcmp (class, "alnum") == 0)
+         return isalnum (c);
+       if (strcmp (class, "alpha") == 0)
+         return isalpha (c);
+       if (strcmp (class, "cntrl") == 0)
+         return iscntrl (c);
+       ...
+       return 0;
+     }
+
+   Now, with the `wctype' and `iswctype' you can avoid the `if'
+cascades, but rewriting the code as follows is wrong:
+
+     int
+     is_in_class (int c, const char *class)
+     {
+       wctype_t desc = wctype (class);
+       return desc ? iswctype ((wint_t) c, desc) : 0;
+     }
+
+   The problem is that it is not guaranteed that the wide character
+representation of a single-byte character can be found using casting.
+In fact, usually this fails miserably.  The correct solution to this
+problem is to write the code as follows:
+
+     int
+     is_in_class (int c, const char *class)
+     {
+       wctype_t desc = wctype (class);
+       return desc ? iswctype (btowc (c), desc) : 0;
+     }
+
+   *Note Converting a Character::, for more information on `btowc'.
+Note that this change probably does not improve the performance of the
+program a lot since the `wctype' function still has to make the string
+comparisons.  It gets really interesting if the `is_in_class' function
+is called more than once for the same class name.  In this case the
+variable DESC could be computed once and reused for all the calls.
+Therefore the above form of the function is probably not the final one.
+
+
+File: libc.info,  Node: Wide Character Case Conversion,  Prev: Using Wide Char Classes,  Up: Character Handling
+
+Mapping of wide characters.
+===========================
+
+   The classification functions are also generalized by the ISO C
+standard.  Instead of just allowing the two standard mappings, a locale
+can contain others.  Again, the `localedef' program already supports
+generating such locale data files.
+
+ - Data Type: wctrans_t
+     This data type is defined as a scalar type which can hold a value
+     representing the locale-dependent character mapping.  There is no
+     way to construct such a value apar from using the return value of
+     the `wctrans' function.
+
+     This type is defined in `wctype.h'.
+
+ - Function: wctrans_t wctrans (const char *PROPERTY)
+     The `wctrans' function has to be used to find out whether a named
+     mapping is defined in the current locale selected for the
+     `LC_CTYPE' category.  If the returned value is non-zero, you can
+     use it afterwards in calls to `towctrans'.  If the return value is
+     zero no such mapping is known in the current locale.
+
+     Beside locale-specific mappings there are two mappings which are
+     guaranteed to be available in every locale:
+
+     `"tolower"'                        `"toupper"'
+
+     These functions are declared in `wctype.h'.
+
+ - Function: wint_t towctrans (wint_t WC, wctrans_t DESC)
+     `towctrans' maps the input character WC according to the rules of
+     the mapping for which DESC is a descriptor, and returns the value
+     it finds.  DESC must be obtained by a successful call to `wctrans'.
+
+     This function is declared in `wctype.h'.
+
+   For the generally available mappings, the ISO C standard defines
+convenient shortcuts so that it is not necessary to call `wctrans' for
+them.
+
+ - Function: wint_t towlower (wint_t WC)
+     If WC is an upper-case letter, `towlower' returns the corresponding
+     lower-case letter.  If WC is not an upper-case letter, WC is
+     returned unchanged.
+
+     `towlower' can be implemented using
+
+          towctrans (wc, wctrans ("tolower"))
+
+     This function is declared in `wctype.h'.
+
+ - Function: wint_t towupper (wint_t WC)
+     If WC is a lower-case letter, `towupper' returns the corresponding
+     upper-case letter.  Otherwise WC is returned unchanged.
+
+     `towupper' can be implemented using
+
+          towctrans (wc, wctrans ("toupper"))
+
+     This function is declared in `wctype.h'.
+
+   The same warnings given in the last section for the use of the wide
+character classification functions apply here.  It is not possible to
+simply cast a `char' type value to a `wint_t' and use it as an argument
+to `towctrans' calls.
+
+
+File: libc.info,  Node: String and Array Utilities,  Next: Character Set Handling,  Prev: Character Handling,  Up: Top
+
+String and Array Utilities
+**************************
+
+   Operations on strings (or arrays of characters) are an important
+part of many programs.  The GNU C library provides an extensive set of
+string utility functions, including functions for copying,
+concatenating, comparing, and searching strings.  Many of these
+functions can also operate on arbitrary regions of storage; for
+example, the `memcpy' function can be used to copy the contents of any
+kind of array.
+
+   It's fairly common for beginning C programmers to "reinvent the
+wheel" by duplicating this functionality in their own code, but it pays
+to become familiar with the library functions and to make use of them,
+since this offers benefits in maintenance, efficiency, and portability.
+
+   For instance, you could easily compare one string to another in two
+lines of C code, but if you use the built-in `strcmp' function, you're
+less likely to make a mistake.  And, since these library functions are
+typically highly optimized, your program may run faster too.
+
+* Menu:
+
+* Representation of Strings::   Introduction to basic concepts.
+* String/Array Conventions::    Whether to use a string function or an
+				 arbitrary array function.
+* String Length::               Determining the length of a string.
+* Copying and Concatenation::   Functions to copy the contents of strings
+				 and arrays.
+* String/Array Comparison::     Functions for byte-wise and character-wise
+				 comparison.
+* Collation Functions::         Functions for collating strings.
+* Search Functions::            Searching for a specific element or substring.
+* Finding Tokens in a String::  Splitting a string into tokens by looking
+				 for delimiters.
+* strfry::                      Function for flash-cooking a string.
+* Trivial Encryption::          Obscuring data.
+* Encode Binary Data::          Encoding and Decoding of Binary Data.
+* Argz and Envz Vectors::       Null-separated string vectors.
+

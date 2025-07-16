@@ -1,0 +1,950 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Envz Functions,  Prev: Argz Functions,  Up: Argz and Envz Vectors
+
+Envz Functions
+--------------
+
+   Envz vectors are just argz vectors with additional constraints on
+the form of each element; as such, argz functions can also be used on
+them, where it makes sense.
+
+   Each element in an envz vector is a name-value pair, separated by a
+`'='' character; if multiple `'='' characters are present in an
+element, those after the first are considered part of the value, and
+treated like all other non-`'\0'' characters.
+
+   If _no_ `'='' characters are present in an element, that element is
+considered the name of a "null" entry, as distinct from an entry with an
+empty value: `envz_get' will return `0' if given the name of null
+entry, whereas an entry with an empty value would result in a value of
+`""'; `envz_entry' will still find such entries, however.  Null entries
+can be removed with `envz_strip' function.
+
+   As with argz functions, envz functions that may allocate memory (and
+thus fail) have a return type of `error_t', and return either `0' or
+`ENOMEM'.
+
+   These functions are declared in the standard include file `envz.h'.
+
+ - Function: char * envz_entry (const char *ENVZ, size_t ENVZ_LEN,
+          const char *NAME)
+     The `envz_entry' function finds the entry in ENVZ with the name
+     NAME, and returns a pointer to the whole entry--that is, the argz
+     element which begins with NAME followed by a `'='' character.  If
+     there is no entry with that name, `0' is returned.
+
+ - Function: char * envz_get (const char *ENVZ, size_t ENVZ_LEN, const
+          char *NAME)
+     The `envz_get' function finds the entry in ENVZ with the name NAME
+     (like `envz_entry'), and returns a pointer to the value portion of
+     that entry (following the `'='').  If there is no entry with that
+     name (or only a null entry), `0' is returned.
+
+ - Function: error_t envz_add (char **ENVZ, size_t *ENVZ_LEN, const
+          char *NAME, const char *VALUE)
+     The `envz_add' function adds an entry to `*ENVZ' (updating `*ENVZ'
+     and `*ENVZ_LEN') with the name NAME, and value VALUE.  If an entry
+     with the same name already exists in ENVZ, it is removed first.
+     If VALUE is `0', then the new entry will the special null type of
+     entry (mentioned above).
+
+ - Function: error_t envz_merge (char **ENVZ, size_t *ENVZ_LEN, const
+          char *ENVZ2, size_t ENVZ2_LEN, int OVERRIDE)
+     The `envz_merge' function adds each entry in ENVZ2 to ENVZ, as if
+     with `envz_add', updating `*ENVZ' and `*ENVZ_LEN'.  If OVERRIDE is
+     true, then values in ENVZ2 will supersede those with the same name
+     in ENVZ, otherwise not.
+
+     Null entries are treated just like other entries in this respect,
+     so a null entry in ENVZ can prevent an entry of the same name in
+     ENVZ2 from being added to ENVZ, if OVERRIDE is false.
+
+ - Function: void envz_strip (char **ENVZ, size_t *ENVZ_LEN)
+     The `envz_strip' function removes any null entries from ENVZ,
+     updating `*ENVZ' and `*ENVZ_LEN'.
+
+
+File: libc.info,  Node: Character Set Handling,  Next: Locales,  Prev: String and Array Utilities,  Up: Top
+
+Character Set Handling
+**********************
+
+   Character sets used in the early days of computing had only six,
+seven, or eight bits for each character: there was never a case where
+more than eight bits (one byte) were used to represent a single
+character.  The limitations of this approach became more apparent as
+more people grappled with non-Roman character sets, where not all the
+characters that make up a language's character set can be represented
+by 2^8 choices.  This chapter shows the functionality which was added
+to the C library to support multiple character sets.
+
+* Menu:
+
+* Extended Char Intro::              Introduction to Extended Characters.
+* Charset Function Overview::        Overview about Character Handling
+                                      Functions.
+* Restartable multibyte conversion:: Restartable multibyte conversion
+                                      Functions.
+* Non-reentrant Conversion::         Non-reentrant Conversion Function.
+* Generic Charset Conversion::       Generic Charset Conversion.
+
+
+File: libc.info,  Node: Extended Char Intro,  Next: Charset Function Overview,  Up: Character Set Handling
+
+Introduction to Extended Characters
+===================================
+
+   A variety of solutions to overcome the differences between character
+sets with a 1:1 relation between bytes and characters and character
+sets with ratios of 2:1 or 4:1 exist. The remainder of this section
+gives a few examples to help understand the design decisions made while
+developing the functionality of the C library.
+
+   A distinction we have to make right away is between internal and
+external representation.  "Internal representation" means the
+representation used by a program while keeping the text in memory.
+External representations are used when text is stored or transmitted
+through whatever communication channel.  Examples of external
+representations include files lying in a directory that are going to be
+read and parsed.
+
+   Traditionally there has been no difference between the two
+representations.  It was equally comfortable and useful to use the same
+single-byte representation internally and externally.  This changes
+with more and larger character sets.
+
+   One of the problems to overcome with the internal representation is
+handling text that is externally encoded using different character
+sets.  Assume a program which reads two texts and compares them using
+some metric.  The comparison can be usefully done only if the texts are
+internally kept in a common format.
+
+   For such a common format (= character set) eight bits are certainly
+no longer enough.  So the smallest entity will have to grow: "wide
+characters" will now be used.  Instead of one byte, two or four will be
+used instead.  (Three are not good to address in memory and more than
+four bytes seem not to be necessary).
+
+   As shown in some other part of this manual, there exists a
+completely new family of functions which can handle texts of this kind
+in memory.  The most commonly used character sets for such internal
+wide character representations are Unicode and ISO 10646 (also known as
+UCS for Universal Character Set). Unicode was originally planned as a
+16-bit character set, whereas ISO 10646 was designed to be a 31-bit
+large code space. The two standards are practically identical.  They
+have the same character repertoire and code table, but Unicode specifies
+added semantics.  At the moment, only characters in the first `0x10000'
+code positions (the so-called Basic Multilingual Plane, BMP) have been
+assigned, but the assignment of more specialized characters outside this
+16-bit space is already in progress. A number of encodings have been
+defined for Unicode and ISO 10646 characters: UCS-2 is a 16-bit word
+that can only represent characters from the BMP, UCS-4 is a 32-bit word
+than can represent any Unicode and ISO 10646 character, UTF-8 is an
+ASCII compatible encoding where ASCII characters are represented by
+ASCII bytes and non-ASCII characters by sequences of 2-6 non-ASCII
+bytes, and finally UTF-16 is an extension of UCS-2 in which pairs of
+certain UCS-2 words can be used to encode non-BMP characters up to
+`0x10ffff'.
+
+   To represent wide characters the `char' type is not suitable.  For
+this reason the ISO C standard introduces a new type which is designed
+to keep one character of a wide character string.  To maintain the
+similarity there is also a type corresponding to `int' for those
+functions which take a single wide character.
+
+ - Data type: wchar_t
+     This data type is used as the base type for wide character strings.
+     I.e., arrays of objects of this type are the equivalent of `char[]'
+     for multibyte character strings.  The type is defined in
+     `stddef.h'.
+
+     The ISO C90 standard, where this type was introduced, does not say
+     anything specific about the representation.  It only requires that
+     this type is capable of storing all elements of the basic
+     character set.  Therefore it would be legitimate to define
+     `wchar_t' as `char'.  This might make sense for embedded systems.
+
+     But for GNU systems this type is always 32 bits wide.  It is
+     therefore capable of representing all UCS-4 values and  therefore
+     covering all of ISO 10646.  Some Unix systems define `wchar_t' as
+     a 16-bit type and thereby follow Unicode very strictly.  This is
+     perfectly fine with the standard but it also means that to
+     represent all characters from Unicode and ISO 10646 one has to use
+     UTF-16 surrogate characters which is in fact a
+     multi-wide-character encoding.  But this contradicts the purpose
+     of the `wchar_t' type.
+
+ - Data type: wint_t
+     `wint_t' is a data type used for parameters and variables which
+     contain a single wide character.  As the name already suggests it
+     is the equivalent to `int' when using the normal `char' strings.
+     The types `wchar_t' and `wint_t' have often the same
+     representation if their size if 32 bits wide but if `wchar_t' is
+     defined as `char' the type `wint_t' must be defined as `int' due
+     to the parameter promotion.
+
+     This type is defined in `wchar.h' and got introduced in
+     Amendment 1 to ISO C90.
+
+   As there are for the `char' data type there also exist macros
+specifying the minimum and maximum value representable in an object of
+type `wchar_t'.
+
+ - Macro: wint_t WCHAR_MIN
+     The macro `WCHAR_MIN' evaluates to the minimum value representable
+     by an object of type `wint_t'.
+
+     This macro got introduced in Amendment 1 to ISO C90.
+
+ - Macro: wint_t WCHAR_MAX
+     The macro `WCHAR_MAX' evaluates to the maximum value representable
+     by an object of type `wint_t'.
+
+     This macro got introduced in Amendment 1 to ISO C90.
+
+   Another special wide character value is the equivalent to `EOF'.
+
+ - Macro: wint_t WEOF
+     The macro `WEOF' evaluates to a constant expression of type
+     `wint_t' whose value is different from any member of the extended
+     character set.
+
+     `WEOF' need not be the same value as `EOF' and unlike `EOF' it
+     also need _not_ be negative.  I.e., sloppy code like
+
+          {
+            int c;
+            ...
+            while ((c = getc (fp)) < 0)
+              ...
+          }
+
+     has to be rewritten to explicitly use `WEOF' when wide characters
+     are used.
+
+          {
+            wint_t c;
+            ...
+            while ((c = wgetc (fp)) != WEOF)
+              ...
+          }
+
+     This macro was introduced in Amendment 1 to ISO C90 and is defined
+     in `wchar.h'.
+
+   These internal representations present problems when it comes to
+storing and transmittal, since a single wide character consists of more
+than one byte they are effected by byte-ordering.  I.e., machines with
+different endianesses would see different value accessing the same data.
+This also applies for communication protocols which are all byte-based
+and therefore the sender has to decide about splitting the wide
+character in bytes.  A last (but not least important) point is that wide
+characters often require more storage space than an customized byte
+oriented character set.
+
+   For all the above reasons, an external encoding which is different
+from the internal encoding is often used if the latter is UCS-2 or
+UCS-4.  The external encoding is byte-based and can be chosen
+appropriately for the environment and for the texts to be handled.
+There exist a variety of different character sets which can be used for
+this external encoding. Information which will not be exhaustively
+presented here-instead, a description of the major groups will suffice.
+All of the ASCII-based character sets [_bkoz_: do you mean Roman
+character sets? If not, what do you mean here?]  fulfill one
+requirement: they are "filesystem safe".  This means that the character
+`'/'' is used in the encoding _only_ to represent itself.  Things are a
+bit different for character sets like EBCDIC (Extended Binary Coded
+Decimal Interchange Code, a character set family used by IBM) but if the
+operation system does not understand EBCDIC directly the parameters to
+system calls have to be converted first anyhow.
+
+   * The simplest character sets are single-byte character sets.  There
+     can be only up to 256 characters (for 8 bit character sets) which
+     is not sufficient to cover all languages but might be sufficient
+     to handle a specific text.  Another reason to choose this is
+     because of constraints from interaction with other programs (which
+     might not be 8-bit clean).
+
+   * The ISO 2022 standard defines a mechanism for extended character
+     sets where one character _can_ be represented by more than one
+     byte.  This is achieved by associating a state with the text.
+     Embedded in the text can be characters which can be used to change
+     the state.  Each byte in the text might have a different
+     interpretation in each state.  The state might even influence
+     whether a given byte stands for a character on its own or whether
+     it has to be combined with some more bytes.
+
+     In most uses of ISO 2022 the defined character sets do not allow
+     state changes which cover more than the next character.  This has
+     the big advantage that whenever one can identify the beginning of
+     the byte sequence of a character one can interpret a text
+     correctly.  Examples of character sets using this policy are the
+     various EUC character sets (used by Sun's operations systems,
+     EUC-JP, EUC-KR, EUC-TW, and EUC-CN) or SJIS (Shift-JIS, a Japanese
+     encoding).
+
+     But there are also character sets using a state which is valid for
+     more than one character and has to be changed by another byte
+     sequence.  Examples for this are ISO-2022-JP, ISO-2022-KR, and
+     ISO-2022-CN.
+
+   * Early attempts to fix 8 bit character sets for other languages
+     using the Roman alphabet lead to character sets like ISO 6937.
+     Here bytes representing characters like the acute accent do not
+     produce output themselves: one has to combine them with other
+     characters to get the desired result.  E.g., the byte sequence
+     `0xc2 0x61' (non-spacing acute accent, following by lower-case
+     `a') to get the "small a with acute" character.  To get the acute
+     accent character on its own, one has to write `0xc2 0x20' (the
+     non-spacing acute followed by a space).
+
+     This type of character set is used in some embedded systems such as
+     teletex.
+
+   * Instead of converting the Unicode or ISO 10646 text used
+     internally, it is often also sufficient to simply use an encoding
+     different than UCS-2/UCS-4.  The Unicode and ISO 10646 standards
+     even specify such an encoding: UTF-8.  This encoding is able to
+     represent all of ISO 10464 31 bits in a byte string of length one
+     to six.
+
+     There were a few other attempts to encode ISO 10646 such as UTF-7
+     but UTF-8 is today the only encoding which should be used.  In
+     fact, UTF-8 will hopefully soon be the only external encoding that
+     has to be supported.  It proves to be universally usable and the
+     only disadvantage is that it favors Roman languages by making the
+     byte string representation of other scripts (Cyrillic, Greek,
+     Asian scripts) longer than necessary if using a specific character
+     set for these scripts.  Methods like the Unicode compression
+     scheme can alleviate these problems.
+
+   The question remaining is: how to select the character set or
+encoding to use.  The answer: you cannot decide about it yourself, it
+is decided by the developers of the system or the majority of the
+users.  Since the goal is interoperability one has to use whatever the
+other people one works with use.  If there are no constraints the
+selection is based on the requirements the expected circle of users
+will have.  I.e., if a project is expected to only be used in, say,
+Russia it is fine to use KOI8-R or a similar character set.  But if at
+the same time people from, say, Greece are participating one should use
+a character set which allows all people to collaborate.
+
+   The most widely useful solution seems to be: go with the most general
+character set, namely ISO 10646.  Use UTF-8 as the external encoding
+and problems about users not being able to use their own language
+adequately are a thing of the past.
+
+   One final comment about the choice of the wide character
+representation is necessary at this point.  We have said above that the
+natural choice is using Unicode or ISO 10646.  This is not required,
+but at least encouraged, by the ISO C standard.  The standard defines
+at least a macro `__STDC_ISO_10646__' that is only defined on systems
+where the `wchar_t' type encodes ISO 10646 characters.  If this symbol
+is not defined one should as much as possible avoid making assumption
+about the wide character representation.  If the programmer uses only
+the functions provided by the C library to handle wide character
+strings there should not be any compatibility problems with other
+systems.
+
+
+File: libc.info,  Node: Charset Function Overview,  Next: Restartable multibyte conversion,  Prev: Extended Char Intro,  Up: Character Set Handling
+
+Overview about Character Handling Functions
+===========================================
+
+   A Unix C library contains three different sets of functions in two
+families to handle character set conversion.  The one function family
+is specified in the ISO C standard and therefore is portable even
+beyond the Unix world.
+
+   The most commonly known set of functions, coming from the ISO C90
+standard, is unfortunately the least useful one.  In fact, these
+functions should be avoided whenever possible, especially when
+developing libraries (as opposed to applications).
+
+   The second family of functions got introduced in the early Unix
+standards (XPG2) and is still part of the latest and greatest Unix
+standard: Unix 98.  It is also the most powerful and useful set of
+functions.  But we will start with the functions defined in Amendment 1
+to ISO C90.
+
+
+File: libc.info,  Node: Restartable multibyte conversion,  Next: Non-reentrant Conversion,  Prev: Charset Function Overview,  Up: Character Set Handling
+
+Restartable Multibyte Conversion Functions
+==========================================
+
+   The ISO C standard defines functions to convert strings from a
+multibyte representation to wide character strings.  There are a number
+of peculiarities:
+
+   * The character set assumed for the multibyte encoding is not
+     specified as an argument to the functions.  Instead the character
+     set specified by the `LC_CTYPE' category of the current locale is
+     used; see *Note Locale Categories::.
+
+   * The functions handling more than one character at a time require
+     NUL terminated strings as the argument.  I.e., converting blocks
+     of text does not work unless one can add a NUL byte at an
+     appropriate place.  The GNU C library contains some extensions the
+     standard which allow specifying a size but basically they also
+     expect terminated strings.
+
+   Despite these limitations the ISO C functions can very well be used
+in many contexts.  In graphical user interfaces, for instance, it is not
+uncommon to have functions which require text to be displayed in a wide
+character string if it is not simple ASCII.  The text itself might come
+from a file with translations and the user should decide about the
+current locale which determines the translation and therefore also the
+external encoding used.  In such a situation (and many others) the
+functions described here are perfect.  If more freedom while performing
+the conversion is necessary take a look at the `iconv' functions (*note
+Generic Charset Conversion::).
+
+* Menu:
+
+* Selecting the Conversion::     Selecting the conversion and its properties.
+* Keeping the state::            Representing the state of the conversion.
+* Converting a Character::       Converting Single Characters.
+* Converting Strings::           Converting Multibyte and Wide Character
+                                  Strings.
+* Multibyte Conversion Example:: A Complete Multibyte Conversion Example.
+
+
+File: libc.info,  Node: Selecting the Conversion,  Next: Keeping the state,  Up: Restartable multibyte conversion
+
+Selecting the conversion and its properties
+-------------------------------------------
+
+   We already said above that the currently selected locale for the
+`LC_CTYPE' category decides about the conversion which is performed by
+the functions we are about to describe.  Each locale uses its own
+character set (given as an argument to `localedef') and this is the one
+assumed as the external multibyte encoding.  The wide character
+character set always is UCS-4, at least on GNU systems.
+
+   A characteristic of each multibyte character set is the maximum
+number of bytes which can be necessary to represent one character.  This
+information is quite important when writing code which uses the
+conversion functions.  In the examples below we will see some examples.
+The ISO C standard defines two macros which provide this information.
+
+ - Macro: int MB_LEN_MAX
+     This macro specifies the maximum number of bytes in the multibyte
+     sequence for a single character in any of the supported locales.
+     It is a compile-time constant and it is defined in `limits.h'.
+
+ - Macro: int MB_CUR_MAX
+     `MB_CUR_MAX' expands into a positive integer expression that is the
+     maximum number of bytes in a multibyte character in the current
+     locale.  The value is never greater than `MB_LEN_MAX'.  Unlike
+     `MB_LEN_MAX' this macro need not be a compile-time constant and in
+     fact, in the GNU C library it is not.
+
+     `MB_CUR_MAX' is defined in `stdlib.h'.
+
+   Two different macros are necessary since strictly ISO C90 compilers
+do not allow variable length array definitions but still it is desirable
+to avoid dynamic allocation.  This incomplete piece of code shows the
+problem:
+
+     {
+       char buf[MB_LEN_MAX];
+       ssize_t len = 0;
+     
+       while (! feof (fp))
+         {
+           fread (&buf[len], 1, MB_CUR_MAX - len, fp);
+           /* ... process buf */
+           len -= used;
+         }
+     }
+
+   The code in the inner loop is expected to have always enough bytes in
+the array BUF to convert one multibyte character.  The array BUF has to
+be sized statically since many compilers do not allow a variable size.
+The `fread' call makes sure that always `MB_CUR_MAX' bytes are
+available in BUF.  Note that it isn't a problem if `MB_CUR_MAX' is not
+a compile-time constant.
+
+
+File: libc.info,  Node: Keeping the state,  Next: Converting a Character,  Prev: Selecting the Conversion,  Up: Restartable multibyte conversion
+
+Representing the state of the conversion
+----------------------------------------
+
+   In the introduction of this chapter it was said that certain
+character sets use a "stateful" encoding.  I.e., the encoded values
+depend in some way on the previous bytes in the text.
+
+   Since the conversion functions allow converting a text in more than
+one step we must have a way to pass this information from one call of
+the functions to another.
+
+ - Data type: mbstate_t
+     A variable of type `mbstate_t' can contain all the information
+     about the "shift state" needed from one call to a conversion
+     function to another.
+
+     This type is defined in `wchar.h'.  It got introduced in
+     Amendment 1 to ISO C90.
+
+   To use objects of this type the programmer has to define such objects
+(normally as local variables on the stack) and pass a pointer to the
+object to the conversion functions.  This way the conversion function
+can update the object if the current multibyte character set is
+stateful.
+
+   There is no specific function or initializer to put the state object
+in any specific state.  The rules are that the object should always
+represent the initial state before the first use and this is achieved by
+clearing the whole variable with code such as follows:
+
+     {
+       mbstate_t state;
+       memset (&state, '\0', sizeof (state));
+       /* from now on STATE can be used.  */
+       ...
+     }
+
+   When using the conversion functions to generate output it is often
+necessary to test whether the current state corresponds to the initial
+state.  This is necessary, for example, to decide whether or not to emit
+escape sequences to set the state to the initial state at certain
+sequence points.  Communication protocols often require this.
+
+ - Function: int mbsinit (const mbstate_t *PS)
+     This function determines whether the state object pointed to by PS
+     is in the initial state or not.  If PS is a null pointer or the
+     object is in the initial state the return value is nonzero.
+     Otherwise it is zero.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   Code using this function often looks similar to this:
+
+     {
+       mbstate_t state;
+       memset (&state, '\0', sizeof (state));
+       /* Use STATE.  */
+       ...
+       if (! mbsinit (&state))
+         {
+           /* Emit code to return to initial state.  */
+           const wchar_t empty[] = L"";
+           const wchar_t *srcp = empty;
+           wcsrtombs (outbuf, &srcp, outbuflen, &state);
+         }
+       ...
+     }
+
+   The code to emit the escape sequence to get back to the initial
+state is interesting.  The `wcsrtombs' function can be used to
+determine the necessary output code (*note Converting Strings::).
+Please note that on GNU systems it is not necessary to perform this
+extra action for the conversion from multibyte text to wide character
+text since the wide character encoding is not stateful.  But there is
+nothing mentioned in any standard which prohibits making `wchar_t'
+using a stateful encoding.
+
+
+File: libc.info,  Node: Converting a Character,  Next: Converting Strings,  Prev: Keeping the state,  Up: Restartable multibyte conversion
+
+Converting Single Characters
+----------------------------
+
+   The most fundamental of the conversion functions are those dealing
+with single characters.  Please note that this does not always mean
+single bytes.  But since there is very often a subset of the multibyte
+character set which consists of single byte sequences there are
+functions to help with converting bytes.  One very important and often
+applicable scenario is where ASCII is a subpart of the multibyte
+character set.  I.e., all ASCII characters stand for itself and all
+other characters have at least a first byte which is beyond the range 0
+to 127.
+
+ - Function: wint_t btowc (int C)
+     The `btowc' function ("byte to wide character") converts a valid
+     single byte character C in the initial shift state into the wide
+     character equivalent using the conversion rules from the currently
+     selected locale of the `LC_CTYPE' category.
+
+     If `(unsigned char) C' is no valid single byte multibyte character
+     or if C is `EOF' the function returns `WEOF'.
+
+     Please note the restriction of C being tested for validity only in
+     the initial shift state.  There is no `mbstate_t' object used from
+     which the state information is taken and the function also does
+     not use any static state.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   Despite the limitation that the single byte value always is
+interpreted in the initial state this function is actually useful most
+of the time.  Most characters are either entirely single-byte character
+sets or they are extension to ASCII.  But then it is possible to write
+code like this (not that this specific example is very useful):
+
+     wchar_t *
+     itow (unsigned long int val)
+     {
+       static wchar_t buf[30];
+       wchar_t *wcp = &buf[29];
+       *wcp = L'\0';
+       while (val != 0)
+         {
+           *--wcp = btowc ('0' + val % 10);
+           val /= 10;
+         }
+       if (wcp == &buf[29])
+         *--wcp = L'0';
+       return wcp;
+     }
+
+   Why is it necessary to use such a complicated implementation and not
+simply cast `'0' + val % 10' to a wide character?  The answer is that
+there is no guarantee that one can perform this kind of arithmetic on
+the character of the character set used for `wchar_t' representation.
+In other situations the bytes are not constant at compile time and so
+the compiler cannot do the work.  In situations like this it is
+necessary `btowc'.
+
+There also is a function for the conversion in the other direction.
+
+ - Function: int wctob (wint_t C)
+     The `wctob' function ("wide character to byte") takes as the
+     parameter a valid wide character.  If the multibyte representation
+     for this character in the initial state is exactly one byte long
+     the return value of this function is this character.  Otherwise
+     the return value is `EOF'.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   There are more general functions to convert single character from
+multibyte representation to wide characters and vice versa.  These
+functions pose no limit on the length of the multibyte representation
+and they also do not require it to be in the initial state.
+
+ - Function: size_t mbrtowc (wchar_t *restrict PWC, const char
+          *restrict S, size_t N, mbstate_t *restrict PS)
+     The `mbrtowc' function ("multibyte restartable to wide character")
+     converts the next multibyte character in the string pointed to by
+     S into a wide character and stores it in the wide character string
+     pointed to by PWC.  The conversion is performed according to the
+     locale currently selected for the `LC_CTYPE' category.  If the
+     conversion for the character set used in the locale requires a
+     state the multibyte string is interpreted in the state represented
+     by the object pointed to by PS.  If PS is a null pointer, a static,
+     internal state variable used only by the `mbrtowc' function is
+     used.
+
+     If the next multibyte character corresponds to the NUL wide
+     character the return value of the function is 0 and the state
+     object is afterwards in the initial state.  If the next N or fewer
+     bytes form a correct multibyte character the return value is the
+     number of bytes starting from S which form the multibyte
+     character.  The conversion state is updated according to the bytes
+     consumed in the conversion.  In both cases the wide character
+     (either the `L'\0'' or the one found in the conversion) is stored
+     in the string pointer to by PWC iff PWC is not null.
+
+     If the first N bytes of the multibyte string possibly form a valid
+     multibyte character but there are more than N bytes needed to
+     complete it the return value of the function is `(size_t) -2' and
+     no value is stored.  Please note that this can happen even if N
+     has a value greater or equal to `MB_CUR_MAX' since the input might
+     contain redundant shift sequences.
+
+     If the first `n' bytes of the multibyte string cannot possibly form
+     a valid multibyte character also no value is stored, the global
+     variable `errno' is set to the value `EILSEQ' and the function
+     returns `(size_t) -1'.  The conversion state is afterwards
+     undefined.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   Using this function is straight forward.  A function which copies a
+multibyte string into a wide character string while at the same time
+converting all lowercase character into uppercase could look like this
+(this is not the final version, just an example; it has no error
+checking, and leaks sometimes memory):
+
+     wchar_t *
+     mbstouwcs (const char *s)
+     {
+       size_t len = strlen (s);
+       wchar_t *result = malloc ((len + 1) * sizeof (wchar_t));
+       wchar_t *wcp = result;
+       wchar_t tmp[1];
+       mbstate_t state;
+       size_t nbytes;
+     
+       memset (&state, '\0', sizeof (state));
+       while ((nbytes = mbrtowc (tmp, s, len, &state)) > 0)
+         {
+           if (nbytes >= (size_t) -2)
+             /* Invalid input string.  */
+             return NULL;
+           *result++ = towupper (tmp[0]);
+           len -= nbytes;
+           s += nbytes;
+         }
+       return result;
+     }
+
+   The use of `mbrtowc' should be clear.  A single wide character is
+stored in `TMP[0]' and the number of consumed bytes is stored in the
+variable NBYTES.  In case the the conversion was successful the
+uppercase variant of the wide character is stored in the RESULT array
+and the pointer to the input string and the number of available bytes
+is adjusted.
+
+   The only non-obvious thing about the function might be the way
+memory is allocated for the result.  The above code uses the fact that
+there can never be more wide characters in the converted results than
+there are bytes in the multibyte input string.  This method yields to a
+pessimistic guess about the size of the result and if many wide
+character strings have to be constructed this way or the strings are
+long, the extra memory required allocated because the input string
+contains multibyte characters might be significant.  It would be
+possible to resize the allocated memory block to the correct size before
+returning it.  A better solution might be to allocate just the right
+amount of space for the result right away.  Unfortunately there is no
+function to compute the length of the wide character string directly
+from the multibyte string.  But there is a function which does part of
+the work.
+
+ - Function: size_t mbrlen (const char *restrict S, size_t N, mbstate_t
+          *PS)
+     The `mbrlen' function ("multibyte restartable length") computes
+     the number of at most N bytes starting at S which form the next
+     valid and complete multibyte character.
+
+     If the next multibyte character corresponds to the NUL wide
+     character the return value is 0.  If the next N bytes form a valid
+     multibyte character the number of bytes belonging to this multibyte
+     character byte sequence is returned.
+
+     If the the first N bytes possibly form a valid multibyte character
+     but it is incomplete the return value is `(size_t) -2'.  Otherwise
+     the multibyte character sequence is invalid and the return value
+     is `(size_t) -1'.
+
+     The multibyte sequence is interpreted in the state represented by
+     the object pointed to by PS.  If PS is a null pointer, a state
+     object local to `mbrlen' is used.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   The tentative reader now will of course note that `mbrlen' can be
+implemented as
+
+     mbrtowc (NULL, s, n, ps != NULL ? ps : &internal)
+
+   This is true and in fact is mentioned in the official specification.
+Now, how can this function be used to determine the length of the wide
+character string created from a multibyte character string?  It is not
+directly usable but we can define a function `mbslen' using it:
+
+     size_t
+     mbslen (const char *s)
+     {
+       mbstate_t state;
+       size_t result = 0;
+       size_t nbytes;
+       memset (&state, '\0', sizeof (state));
+       while ((nbytes = mbrlen (s, MB_LEN_MAX, &state)) > 0)
+         {
+           if (nbytes >= (size_t) -2)
+             /* Something is wrong.  */
+             return (size_t) -1;
+           s += nbytes;
+           ++result;
+         }
+       return result;
+     }
+
+   This function simply calls `mbrlen' for each multibyte character in
+the string and counts the number of function calls.  Please note that
+we here use `MB_LEN_MAX' as the size argument in the `mbrlen' call.
+This is OK since a) this value is larger then the length of the longest
+multibyte character sequence and b) because we know that the string S
+ends with a NUL byte which cannot be part of any other multibyte
+character sequence but the one representing the NUL wide character.
+Therefore the `mbrlen' function will never read invalid memory.
+
+   Now that this function is available (just to make this clear, this
+function is _not_ part of the GNU C library) we can compute the number
+of wide character required to store the converted multibyte character
+string S using
+
+     wcs_bytes = (mbslen (s) + 1) * sizeof (wchar_t);
+
+   Please note that the `mbslen' function is quite inefficient.  The
+implementation of `mbstouwcs' implemented using `mbslen' would have to
+perform the conversion of the multibyte character input string twice
+and this conversion might be quite expensive.  So it is necessary to
+think about the consequences of using the easier but imprecise method
+before doing the work twice.
+
+ - Function: size_t wcrtomb (char *restrict S, wchar_t WC, mbstate_t
+          *restrict PS)
+     The `wcrtomb' function ("wide character restartable to multibyte")
+     converts a single wide character into a multibyte string
+     corresponding to that wide character.
+
+     If S is a null pointer the function resets the the state stored in
+     the objects pointer to by PS (or the internal `mbstate_t' object)
+     to the initial state.  This can also be achieved by a call like
+     this:
+
+          wcrtombs (temp_buf, L'\0', ps)
+
+     since if S is a null pointer `wcrtomb' performs as if it writes
+     into an internal buffer which is guaranteed to be large enough.
+
+     If WC is the NUL wide character `wcrtomb' emits, if necessary, a
+     shift sequence to get the state PS into the initial state followed
+     by a single NUL byte is stored in the string S.
+
+     Otherwise a byte sequence (possibly including shift sequences) is
+     written into the string S.  This of only happens if WC is a valid
+     wide character, i.e., it has a multibyte representation in the
+     character set selected by locale of the `LC_CTYPE' category.  If
+     WC is no valid wide character nothing is stored in the strings S,
+     `errno' is set to `EILSEQ', the conversion state in PS is
+     undefined and the return value is `(size_t) -1'.
+
+     If no error occurred the function returns the number of bytes
+     stored in the string S.  This includes all byte representing shift
+     sequences.
+
+     One word about the interface of the function: there is no parameter
+     specifying the length of the array S.  Instead the function
+     assumes that there are at least `MB_CUR_MAX' bytes available since
+     this is the maximum length of any byte sequence representing a
+     single character.  So the caller has to make sure that there is
+     enough space available, otherwise buffer overruns can occur.
+
+     This function was introduced in Amendment 1 to ISO C90 and is
+     declared in `wchar.h'.
+
+   Using this function is as easy as using `mbrtowc'.  The following
+example appends a wide character string to a multibyte character string.
+Again, the code is not really useful (and correct), it is simply here to
+demonstrate the use and some problems.
+
+     char *
+     mbscatwcs (char *s, size_t len, const wchar_t *ws)
+     {
+       mbstate_t state;
+       /* Find the end of the existing string.  */
+       char *wp = strchr (s, '\0');
+       len -= wp - s;
+       memset (&state, '\0', sizeof (state));
+       do
+         {
+           size_t nbytes;
+           if (len < MB_CUR_LEN)
+             {
+               /* We cannot guarantee that the next
+                  character fits into the buffer, so
+                  return an error.  */
+               errno = E2BIG;
+               return NULL;
+             }
+           nbytes = wcrtomb (wp, *ws, &state);
+           if (nbytes == (size_t) -1)
+             /* Error in the conversion.  */
+             return NULL;
+           len -= nbytes;
+           wp += nbytes;
+         }
+       while (*ws++ != L'\0');
+       return s;
+     }
+
+   First the function has to find the end of the string currently in the
+array S.  The `strchr' call does this very efficiently since a
+requirement for multibyte character representations is that the NUL byte
+never is used except to represent itself (and in this context, the end
+of the string).
+
+   After initializing the state object the loop is entered where the
+first task is to make sure there is enough room in the array S.  We
+abort if there are not at least `MB_CUR_LEN' bytes available.  This is
+not always optimal but we have no other choice.  We might have less
+than `MB_CUR_LEN' bytes available but the next multibyte character
+might also be only one byte long.  At the time the `wcrtomb' call
+returns it is too late to decide whether the buffer was large enough or
+not.  If this solution is really unsuitable there is a very slow but
+more accurate solution.
+
+       ...
+       if (len < MB_CUR_LEN)
+         {
+           mbstate_t temp_state;
+           memcpy (&temp_state, &state, sizeof (state));
+           if (wcrtomb (NULL, *ws, &temp_state) > len)
+             {
+               /* We cannot guarantee that the next
+                  character fits into the buffer, so
+                  return an error.  */
+               errno = E2BIG;
+               return NULL;
+             }
+         }
+       ...
+
+   Here we do perform the conversion which might overflow the buffer so
+that we are afterwards in the position to make an exact decision about
+the buffer size.  Please note the `NULL' argument for the destination
+buffer in the new `wcrtomb' call; since we are not interested in the
+converted text at this point this is a nice way to express this.  The
+most unusual thing about this piece of code certainly is the
+duplication of the conversion state object.  But think about this: if a
+change of the state is necessary to emit the next multibyte character
+we want to have the same shift state change performed in the real
+conversion.  Therefore we have to preserve the initial shift state
+information.
+
+   There are certainly many more and even better solutions to this
+problem.  This example is only meant for educational purposes.
+

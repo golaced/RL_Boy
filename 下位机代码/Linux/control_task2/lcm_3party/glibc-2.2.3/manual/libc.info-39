@@ -1,0 +1,1249 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Remembering a Signal,  Prev: Checking for Pending Signals,  Up: Blocking Signals
+
+Remembering a Signal to Act On Later
+------------------------------------
+
+   Instead of blocking a signal using the library facilities, you can
+get almost the same results by making the handler set a flag to be
+tested later, when you "unblock".  Here is an example:
+
+     /* If this flag is nonzero, don't handle the signal right away. */
+     volatile sig_atomic_t signal_pending;
+     
+     /* This is nonzero if a signal arrived and was not handled. */
+     volatile sig_atomic_t defer_signal;
+     
+     void
+     handler (int signum)
+     {
+       if (defer_signal)
+         signal_pending = signum;
+       else
+         ... /* "Really" handle the signal. */
+     }
+     
+     ...
+     
+     void
+     update_mumble (int frob)
+     {
+       /* Prevent signals from having immediate effect. */
+       defer_signal++;
+       /* Now update `mumble', without worrying about interruption. */
+       mumble.a = 1;
+       mumble.b = hack ();
+       mumble.c = frob;
+       /* We have updated `mumble'.  Handle any signal that came in. */
+       defer_signal--;
+       if (defer_signal == 0 && signal_pending != 0)
+         raise (signal_pending);
+     }
+
+   Note how the particular signal that arrives is stored in
+`signal_pending'.  That way, we can handle several types of
+inconvenient signals with the same mechanism.
+
+   We increment and decrement `defer_signal' so that nested critical
+sections will work properly; thus, if `update_mumble' were called with
+`signal_pending' already nonzero, signals would be deferred not only
+within `update_mumble', but also within the caller.  This is also why
+we do not check `signal_pending' if `defer_signal' is still nonzero.
+
+   The incrementing and decrementing of `defer_signal' each require more
+than one instruction; it is possible for a signal to happen in the
+middle.  But that does not cause any problem.  If the signal happens
+early enough to see the value from before the increment or decrement,
+that is equivalent to a signal which came before the beginning of the
+increment or decrement, which is a case that works properly.
+
+   It is absolutely vital to decrement `defer_signal' before testing
+`signal_pending', because this avoids a subtle bug.  If we did these
+things in the other order, like this,
+
+       if (defer_signal == 1 && signal_pending != 0)
+         raise (signal_pending);
+       defer_signal--;
+
+then a signal arriving in between the `if' statement and the decrement
+would be effectively "lost" for an indefinite amount of time.  The
+handler would merely set `defer_signal', but the program having already
+tested this variable, it would not test the variable again.
+
+   Bugs like these are called "timing errors".  They are especially bad
+because they happen only rarely and are nearly impossible to reproduce.
+You can't expect to find them with a debugger as you would find a
+reproducible bug.  So it is worth being especially careful to avoid
+them.
+
+   (You would not be tempted to write the code in this order, given the
+use of `defer_signal' as a counter which must be tested along with
+`signal_pending'.  After all, testing for zero is cleaner than testing
+for one.  But if you did not use `defer_signal' as a counter, and gave
+it values of zero and one only, then either order might seem equally
+simple.  This is a further advantage of using a counter for
+`defer_signal': it will reduce the chance you will write the code in
+the wrong order and create a subtle bug.)
+
+
+File: libc.info,  Node: Waiting for a Signal,  Next: Signal Stack,  Prev: Blocking Signals,  Up: Signal Handling
+
+Waiting for a Signal
+====================
+
+   If your program is driven by external events, or uses signals for
+synchronization, then when it has nothing to do it should probably wait
+until a signal arrives.
+
+* Menu:
+
+* Using Pause::                 The simple way, using `pause'.
+* Pause Problems::              Why the simple way is often not very good.
+* Sigsuspend::                  Reliably waiting for a specific signal.
+
+
+File: libc.info,  Node: Using Pause,  Next: Pause Problems,  Up: Waiting for a Signal
+
+Using `pause'
+-------------
+
+   The simple way to wait until a signal arrives is to call `pause'.
+Please read about its disadvantages, in the following section, before
+you use it.
+
+ - Function: int pause ()
+     The `pause' function suspends program execution until a signal
+     arrives whose action is either to execute a handler function, or to
+     terminate the process.
+
+     If the signal causes a handler function to be executed, then
+     `pause' returns.  This is considered an unsuccessful return (since
+     "successful" behavior would be to suspend the program forever), so
+     the return value is `-1'.  Even if you specify that other
+     primitives should resume when a system handler returns (*note
+     Interrupted Primitives::), this has no effect on `pause'; it
+     always fails when a signal is handled.
+
+     The following `errno' error conditions are defined for this
+     function:
+
+    `EINTR'
+          The function was interrupted by delivery of a signal.
+
+     If the signal causes program termination, `pause' doesn't return
+     (obviously).
+
+     This function is a cancellation point in multithreaded programs.
+     This is a problem if the thread allocates some resources (like
+     memory, file descriptors, semaphores or whatever) at the time
+     `pause' is called.  If the thread gets cancelled these resources
+     stay allocated until the program ends.  To avoid this calls to
+     `pause' should be protected using cancellation handlers.
+
+     The `pause' function is declared in  `unistd.h'.
+
+
+File: libc.info,  Node: Pause Problems,  Next: Sigsuspend,  Prev: Using Pause,  Up: Waiting for a Signal
+
+Problems with `pause'
+---------------------
+
+   The simplicity of `pause' can conceal serious timing errors that can
+make a program hang mysteriously.
+
+   It is safe to use `pause' if the real work of your program is done
+by the signal handlers themselves, and the "main program" does nothing
+but call `pause'.  Each time a signal is delivered, the handler will do
+the next batch of work that is to be done, and then return, so that the
+main loop of the program can call `pause' again.
+
+   You can't safely use `pause' to wait until one more signal arrives,
+and then resume real work.  Even if you arrange for the signal handler
+to cooperate by setting a flag, you still can't use `pause' reliably.
+Here is an example of this problem:
+
+     /* `usr_interrupt' is set by the signal handler.  */
+     if (!usr_interrupt)
+       pause ();
+     
+     /* Do work once the signal arrives.  */
+     ...
+
+This has a bug: the signal could arrive after the variable
+`usr_interrupt' is checked, but before the call to `pause'.  If no
+further signals arrive, the process would never wake up again.
+
+   You can put an upper limit on the excess waiting by using `sleep' in
+a loop, instead of using `pause'.  (*Note Sleeping::, for more about
+`sleep'.)  Here is what this looks like:
+
+     /* `usr_interrupt' is set by the signal handler.
+     while (!usr_interrupt)
+       sleep (1);
+     
+     /* Do work once the signal arrives.  */
+     ...
+
+   For some purposes, that is good enough.  But with a little more
+complexity, you can wait reliably until a particular signal handler is
+run, using `sigsuspend'.  *Note Sigsuspend::.
+
+
+File: libc.info,  Node: Sigsuspend,  Prev: Pause Problems,  Up: Waiting for a Signal
+
+Using `sigsuspend'
+------------------
+
+   The clean and reliable way to wait for a signal to arrive is to
+block it and then use `sigsuspend'.  By using `sigsuspend' in a loop,
+you can wait for certain kinds of signals, while letting other kinds of
+signals be handled by their handlers.
+
+ - Function: int sigsuspend (const sigset_t *SET)
+     This function replaces the process's signal mask with SET and then
+     suspends the process until a signal is delivered whose action is
+     either to terminate the process or invoke a signal handling
+     function.  In other words, the program is effectively suspended
+     until one of the signals that is not a member of SET arrives.
+
+     If the process is woken up by delivery of a signal that invokes a
+     handler function, and the handler function returns, then
+     `sigsuspend' also returns.
+
+     The mask remains SET only as long as `sigsuspend' is waiting.  The
+     function `sigsuspend' always restores the previous signal mask
+     when it returns.
+
+     The return value and error conditions are the same as for `pause'.
+
+   With `sigsuspend', you can replace the `pause' or `sleep' loop in
+the previous section with something completely reliable:
+
+     sigset_t mask, oldmask;
+     
+     ...
+     
+     /* Set up the mask of signals to temporarily block. */
+     sigemptyset (&mask);
+     sigaddset (&mask, SIGUSR1);
+     
+     ...
+     
+     /* Wait for a signal to arrive. */
+     sigprocmask (SIG_BLOCK, &mask, &oldmask);
+     while (!usr_interrupt)
+       sigsuspend (&oldmask);
+     sigprocmask (SIG_UNBLOCK, &mask, NULL);
+
+   This last piece of code is a little tricky.  The key point to
+remember here is that when `sigsuspend' returns, it resets the process's
+signal mask to the original value, the value from before the call to
+`sigsuspend'--in this case, the `SIGUSR1' signal is once again blocked.
+The second call to `sigprocmask' is necessary to explicitly unblock
+this signal.
+
+   One other point: you may be wondering why the `while' loop is
+necessary at all, since the program is apparently only waiting for one
+`SIGUSR1' signal.  The answer is that the mask passed to `sigsuspend'
+permits the process to be woken up by the delivery of other kinds of
+signals, as well--for example, job control signals.  If the process is
+woken up by a signal that doesn't set `usr_interrupt', it just suspends
+itself again until the "right" kind of signal eventually arrives.
+
+   This technique takes a few more lines of preparation, but that is
+needed just once for each kind of wait criterion you want to use.  The
+code that actually waits is just four lines.
+
+
+File: libc.info,  Node: Signal Stack,  Next: BSD Signal Handling,  Prev: Waiting for a Signal,  Up: Signal Handling
+
+Using a Separate Signal Stack
+=============================
+
+   A signal stack is a special area of memory to be used as the
+execution stack during signal handlers.  It should be fairly large, to
+avoid any danger that it will overflow in turn; the macro `SIGSTKSZ' is
+defined to a canonical size for signal stacks.  You can use `malloc' to
+allocate the space for the stack.  Then call `sigaltstack' or
+`sigstack' to tell the system to use that space for the signal stack.
+
+   You don't need to write signal handlers differently in order to use a
+signal stack.  Switching from one stack to the other happens
+automatically.  (Some non-GNU debuggers on some machines may get
+confused if you examine a stack trace while a handler that uses the
+signal stack is running.)
+
+   There are two interfaces for telling the system to use a separate
+signal stack.  `sigstack' is the older interface, which comes from 4.2
+BSD.  `sigaltstack' is the newer interface, and comes from 4.4 BSD.
+The `sigaltstack' interface has the advantage that it does not require
+your program to know which direction the stack grows, which depends on
+the specific machine and operating system.
+
+ - Data Type: stack_t
+     This structure describes a signal stack.  It contains the
+     following members:
+
+    `void *ss_sp'
+          This points to the base of the signal stack.
+
+    `size_t ss_size'
+          This is the size (in bytes) of the signal stack which `ss_sp'
+          points to.  You should set this to however much space you
+          allocated for the stack.
+
+          There are two macros defined in `signal.h' that you should
+          use in calculating this size:
+
+         `SIGSTKSZ'
+               This is the canonical size for a signal stack.  It is
+               judged to be sufficient for normal uses.
+
+         `MINSIGSTKSZ'
+               This is the amount of signal stack space the operating
+               system needs just to implement signal delivery.  The
+               size of a signal stack *must* be greater than this.
+
+               For most cases, just using `SIGSTKSZ' for `ss_size' is
+               sufficient.  But if you know how much stack space your
+               program's signal handlers will need, you may want to use
+               a different size.  In this case, you should allocate
+               `MINSIGSTKSZ' additional bytes for the signal stack and
+               increase `ss_size' accordingly.
+
+    `int ss_flags'
+          This field contains the bitwise OR of these flags:
+
+         `SS_DISABLE'
+               This tells the system that it should not use the signal
+               stack.
+
+         `SS_ONSTACK'
+               This is set by the system, and indicates that the signal
+               stack is currently in use.  If this bit is not set, then
+               signals will be delivered on the normal user stack.
+
+ - Function: int sigaltstack (const stack_t *restrict STACK, stack_t
+          *restrict OLDSTACK)
+     The `sigaltstack' function specifies an alternate stack for use
+     during signal handling.  When a signal is received by the process
+     and its action indicates that the signal stack is used, the system
+     arranges a switch to the currently installed signal stack while
+     the handler for that signal is executed.
+
+     If OLDSTACK is not a null pointer, information about the currently
+     installed signal stack is returned in the location it points to.
+     If STACK is not a null pointer, then this is installed as the new
+     stack for use by signal handlers.
+
+     The return value is `0' on success and `-1' on failure.  If
+     `sigaltstack' fails, it sets `errno' to one of these values:
+
+    `EINVAL'
+          You tried to disable a stack that was in fact currently in
+          use.
+
+    `ENOMEM'
+          The size of the alternate stack was too small.  It must be
+          greater than `MINSIGSTKSZ'.
+
+   Here is the older `sigstack' interface.  You should use
+`sigaltstack' instead on systems that have it.
+
+ - Data Type: struct sigstack
+     This structure describes a signal stack.  It contains the
+     following members:
+
+    `void *ss_sp'
+          This is the stack pointer.  If the stack grows downwards on
+          your machine, this should point to the top of the area you
+          allocated.  If the stack grows upwards, it should point to
+          the bottom.
+
+    `int ss_onstack'
+          This field is true if the process is currently using this
+          stack.
+
+ - Function: int sigstack (const struct sigstack *STACK, struct
+          sigstack *OLDSTACK)
+     The `sigstack' function specifies an alternate stack for use during
+     signal handling.  When a signal is received by the process and its
+     action indicates that the signal stack is used, the system
+     arranges a switch to the currently installed signal stack while
+     the handler for that signal is executed.
+
+     If OLDSTACK is not a null pointer, information about the currently
+     installed signal stack is returned in the location it points to.
+     If STACK is not a null pointer, then this is installed as the new
+     stack for use by signal handlers.
+
+     The return value is `0' on success and `-1' on failure.
+
+
+File: libc.info,  Node: BSD Signal Handling,  Prev: Signal Stack,  Up: Signal Handling
+
+BSD Signal Handling
+===================
+
+   This section describes alternative signal handling functions derived
+from BSD Unix.  These facilities were an advance, in their time; today,
+they are mostly obsolete, and supported mainly for compatibility with
+BSD Unix.
+
+   There are many similarities between the BSD and POSIX signal handling
+facilities, because the POSIX facilities were inspired by the BSD
+facilities.  Besides having different names for all the functions to
+avoid conflicts, the main differences between the two are:
+
+   * BSD Unix represents signal masks as an `int' bit mask, rather than
+     as a `sigset_t' object.
+
+   * The BSD facilities use a different default for whether an
+     interrupted primitive should fail or resume.  The POSIX facilities
+     make system calls fail unless you specify that they should resume.
+     With the BSD facility, the default is to make system calls resume
+     unless you say they should fail.  *Note Interrupted Primitives::.
+
+   The BSD facilities are declared in `signal.h'.
+
+* Menu:
+
+* BSD Handler::                 BSD Function to Establish a Handler.
+* Blocking in BSD::             BSD Functions for Blocking Signals.
+
+
+File: libc.info,  Node: BSD Handler,  Next: Blocking in BSD,  Up: BSD Signal Handling
+
+BSD Function to Establish a Handler
+-----------------------------------
+
+ - Data Type: struct sigvec
+     This data type is the BSD equivalent of `struct sigaction' (*note
+     Advanced Signal Handling::); it is used to specify signal actions
+     to the `sigvec' function.  It contains the following members:
+
+    `sighandler_t sv_handler'
+          This is the handler function.
+
+    `int sv_mask'
+          This is the mask of additional signals to be blocked while
+          the handler function is being called.
+
+    `int sv_flags'
+          This is a bit mask used to specify various flags which affect
+          the behavior of the signal.  You can also refer to this field
+          as `sv_onstack'.
+
+   These symbolic constants can be used to provide values for the
+`sv_flags' field of a `sigvec' structure.  This field is a bit mask
+value, so you bitwise-OR the flags of interest to you together.
+
+ - Macro: int SV_ONSTACK
+     If this bit is set in the `sv_flags' field of a `sigvec'
+     structure, it means to use the signal stack when delivering the
+     signal.
+
+ - Macro: int SV_INTERRUPT
+     If this bit is set in the `sv_flags' field of a `sigvec'
+     structure, it means that system calls interrupted by this kind of
+     signal should not be restarted if the handler returns; instead,
+     the system calls should return with a `EINTR' error status.  *Note
+     Interrupted Primitives::.
+
+ - Macro: int SV_RESETHAND
+     If this bit is set in the `sv_flags' field of a `sigvec'
+     structure, it means to reset the action for the signal back to
+     `SIG_DFL' when the signal is received.
+
+ - Function: int sigvec (int SIGNUM, const struct sigvec *ACTION,struct
+          sigvec *OLD-ACTION)
+     This function is the equivalent of `sigaction' (*note Advanced
+     Signal Handling::); it installs the action ACTION for the signal
+     SIGNUM, returning information about the previous action in effect
+     for that signal in OLD-ACTION.
+
+ - Function: int siginterrupt (int SIGNUM, int FAILFLAG)
+     This function specifies which approach to use when certain
+     primitives are interrupted by handling signal SIGNUM.  If FAILFLAG
+     is false, signal SIGNUM restarts primitives.  If FAILFLAG is true,
+     handling SIGNUM causes these primitives to fail with error code
+     `EINTR'.  *Note Interrupted Primitives::.
+
+
+File: libc.info,  Node: Blocking in BSD,  Prev: BSD Handler,  Up: BSD Signal Handling
+
+BSD Functions for Blocking Signals
+----------------------------------
+
+ - Macro: int sigmask (int SIGNUM)
+     This macro returns a signal mask that has the bit for signal SIGNUM
+     set.  You can bitwise-OR the results of several calls to `sigmask'
+     together to specify more than one signal.  For example,
+
+          (sigmask (SIGTSTP) | sigmask (SIGSTOP)
+           | sigmask (SIGTTIN) | sigmask (SIGTTOU))
+
+     specifies a mask that includes all the job-control stop signals.
+
+ - Function: int sigblock (int MASK)
+     This function is equivalent to `sigprocmask' (*note Process Signal
+     Mask::) with a HOW argument of `SIG_BLOCK': it adds the signals
+     specified by MASK to the calling process's set of blocked signals.
+     The return value is the previous set of blocked signals.
+
+ - Function: int sigsetmask (int MASK)
+     This function equivalent to `sigprocmask' (*note Process Signal
+     Mask::) with a HOW argument of `SIG_SETMASK': it sets the calling
+     process's signal mask to MASK.  The return value is the previous
+     set of blocked signals.
+
+ - Function: int sigpause (int MASK)
+     This function is the equivalent of `sigsuspend' (*note Waiting for
+     a Signal::):  it sets the calling process's signal mask to MASK,
+     and waits for a signal to arrive.  On return the previous set of
+     blocked signals is restored.
+
+
+File: libc.info,  Node: Program Basics,  Next: Processes,  Prev: Signal Handling,  Up: Top
+
+The Basic Program/System Interface
+**********************************
+
+   "Processes" are the primitive units for allocation of system
+resources.  Each process has its own address space and (usually) one
+thread of control.  A process executes a program; you can have multiple
+processes executing the same program, but each process has its own copy
+of the program within its own address space and executes it
+independently of the other copies.  Though it may have multiple threads
+of control within the same program and a program may be composed of
+multiple logically separate modules, a process always executes exactly
+one program.
+
+   Note that we are using a specific definition of "program" for the
+purposes of this manual, which corresponds to a common definition in the
+context of Unix system.  In popular usage, "program" enjoys a much
+broader definition; it can refer for example to a system's kernel, an
+editor macro, a complex package of software, or a discrete section of
+code executing within a process.
+
+   Writing the program is what this manual is all about.  This chapter
+explains the most basic interface between your program and the system
+that runs, or calls, it.  This includes passing of parameters (arguments
+and environment) from the system, requesting basic services from the
+system, and telling the system the program is done.
+
+   A program starts another program with the `exec' family of system
+calls.  This chapter looks at program startup from the execee's point
+of view.  To see the event from the execor's point of view, *Note
+Executing a File::.
+
+* Menu:
+
+* Program Arguments::           Parsing your program's command-line arguments.
+* Environment Variables::       Less direct parameters affecting your program
+* System Calls::                Requesting service from the system
+* Program Termination::         Telling the system you're done; return status
+
+
+File: libc.info,  Node: Program Arguments,  Next: Environment Variables,  Up: Program Basics
+
+Program Arguments
+=================
+
+   The system starts a C program by calling the function `main'.  It is
+up to you to write a function named `main'--otherwise, you won't even
+be able to link your program without errors.
+
+   In ISO C you can define `main' either to take no arguments, or to
+take two arguments that represent the command line arguments to the
+program, like this:
+
+     int main (int ARGC, char *ARGV[])
+
+   The command line arguments are the whitespace-separated tokens given
+in the shell command used to invoke the program; thus, in `cat foo
+bar', the arguments are `foo' and `bar'.  The only way a program can
+look at its command line arguments is via the arguments of `main'.  If
+`main' doesn't take arguments, then you cannot get at the command line.
+
+   The value of the ARGC argument is the number of command line
+arguments.  The ARGV argument is a vector of C strings; its elements
+are the individual command line argument strings.  The file name of the
+program being run is also included in the vector as the first element;
+the value of ARGC counts this element.  A null pointer always follows
+the last element: `ARGV[ARGC]' is this null pointer.
+
+   For the command `cat foo bar', ARGC is 3 and ARGV has three
+elements, `"cat"', `"foo"' and `"bar"'.
+
+   In Unix systems you can define `main' a third way, using three
+arguments:
+
+     int main (int ARGC, char *ARGV[], char *ENVP[])
+
+   The first two arguments are just the same.  The third argument ENVP
+gives the program's environment; it is the same as the value of
+`environ'.  *Note Environment Variables::.  POSIX.1 does not allow this
+three-argument form, so to be portable it is best to write `main' to
+take two arguments, and use the value of `environ'.
+
+* Menu:
+
+* Argument Syntax::             By convention, options start with a hyphen.
+* Parsing Program Arguments::   Ways to parse program options and arguments.
+
+
+File: libc.info,  Node: Argument Syntax,  Next: Parsing Program Arguments,  Up: Program Arguments
+
+Program Argument Syntax Conventions
+-----------------------------------
+
+   POSIX recommends these conventions for command line arguments.
+`getopt' (*note Getopt::) and `argp_parse' (*note Argp::) make it easy
+to implement them.
+
+   * Arguments are options if they begin with a hyphen delimiter (`-').
+
+   * Multiple options may follow a hyphen delimiter in a single token if
+     the options do not take arguments.  Thus, `-abc' is equivalent to
+     `-a -b -c'.
+
+   * Option names are single alphanumeric characters (as for `isalnum';
+     *note Classification of Characters::).
+
+   * Certain options require an argument.  For example, the `-o' command
+     of the `ld' command requires an argument--an output file name.
+
+   * An option and its argument may or may not appear as separate
+     tokens.  (In other words, the whitespace separating them is
+     optional.)  Thus, `-o foo' and `-ofoo' are equivalent.
+
+   * Options typically precede other non-option arguments.
+
+     The implementations of `getopt' and `argp_parse' in the GNU C
+     library normally make it appear as if all the option arguments were
+     specified before all the non-option arguments for the purposes of
+     parsing, even if the user of your program intermixed option and
+     non-option arguments.  They do this by reordering the elements of
+     the ARGV array.  This behavior is nonstandard; if you want to
+     suppress it, define the `_POSIX_OPTION_ORDER' environment variable.
+     *Note Standard Environment::.
+
+   * The argument `--' terminates all options; any following arguments
+     are treated as non-option arguments, even if they begin with a
+     hyphen.
+
+   * A token consisting of a single hyphen character is interpreted as
+     an ordinary non-option argument.  By convention, it is used to
+     specify input from or output to the standard input and output
+     streams.
+
+   * Options may be supplied in any order, or appear multiple times.
+     The interpretation is left up to the particular application
+     program.
+
+   GNU adds "long options" to these conventions.  Long options consist
+of `--' followed by a name made of alphanumeric characters and dashes.
+Option names are typically one to three words long, with hyphens to
+separate words.  Users can abbreviate the option names as long as the
+abbreviations are unique.
+
+   To specify an argument for a long option, write `--NAME=VALUE'.
+This syntax enables a long option to accept an argument that is itself
+optional.
+
+   Eventually, the GNU system will provide completion for long option
+names in the shell.
+
+
+File: libc.info,  Node: Parsing Program Arguments,  Prev: Argument Syntax,  Up: Program Arguments
+
+Parsing Program Arguments
+-------------------------
+
+   If the syntax for the command line arguments to your program is
+simple enough, you can simply pick the arguments off from ARGV by hand.
+But unless your program takes a fixed number of arguments, or all of the
+arguments are interpreted in the same way (as file names, for example),
+you are usually better off using `getopt' (*note Getopt::) or
+`argp_parse' (*note Argp::) to do the parsing.
+
+   `getopt' is more standard (the short-option only version of it is a
+part of the POSIX standard), but using `argp_parse' is often easier,
+both for very simple and very complex option structures, because it
+does more of the dirty work for you.
+
+* Menu:
+
+* Getopt::                      Parsing program options using `getopt'.
+* Argp::                        Parsing program options using `argp_parse'.
+* Suboptions::                  Some programs need more detailed options.
+* Suboptions Example::          This shows how it could be done for `mount'.
+
+
+File: libc.info,  Node: Getopt,  Next: Argp,  Up: Parsing Program Arguments
+
+Parsing program options using `getopt'
+======================================
+
+   The `getopt' and `getopt_long' functions automate some of the chore
+involved in parsing typical unix command line options.
+
+* Menu:
+
+* Using Getopt::                Using the `getopt' function.
+* Example of Getopt::           An example of parsing options with `getopt'.
+* Getopt Long Options::         GNU suggests utilities accept long-named
+                                 options; here is one way to do.
+* Getopt Long Option Example::  An example of using `getopt_long'.
+
+
+File: libc.info,  Node: Using Getopt,  Next: Example of Getopt,  Up: Getopt
+
+Using the `getopt' function
+---------------------------
+
+   Here are the details about how to call the `getopt' function.  To
+use this facility, your program must include the header file `unistd.h'.
+
+ - Variable: int opterr
+     If the value of this variable is nonzero, then `getopt' prints an
+     error message to the standard error stream if it encounters an
+     unknown option character or an option with a missing required
+     argument.  This is the default behavior.  If you set this variable
+     to zero, `getopt' does not print any messages, but it still
+     returns the character `?' to indicate an error.
+
+ - Variable: int optopt
+     When `getopt' encounters an unknown option character or an option
+     with a missing required argument, it stores that option character
+     in this variable.  You can use this for providing your own
+     diagnostic messages.
+
+ - Variable: int optind
+     This variable is set by `getopt' to the index of the next element
+     of the ARGV array to be processed.  Once `getopt' has found all of
+     the option arguments, you can use this variable to determine where
+     the remaining non-option arguments begin.  The initial value of
+     this variable is `1'.
+
+ - Variable: char * optarg
+     This variable is set by `getopt' to point at the value of the
+     option argument, for those options that accept arguments.
+
+ - Function: int getopt (int ARGC, char **ARGV, const char *OPTIONS)
+     The `getopt' function gets the next option argument from the
+     argument list specified by the ARGV and ARGC arguments.  Normally
+     these values come directly from the arguments received by `main'.
+
+     The OPTIONS argument is a string that specifies the option
+     characters that are valid for this program.  An option character
+     in this string can be followed by a colon (`:') to indicate that
+     it takes a required argument.  If an option character is followed
+     by two colons (`::'), its argument is optional; this is a GNU
+     extension.
+
+     `getopt' has three ways to deal with options that follow
+     non-options ARGV elements.  The special argument `--' forces in
+     all cases the end of option scanning.
+
+        * The default is to permute the contents of ARGV while scanning
+          it so that eventually all the non-options are at the end.
+          This allows options to be given in any order, even with
+          programs that were not written to expect this.
+
+        * If the OPTIONS argument string begins with a hyphen (`-'),
+          this is treated specially.  It permits arguments that are not
+          options to be returned as if they were associated with option
+          character `\1'.
+
+        * POSIX demands the following behaviour: The first non-option
+          stops option processing.  This mode is selected by either
+          setting the environment variable `POSIXLY_CORRECT' or
+          beginning the OPTIONS argument string with a plus sign (`+').
+
+     The `getopt' function returns the option character for the next
+     command line option.  When no more option arguments are available,
+     it returns `-1'.  There may still be more non-option arguments; you
+     must compare the external variable `optind' against the ARGC
+     parameter to check this.
+
+     If the option has an argument, `getopt' returns the argument by
+     storing it in the variable OPTARG.  You don't ordinarily need to
+     copy the `optarg' string, since it is a pointer into the original
+     ARGV array, not into a static area that might be overwritten.
+
+     If `getopt' finds an option character in ARGV that was not
+     included in OPTIONS, or a missing option argument, it returns `?'
+     and sets the external variable `optopt' to the actual option
+     character.  If the first character of OPTIONS is a colon (`:'),
+     then `getopt' returns `:' instead of `?' to indicate a missing
+     option argument.  In addition, if the external variable `opterr'
+     is nonzero (which is the default), `getopt' prints an error
+     message.
+
+
+File: libc.info,  Node: Example of Getopt,  Next: Getopt Long Options,  Prev: Using Getopt,  Up: Getopt
+
+Example of Parsing Arguments with `getopt'
+------------------------------------------
+
+   Here is an example showing how `getopt' is typically used.  The key
+points to notice are:
+
+   * Normally, `getopt' is called in a loop.  When `getopt' returns
+     `-1', indicating no more options are present, the loop terminates.
+
+   * A `switch' statement is used to dispatch on the return value from
+     `getopt'.  In typical use, each case just sets a variable that is
+     used later in the program.
+
+   * A second loop is used to process the remaining non-option
+     arguments.
+
+     #include <unistd.h>
+     #include <stdio.h>
+     
+     int
+     main (int argc, char **argv)
+     {
+       int aflag = 0;
+       int bflag = 0;
+       char *cvalue = NULL;
+       int index;
+       int c;
+     
+       opterr = 0;
+     
+       while ((c = getopt (argc, argv, "abc:")) != -1)
+         switch (c)
+           {
+           case 'a':
+             aflag = 1;
+             break;
+           case 'b':
+             bflag = 1;
+             break;
+           case 'c':
+             cvalue = optarg;
+             break;
+           case '?':
+             if (isprint (optopt))
+               fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+             else
+               fprintf (stderr,
+                        "Unknown option character `\\x%x'.\n",
+                        optopt);
+             return 1;
+           default:
+             abort ();
+           }
+     
+       printf ("aflag = %d, bflag = %d, cvalue = %s\n",
+               aflag, bflag, cvalue);
+     
+       for (index = optind; index < argc; index++)
+         printf ("Non-option argument %s\n", argv[index]);
+       return 0;
+     }
+
+   Here are some examples showing what this program prints with
+different combinations of arguments:
+
+     % testopt
+     aflag = 0, bflag = 0, cvalue = (null)
+     
+     % testopt -a -b
+     aflag = 1, bflag = 1, cvalue = (null)
+     
+     % testopt -ab
+     aflag = 1, bflag = 1, cvalue = (null)
+     
+     % testopt -c foo
+     aflag = 0, bflag = 0, cvalue = foo
+     
+     % testopt -cfoo
+     aflag = 0, bflag = 0, cvalue = foo
+     
+     % testopt arg1
+     aflag = 0, bflag = 0, cvalue = (null)
+     Non-option argument arg1
+     
+     % testopt -a arg1
+     aflag = 1, bflag = 0, cvalue = (null)
+     Non-option argument arg1
+     
+     % testopt -c foo arg1
+     aflag = 0, bflag = 0, cvalue = foo
+     Non-option argument arg1
+     
+     % testopt -a -- -b
+     aflag = 1, bflag = 0, cvalue = (null)
+     Non-option argument -b
+     
+     % testopt -a -
+     aflag = 1, bflag = 0, cvalue = (null)
+     Non-option argument -
+
+
+File: libc.info,  Node: Getopt Long Options,  Next: Getopt Long Option Example,  Prev: Example of Getopt,  Up: Getopt
+
+Parsing Long Options with `getopt_long'
+---------------------------------------
+
+   To accept GNU-style long options as well as single-character options,
+use `getopt_long' instead of `getopt'.  This function is declared in
+`getopt.h', not `unistd.h'.  You should make every program accept long
+options if it uses any options, for this takes little extra work and
+helps beginners remember how to use the program.
+
+ - Data Type: struct option
+     This structure describes a single long option name for the sake of
+     `getopt_long'.  The argument LONGOPTS must be an array of these
+     structures, one for each long option.  Terminate the array with an
+     element containing all zeros.
+
+     The `struct option' structure has these fields:
+
+    `const char *name'
+          This field is the name of the option.  It is a string.
+
+    `int has_arg'
+          This field says whether the option takes an argument.  It is
+          an integer, and there are three legitimate values:
+          `no_argument', `required_argument' and `optional_argument'.
+
+    `int *flag'
+    `int val'
+          These fields control how to report or act on the option when
+          it occurs.
+
+          If `flag' is a null pointer, then the `val' is a value which
+          identifies this option.  Often these values are chosen to
+          uniquely identify particular long options.
+
+          If `flag' is not a null pointer, it should be the address of
+          an `int' variable which is the flag for this option.  The
+          value in `val' is the value to store in the flag to indicate
+          that the option was seen.
+
+ - Function: int getopt_long (int ARGC, char *const *ARGV, const char
+          *SHORTOPTS, struct option *LONGOPTS, int *INDEXPTR)
+     Decode options from the vector ARGV (whose length is ARGC).  The
+     argument SHORTOPTS describes the short options to accept, just as
+     it does in `getopt'.  The argument LONGOPTS describes the long
+     options to accept (see above).
+
+     When `getopt_long' encounters a short option, it does the same
+     thing that `getopt' would do: it returns the character code for the
+     option, and stores the options argument (if it has one) in
+     `optarg'.
+
+     When `getopt_long' encounters a long option, it takes actions based
+     on the `flag' and `val' fields of the definition of that option.
+
+     If `flag' is a null pointer, then `getopt_long' returns the
+     contents of `val' to indicate which option it found.  You should
+     arrange distinct values in the `val' field for options with
+     different meanings, so you can decode these values after
+     `getopt_long' returns.  If the long option is equivalent to a short
+     option, you can use the short option's character code in `val'.
+
+     If `flag' is not a null pointer, that means this option should just
+     set a flag in the program.  The flag is a variable of type `int'
+     that you define.  Put the address of the flag in the `flag' field.
+     Put in the `val' field the value you would like this option to
+     store in the flag.  In this case, `getopt_long' returns `0'.
+
+     For any long option, `getopt_long' tells you the index in the array
+     LONGOPTS of the options definition, by storing it into
+     `*INDEXPTR'.  You can get the name of the option with
+     `LONGOPTS[*INDEXPTR].name'.  So you can distinguish among long
+     options either by the values in their `val' fields or by their
+     indices.  You can also distinguish in this way among long options
+     that set flags.
+
+     When a long option has an argument, `getopt_long' puts the argument
+     value in the variable `optarg' before returning.  When the option
+     has no argument, the value in `optarg' is a null pointer.  This is
+     how you can tell whether an optional argument was supplied.
+
+     When `getopt_long' has no more options to handle, it returns `-1',
+     and leaves in the variable `optind' the index in ARGV of the next
+     remaining argument.
+
+   Since long option names were used before before the `getopt_long'
+options was invented there are program interfaces which require programs
+to recognize options like `-option value' instead of `--option value'.
+To enable these programs to use the GNU getopt functionality there is
+one more function available.
+
+ - Function: int getopt_long_only (int ARGC, char *const *ARGV, const
+          char *SHORTOPTS, struct option *LONGOPTS, int *INDEXPTR)
+     The `getopt_long_only' function is equivalent to the `getopt_long'
+     function but it allows to specify the user of the application to
+     pass long options with only `-' instead of `--'.  The `--' prefix
+     is still recognized but instead of looking through the short
+     options if a `-' is seen it is first tried whether this parameter
+     names a long option.  If not, it is parsed as a short option.
+
+     Assuming `getopt_long_only' is used starting an application with
+
+            app -foo
+
+     the `getopt_long_only' will first look for a long option named
+     `foo'.  If this is not found, the short options `f', `o', and
+     again `o' are recognized.
+
+
+File: libc.info,  Node: Getopt Long Option Example,  Prev: Getopt Long Options,  Up: Getopt
+
+Example of Parsing Long Options with `getopt_long'
+--------------------------------------------------
+
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <getopt.h>
+     
+     /* Flag set by `--verbose'. */
+     static int verbose_flag;
+     
+     int
+     main (argc, argv)
+          int argc;
+          char **argv;
+     {
+       int c;
+     
+       while (1)
+         {
+           static struct option long_options[] =
+             {
+               /* These options set a flag. */
+               {"verbose", no_argument,       &verbose_flag, 1},
+               {"brief",   no_argument,       &verbose_flag, 0},
+               /* These options don't set a flag.
+                  We distinguish them by their indices. */
+               {"add",     required_argument, 0, 'a'},
+               {"append",  no_argument,       0, 'b'},
+               {"delete",  required_argument, 0, 'd'},
+               {"create",  no_argument,       0, 'c'},
+               {"file",    required_argument, 0, 'f'},
+               {0, 0, 0, 0}
+             };
+           /* `getopt_long' stores the option index here. */
+           int option_index = 0;
+     
+           c = getopt_long (argc, argv, "abc:d:f:",
+                            long_options, &option_index);
+     
+           /* Detect the end of the options. */
+           if (c == -1)
+             break;
+     
+           switch (c)
+             {
+             case 0:
+               /* If this option set a flag, do nothing else now. */
+               if (long_options[option_index].flag != 0)
+                 break;
+               printf ("option %s", long_options[option_index].name);
+               if (optarg)
+                 printf (" with arg %s", optarg);
+               printf ("\n");
+               break;
+     
+             case 'a':
+               puts ("option -a\n");
+               break;
+     
+             case 'b':
+               puts ("option -b\n");
+               break;
+     
+             case 'c':
+               printf ("option -c with value `%s'\n", optarg);
+               break;
+     
+             case 'd':
+               printf ("option -d with value `%s'\n", optarg);
+               break;
+     
+             case 'f':
+               printf ("option -f with value `%s'\n", optarg);
+               break;
+     
+             case '?':
+               /* `getopt_long' already printed an error message. */
+               break;
+     
+             default:
+               abort ();
+             }
+         }
+     
+       /* Instead of reporting `--verbose'
+          and `--brief' as they are encountered,
+          we report the final status resulting from them. */
+       if (verbose_flag)
+         puts ("verbose flag is set");
+     
+       /* Print any remaining command line arguments (not options). */
+       if (optind < argc)
+         {
+           printf ("non-option ARGV-elements: ");
+           while (optind < argc)
+             printf ("%s ", argv[optind++]);
+           putchar ('\n');
+         }
+     
+       exit (0);
+     }
+
+
+File: libc.info,  Node: Argp,  Next: Suboptions,  Prev: Getopt,  Up: Parsing Program Arguments
+
+Parsing Program Options with Argp
+=================================
+
+   "Argp" is an interface for parsing unix-style argument vectors
+(*note Program Arguments::).
+
+   Unlike the more common `getopt' interface, it provides many related
+convenience features in addition to parsing options, such as
+automatically producing output in response to `--help' and `--version'
+options (as defined by the GNU coding standards).  Doing these things
+in argp results in a more consistent look for programs that use it, and
+makes less likely that implementors will neglect to implement them or
+keep them up-to-date.
+
+   Argp also provides the ability to merge several independently defined
+option parsers into one, mediating conflicts between them, and making
+the result appear seamless.  A library can export an argp option parser,
+which programs can easily use in conjunction with their own option
+parser.  This results in less work for user programs (indeed, some may
+use only argument parsers exported by libraries, and have no options of
+their own), and more consistent option-parsing for the abstractions
+implemented by the library.
+
+   The header file `<argp.h>' should be included to use argp.
+
+The `argp_parse' Function
+-------------------------
+
+   The main interface to argp is the `argp_parse' function; often, a
+call to `argp_parse' is the only argument-parsing code needed in `main'
+(*note Program Arguments::).
+
+ - Function: error_t argp_parse (const struct argp *ARGP, int ARGC,
+          char **ARGV, unsigned FLAGS, int *ARG_INDEX, void *INPUT)
+     The `argp_parse' function parses the arguments in ARGV, of length
+     ARGC, using the argp parser ARGP (*note Argp Parsers::); a value
+     of zero is the same as a `struct argp' containing all zeros.
+     FLAGS is a set of flag bits that modify the parsing behavior
+     (*note Argp Flags::).  INPUT is passed through to the argp parser
+     ARGP, and has meaning defined by it; a typical usage is to pass a
+     pointer to a structure which can be used for specifying parameters
+     to the parser and passing back results from it.
+
+     Unless the `ARGP_NO_EXIT' or `ARGP_NO_HELP' flags are included in
+     FLAGS, calling `argp_parse' may result in the program exiting--for
+     instance when an unknown option is encountered.  *Note Program
+     Termination::.
+
+     If ARG_INDEX is non-null, the index of the first unparsed option
+     in ARGV is returned in it.
+
+     The return value is zero for successful parsing, or an error code
+     (*note Error Codes::) if an error was detected.  Different argp
+     parsers may return arbitrary error codes, but standard ones are
+     `ENOMEM' if a memory allocation error occurred, or `EINVAL' if an
+     unknown option or option argument was encountered.
+
+* Menu:
+
+* Globals: Argp Global Variables.  Global argp parameters.
+* Parsers: Argp Parsers.        Defining parsers for use with `argp_parse'.
+* Flags: Argp Flags.            Flags that modify the behavior of `argp_parse'.
+* Help: Argp Help.              Printing help messages when not parsing.
+* Examples: Argp Examples.      Simple examples of programs using argp.
+* Customization: Argp User Customization.
+                                Users may control the `--help' output format.
+
+
+File: libc.info,  Node: Argp Global Variables,  Next: Argp Parsers,  Up: Argp
+
+Argp Global Variables
+---------------------
+
+   These variables make it very easy for every user program to implement
+the `--version' option and provide a bug-reporting address in the
+`--help' output (which is implemented by argp regardless).
+
+ - Variable: const char * argp_program_version
+     If defined or set by the user program to a non-zero value, then a
+     `--version' option is added when parsing with `argp_parse' (unless
+     the `ARGP_NO_HELP' flag is used), which will print this string
+     followed by a newline and exit (unless the `ARGP_NO_EXIT' flag is
+     used).
+
+ - Variable: const char * argp_program_bug_address
+     If defined or set by the user program to a non-zero value,
+     `argp_program_bug_address' should point to a string that is the
+     bug-reporting address for the program.  It will be printed at the
+     end of the standard output for the `--help' option, embedded in a
+     sentence that says something like `Report bugs to ADDRESS.'.
+
+ - Variable: argp_program_version_hook
+     If defined or set by the user program to a non-zero value, then a
+     `--version' option is added when parsing with `argp_parse' (unless
+     the `ARGP_NO_HELP' flag is used), which calls this function to
+     print the version, and then exits with a status of 0 (unless the
+     `ARGP_NO_EXIT' flag is used).  It should point to a function with
+     the following type signature:
+
+          void PRINT-VERSION (FILE *STREAM, struct argp_state *STATE)
+
+     *Note Argp Parsing State::, for an explanation of STATE.
+
+     This variable takes precedent over `argp_program_version', and is
+     useful if a program has version information that cannot be easily
+     specified as a simple string.
+
+ - Variable: error_t argp_err_exit_status
+     The exit status that argp will use when exiting due to a parsing
+     error.  If not defined or set by the user program, this defaults to
+     `EX_USAGE' from `<sysexits.h>'.
+

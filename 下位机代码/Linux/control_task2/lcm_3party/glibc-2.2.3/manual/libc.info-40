@@ -1,0 +1,1120 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Argp Parsers,  Next: Argp Flags,  Prev: Argp Global Variables,  Up: Argp
+
+Specifying Argp Parsers
+-----------------------
+
+   The first argument to the `argp_parse' function is a pointer to a
+`struct argp', which known as an "argp parser":
+
+ - Data Type: struct argp
+     This structure specifies how to parse a given set of options and
+     arguments, perhaps in conjunction with other argp parsers.  It has
+     the following fields:
+
+    `const struct argp_option *options'
+          A pointer to a vector of `argp_option' structures specifying
+          which options this argp parser understands; it may be zero if
+          there are no options at all.  *Note Argp Option Vectors::.
+
+    `argp_parser_t parser'
+          A pointer to a function that defines actions for this parser;
+          it is called for each option parsed, and at other
+          well-defined points in the parsing process.  A value of zero
+          is the same as a pointer to a function that always returns
+          `ARGP_ERR_UNKNOWN'.  *Note Argp Parser Functions::.
+
+    `const char *args_doc'
+          If non-zero, a string describing what non-option arguments
+          are wanted by this parser; it is only used to print the
+          `Usage:' message.  If it contains newlines, the strings
+          separated by them are considered alternative usage patterns,
+          and printed on separate lines (lines after the first are
+          prefixed by ` or: ' instead of `Usage:').
+
+    `const char *doc'
+          If non-zero, a string containing extra text to be printed
+          before and after the options in a long help message, with the
+          two sections separated by a vertical tab (`'\v'', `'\013'')
+          character.  By convention, the documentation before the
+          options is just a short string saying what the program does,
+          and that afterwards is longer, describing the behavior in
+          more detail.
+
+    `const struct argp_child *children'
+          A pointer to a vector of `argp_children' structures specifying
+          additional argp parsers that should be combined with this one.
+          *Note Argp Children::.
+
+    `char *(*help_filter)(int KEY, const char *TEXT, void *INPUT)'
+          If non-zero, a pointer to a function to filter the output of
+          help messages.  *Note Argp Help Filtering::.
+
+    `const char *argp_domain'
+          If non-zero, the strings used in the argp library are
+          translated using the domain described by this string.
+          Otherwise the currently installed default domain is used.
+
+
+   The `options', `parser', `args_doc', and `doc' fields are usually
+all that are needed.  If an argp parser is defined as an initialized C
+variable, only the used fields need be specified in the
+initializer--the rest will default to zero due to the way C structure
+initialization works (this fact is exploited for most argp structures,
+grouping the most-used fields near the beginning, so that unused fields
+can simply be left unspecified).
+
+* Menu:
+
+* Options: Argp Option Vectors.   Specifying options in an argp parser.
+* Argp Parser Functions::         Defining actions for an argp parser.
+* Children: Argp Children.        Combining multiple argp parsers.
+* Help Filtering: Argp Help Filtering.  Customizing help output for an argp parser.
+
+
+File: libc.info,  Node: Argp Option Vectors,  Next: Argp Parser Functions,  Prev: Argp Parsers,  Up: Argp Parsers
+
+Specifying Options in an Argp Parser
+------------------------------------
+
+   The `options' field in a `struct argp' points to a vector of `struct
+argp_option' structures, each of which specifies an option that argp
+parser supports (actually, sometimes multiple entries may used for a
+single option if it has many names).  It should be terminated by an
+entry with zero in all fields (note that when using an initialized C
+array for options, writing `{ 0 }' is enough to achieve this).
+
+ - Data Type: struct argp_option
+     This structure specifies a single option that an argp parser
+     understands, and how to parse and document it.  It has the
+     following fields:
+
+    `const char *name'
+          The long name for this option, corresponding to the long
+          option `--NAME'; this field can be zero if this option only
+          has a short name.  To specify multiple names for an option,
+          additional entries may follow this one, with the
+          `OPTION_ALIAS' flag set (*note Argp Option Flags::).
+
+    `int key'
+          The integer key that is provided to the argp parser's parsing
+          function when this option is being parsed.  Also, if KEY has
+          a value that is a printable ASCII character (i.e., `isascii
+          (KEY)' is true), it _also_ specifies a short option `-CHAR',
+          where CHAR is the ASCII character with the code KEY.
+
+    `const char *arg'
+          If non-zero, this is the name of an argument associated with
+          this option, which must be provided (e.g., with the
+          `--NAME=VALUE' or `-CHAR VALUE' syntaxes) unless the
+          `OPTION_ARG_OPTIONAL' flag (*note Argp Option Flags::) is
+          set, in which case it _may_ be provided.
+
+    `int flags'
+          Flags associated with this option (some of which are referred
+          to above).  *Note Argp Option Flags::.
+
+    `const char *doc'
+          A documentation string for this option, for printing in help
+          messages.
+
+          If both the `name' and `key' fields are zero, this string
+          will be printed out-dented from the normal option column,
+          making it useful as a group header (it will be the first
+          thing printed in its group); in this usage, it's conventional
+          to end the string with a `:' character.
+
+    `int group'
+          The group this option is in.
+
+          In a long help message, options are sorted alphabetically
+          within each group, and the groups presented in the order 0,
+          1, 2, ..., N, -M, ..., -2, -1.  Every entry in an options
+          array with this field 0 will inherit the group number of the
+          previous entry, or zero if it's the first one, unless its a
+          group header (`name' and `key' fields both zero), in which
+          case, the previous entry + 1 is the default.  Automagic
+          options such as `--help' are put into group -1.
+
+          Note that because of C structure initialization rules, this
+          field often need not be specified, because 0 is the right
+          value.
+
+* Menu:
+
+* Flags: Argp Option Flags.     Flags for options.
+
+
+File: libc.info,  Node: Argp Option Flags,  Up: Argp Option Vectors
+
+Flags for Argp Options
+......................
+
+   The following flags may be or'd together in the `flags' field of a
+`struct argp_option', and control various aspects of how that option is
+parsed or displayed in help messages:
+
+`OPTION_ARG_OPTIONAL'
+     The argument associated with this option is optional.
+
+`OPTION_HIDDEN'
+     This option isn't displayed in any help messages.
+
+`OPTION_ALIAS'
+     This option is an alias for the closest previous non-alias option.
+     This means that it will be displayed in the same help entry, and
+     will inherit fields other than `name' and `key' from the aliased
+     option.
+
+`OPTION_DOC'
+     This option isn't actually an option (and so should be ignored by
+     the actual option parser), but rather an arbitrary piece of
+     documentation that should be displayed in much the same manner as
+     the options (known as a "documentation option").
+
+     If this flag is set, then the option `name' field is displayed
+     unmodified (e.g., no `--' prefix is added) at the left-margin
+     (where a _short_ option would normally be displayed), and the
+     documentation string in the normal place.  For purposes of
+     sorting, any leading whitespace and punctuation is ignored, except
+     that if the first non-whitespace character is not `-', this entry
+     is displayed after all options (and `OPTION_DOC' entries with a
+     leading `-') in the same group.
+
+`OPTION_NO_USAGE'
+     This option shouldn't be included in `long' usage messages (but is
+     still included in help messages).  This is mainly intended for
+     options that are completely documented in an argp's `args_doc'
+     field (*note Argp Parsers::), in which case including the option
+     in the generic usage list would be redundant.
+
+     For instance, if `args_doc' is `"FOO BAR\n-x BLAH"', and the `-x'
+     option's purpose is to distinguish these two cases, `-x' should
+     probably be marked `OPTION_NO_USAGE'.
+
+
+File: libc.info,  Node: Argp Parser Functions,  Next: Argp Children,  Prev: Argp Option Vectors,  Up: Argp Parsers
+
+Argp Parser Functions
+---------------------
+
+   The function pointed to by the `parser' field in a `struct argp'
+(*note Argp Parsers::) defines what actions take place in response to
+each option or argument that is parsed, and is also used as a hook, to
+allow a parser to do something at certain other points during parsing.
+
+   Argp parser functions have the following type signature:
+
+     error_t PARSER (int KEY, char *ARG, struct argp_state *STATE)
+
+where the arguments are as follows:
+
+KEY
+     For each option that is parsed, PARSER is called with a value of
+     KEY from that option's `key' field in the option vector (*note
+     Argp Option Vectors::).  PARSER is also called at other times with
+     special reserved keys, such as `ARGP_KEY_ARG' for non-option
+     arguments.  *Note Argp Special Keys::.
+
+ARG
+     If KEY is an option, ARG is the value given for it, or zero if no
+     value was specified.  Only options that have a non-zero `arg'
+     field can ever have a value, and those must _always_ have a value,
+     unless the `OPTION_ARG_OPTIONAL' flag was specified (if the input
+     being parsed specifies a value for an option that doesn't allow
+     one, an error results before PARSER ever gets called).
+
+     If KEY is `ARGP_KEY_ARG', ARG is a non-option argument; other
+     special keys always have a zero ARG.
+
+STATE
+     STATE points to a `struct argp_state', containing useful
+     information about the current parsing state for use by PARSER.
+     *Note Argp Parsing State::.
+
+   When PARSER is called, it should perform whatever action is
+appropriate for KEY, and return either `0' for success,
+`ARGP_ERR_UNKNOWN', if the value of KEY is not handled by this parser
+function, or a unix error code if a real error occurred (*note Error
+Codes::).
+
+ - Macro: int ARGP_ERR_UNKNOWN
+     Argp parser functions should return `ARGP_ERR_UNKNOWN' for any KEY
+     value they do not recognize, or for non-option arguments (`KEY ==
+     ARGP_KEY_ARG') that they do not wish to handle.
+
+   A typical parser function uses a switch statement on KEY:
+
+     error_t
+     parse_opt (int key, char *arg, struct argp_state *state)
+     {
+       switch (key)
+         {
+         case OPTION_KEY:
+           ACTION
+           break;
+         ...
+         default:
+           return ARGP_ERR_UNKNOWN;
+         }
+       return 0;
+     }
+
+* Menu:
+
+* Keys: Argp Special Keys.           Special values for the KEY argument.
+* State: Argp Parsing State.         What the STATE argument refers to.
+* Functions: Argp Helper Functions.  Functions to help during argp parsing.
+
+
+File: libc.info,  Node: Argp Special Keys,  Next: Argp Parsing State,  Up: Argp Parser Functions
+
+Special Keys for Argp Parser Functions
+......................................
+
+   In addition to key values corresponding to user options, the KEY
+argument to argp parser functions may have a number of other special
+values (ARG and STATE refer to parser function arguments; *note Argp
+Parser Functions::):
+
+`ARGP_KEY_ARG'
+     This is not an option at all, but rather a command line argument,
+     whose value is pointed to by ARG.
+
+     When there are multiple parser functions (due to argp parsers being
+     combined), it's impossible to know which one wants to handle an
+     argument, so each is called in turn, until one returns 0 or an
+     error other than `ARGP_ERR_UNKNOWN'; if an argument is handled by
+     no one, `argp_parse' immediately returns success, without parsing
+     any more arguments.
+
+     Once a parser function returns success for this key, that fact is
+     recorded, and the `ARGP_KEY_NO_ARGS' case won't be used.
+     _However_, if while processing the argument, a parser function
+     decrements the `next' field of its STATE argument, the option
+     won't be considered processed; this is to allow you to actually
+     modify the argument (perhaps into an option), and have it
+     processed again.
+
+`ARGP_KEY_ARGS'
+     If a parser function returns `ARGP_ERR_UNKNOWN' for
+     `ARGP_KEY_ARG', it is immediately called again with the key
+     `ARGP_KEY_ARGS', which has a similar meaning, but is slightly more
+     convenient for consuming all remaining arguments.  ARG is 0, and
+     the tail of the argument vector may be found at `STATE->argv +
+     STATE->next'.  If success is returned for this key, and
+     `STATE->next' is unchanged, then all remaining arguments are
+     considered to have been consumed, otherwise, the amount by which
+     `STATE->next' has been adjust indicates how many were used.  For
+     instance, here's an example that uses both, for different args:
+
+          ...
+          case ARGP_KEY_ARG:
+            if (STATE->arg_num == 0)
+              /* First argument */
+              first_arg = ARG;
+            else
+              /* Let the next case parse it.  */
+              return ARGP_KEY_UNKNOWN;
+            break;
+          case ARGP_KEY_ARGS:
+            remaining_args = STATE->argv + STATE->next;
+            num_remaining_args = STATE->argc - STATE->next;
+            break;
+
+`ARGP_KEY_END'
+     There are no more command line arguments at all.  The parser
+     functions are called in different order (means children first) for
+     this value which allows each parser to clean up its state for the
+     parent.
+
+`ARGP_KEY_NO_ARGS'
+     Because it's common to want to do some special processing if there
+     aren't any non-option args, parser functions are called with this
+     key if they didn't successfully process any non-option arguments.
+     Called just before `ARGP_KEY_END' (where more general validity
+     checks on previously parsed arguments can take place).
+
+`ARGP_KEY_INIT'
+     Passed in before any parsing is done.  Afterwards, the values of
+     each element of the `child_input' field of STATE, if any, are
+     copied to each child's state to be the initial value of the `input'
+     when _their_ parsers are called.
+
+`ARGP_KEY_SUCCESS'
+     Passed in when parsing has successfully been completed (even if
+     there are still arguments remaining).
+
+`ARGP_KEY_ERROR'
+     Passed in if an error has occurred, and parsing terminated (in
+     which case a call with a key of `ARGP_KEY_SUCCESS' is never made).
+
+`ARGP_KEY_FINI'
+     The final key ever seen by any parser (even after
+     `ARGP_KEY_SUCCESS' and `ARGP_KEY_ERROR').  Any resources allocated
+     by `ARGP_KEY_INIT' may be freed here (although sometimes certain
+     resources allocated there are to be returned to the caller after a
+     successful parse; in that case, those particular resources can be
+     freed in the `ARGP_KEY_ERROR' case).
+
+   In all cases, `ARGP_KEY_INIT' is the first key seen by parser
+functions, and `ARGP_KEY_FINI' the last (unless an error was returned
+by the parser for `ARGP_KEY_INIT').  Other keys can occur in one the
+following orders (OPT refers to an arbitrary option key):
+
+OPT... `ARGP_KEY_NO_ARGS' `ARGP_KEY_END' `ARGP_KEY_SUCCESS'
+     The arguments being parsed contained no non-option arguments at
+     all.
+
+( OPT | `ARGP_KEY_ARG' )... `ARGP_KEY_END' `ARGP_KEY_SUCCESS'
+     All non-option arguments were successfully handled by a parser
+     function (there may be multiple parser functions if multiple argp
+     parsers were combined).
+
+( OPT | `ARGP_KEY_ARG' )... `ARGP_KEY_SUCCESS'
+     Some non-option argument was unrecognized.
+
+     This occurs when every parser function returns `ARGP_KEY_UNKNOWN'
+     for an argument, in which case parsing stops at that argument.  If
+     ARG_INDEX is a null pointer otherwise an error occurs.
+
+   In all cases, if a non-null value for ARG_INDEX was passed to
+`argp_parse', the index of the first unparsed command-line argument is
+passed back in it.
+
+   If an error occurs (either detected by argp, or because a parser
+function returned an error value), then each parser is called with
+`ARGP_KEY_ERROR', and no further calls are made except the final call
+with `ARGP_KEY_FINI'.
+
+
+File: libc.info,  Node: Argp Helper Functions,  Prev: Argp Parsing State,  Up: Argp Parser Functions
+
+Functions For Use in Argp Parsers
+.................................
+
+   Argp provides a number of functions for the user of argp parser
+functions (*note Argp Parser Functions::), mostly for producing error
+messages.  These take as their first argument the STATE argument to the
+parser function (*note Argp Parsing State::).
+
+ - Function: void argp_usage (const struct argp_state *STATE)
+     Output the standard usage message for the argp parser referred to
+     by STATE to `STATE->err_stream' and terminate the program with
+     `exit (argp_err_exit_status)' (*note Argp Global Variables::).
+
+ - Function: void argp_error (const struct argp_state *STATE, const
+          char *FMT, ...)
+     Print the printf format string FMT and following args, preceded by
+     the program name and `:', and followed by a `Try ... --help'
+     message, and terminate the program with an exit status of
+     `argp_err_exit_status' (*note Argp Global Variables::).
+
+ - Function: void argp_failure (const struct argp_state *STATE, int
+          STATUS, int ERRNUM, const char *FMT, ...)
+     Similarly to the standard gnu error-reporting function `error',
+     print the printf format string FMT and following args, preceded by
+     the program name and `:', and followed by the standard unix error
+     text for ERRNUM if it is non-zero; then if STATUS is non-zero,
+     terminate the program with that as its exit status.
+
+     The difference between this function and `argp_error' is that
+     `argp_error' is for _parsing errors_, whereas `argp_failure' is
+     for other problems that occur during parsing but don't reflect a
+     syntactic problem with the input--such as illegal values for
+     options, bad phase of the moon, etc.
+
+ - Function: void argp_state_help (const struct argp_state *STATE, FILE
+          *STREAM, unsigned FLAGS)
+     Output a help message for the argp parser referred to by STATE to
+     STREAM.  The FLAGS argument determines what sort of help message
+     is produced.  *Note Argp Help Flags::.
+
+   Error output is sent to `STATE->err_stream', and the program name
+printed is `STATE->name'.
+
+   The output or program termination behavior of these functions may be
+suppressed if the `ARGP_NO_EXIT' or `ARGP_NO_ERRS' flags, respectively,
+were passed to `argp_parse'.  *Note Argp Flags::.
+
+   This behavior is useful if an argp parser is exported for use by
+other programs (e.g., by a library), and may be used in a context where
+it is not desirable to terminate the program in response to parsing
+errors.  In argp parsers intended for such general use, calls to any of
+these functions should be followed by code return of an appropriate
+error code for the case where the program _doesn't_ terminate; for
+example:
+
+     if (BAD ARGUMENT SYNTAX)
+       {
+          argp_usage (STATE);
+          return EINVAL;
+       }
+
+If it's known that a parser function will only be used when
+`ARGP_NO_EXIT' is not set, the return may be omitted.
+
+
+File: libc.info,  Node: Argp Parsing State,  Next: Argp Helper Functions,  Prev: Argp Special Keys,  Up: Argp Parser Functions
+
+Argp Parsing State
+..................
+
+   The third argument to argp parser functions (*note Argp Parser
+Functions::) is a pointer to a `struct argp_state', which contains
+information about the state of the option parsing.
+
+ - Data Type: struct argp_state
+     This structure has the following fields, which may be modified as
+     noted:
+
+    `const struct argp *const root_argp'
+          The top level argp parser being parsed.  Note that this is
+          often _not_ the same `struct argp' passed into `argp_parse' by
+          the invoking program (*note Argp::), but instead an internal
+          argp parser that contains options implemented by `argp_parse'
+          itself (such as `--help').
+
+    `int argc'
+    `char **argv'
+          The argument vector being parsed.  May be modified.
+
+    `int next'
+          The index in `argv' of the next argument to be parsed.  May
+          be modified.
+
+          One way to consume all remaining arguments in the input is to
+          set `STATE->next = STATE->argc' (perhaps after recording the
+          value of the `next' field to find the consumed arguments).
+          Also, you can cause the current option to be re-parsed by
+          decrementing this field, and then modifying
+          `STATE->argv[STATE->next]' to be the option that should be
+          reexamined.
+
+    `unsigned flags'
+          The flags supplied to `argp_parse'.  May be modified,
+          although some flags may only take effect when `argp_parse' is
+          first invoked.  *Note Argp Flags::.
+
+    `unsigned arg_num'
+          While calling a parsing function with the KEY argument
+          `ARGP_KEY_ARG', this is the number of the current arg,
+          starting at 0, and incremented after each such call returns.
+          At all other times, this is the number of such arguments that
+          have been processed.
+
+    `int quoted'
+          If non-zero, the index in `argv' of the first argument
+          following a special `--' argument (which prevents anything
+          following being interpreted as an option).  Only set once
+          argument parsing has proceeded past this point.
+
+    `void *input'
+          An arbitrary pointer passed in from the caller of
+          `argp_parse', in the INPUT argument.
+
+    `void **child_inputs'
+          Values to pass to child parsers.  This vector will be the
+          same length as the number of children in the current parser,
+          and each child parser will be given the value of
+          `STATE->child_inputs[I]' as _its_ `STATE->input' field, where
+          I is the index of the child in the this parser's `children'
+          field.  *Note Argp Children::.
+
+    `void *hook'
+          For the parser function's use.  Initialized to 0, but
+          otherwise ignored by argp.
+
+    `char *name'
+          The name used when printing messages.  This is initialized to
+          `argv[0]', or `program_invocation_name' if that is
+          unavailable.
+
+    `FILE *err_stream'
+    `FILE *out_stream'
+          Stdio streams used when argp prints something; error messages
+          are printed to `err_stream', and all other output (such as
+          `--help' output) to `out_stream'.  These are initialized to
+          `stderr' and `stdout' respectively (*note Standard Streams::).
+
+    `void *pstate'
+          Private, for use by the argp implementation.
+
+
+File: libc.info,  Node: Argp Children,  Next: Argp Help Filtering,  Prev: Argp Parser Functions,  Up: Argp Parsers
+
+Combining Multiple Argp Parsers
+-------------------------------
+
+   The `children' field in a `struct argp' allows other argp parsers to
+be combined with the referencing one to parse a single set of
+arguments.  It should point to a vector of `struct argp_child',
+terminated by an entry having a value of zero in the `argp' field.
+
+   Where conflicts between combined parsers arise (for instance, if two
+specify an option with the same name), they are resolved in favor of
+the parent argp parsers, or earlier argp parsers in the list of
+children.
+
+ - Data Type: struct argp_child
+     An entry in the list of subsidiary argp parsers pointed to by the
+     `children' field in a `struct argp'.  The fields are as follows:
+
+    `const struct argp *argp'
+          The child argp parser, or zero to end the list.
+
+    `int flags'
+          Flags for this child.
+
+    `const char *header'
+          If non-zero, an optional header to be printed in help output
+          before the child options.  As a side-effect, a non-zero value
+          forces the child options to be grouped together; to achieve
+          this effect without actually printing a header string, use a
+          value of `""'.  As with header strings specified in an option
+          entry, the value conventionally has `:' as the last
+          character.  *Note Argp Option Vectors::.
+
+    `int group'
+          Where to group the child options relative to the other
+          (`consolidated') options in the parent argp parser.  The
+          values are the same as the `group' field in `struct
+          argp_option' (*note Argp Option Vectors::), but all
+          child-groupings follow parent options at a particular group
+          level.  If both this field and `header' are zero, then the
+          child's options aren't grouped together at all, but rather
+          merged with the parent options (merging the child's grouping
+          levels with the parents).
+
+
+File: libc.info,  Node: Argp Flags,  Next: Argp Help,  Prev: Argp Parsers,  Up: Argp
+
+Flags for `argp_parse'
+----------------------
+
+   The default behavior of `argp_parse' is designed to be convenient
+for the most common case of parsing program command line argument.  To
+modify these defaults, the following flags may be or'd together in the
+FLAGS argument to `argp_parse':
+
+`ARGP_PARSE_ARGV0'
+     Don't ignore the first element of the ARGV argument to
+     `argp_parse'.  Normally (and always unless `ARGP_NO_ERRS' is set)
+     the first element of the argument vector is skipped for option
+     parsing purposes, as it corresponds to the program name in a
+     command line.
+
+`ARGP_NO_ERRS'
+     Don't print error messages for unknown options to `stderr'; unless
+     this flag is set, `ARGP_PARSE_ARGV0' is ignored, as `argv[0]' is
+     used as the program name in the error messages.  This flag implies
+     `ARGP_NO_EXIT' (on the assumption that silent exiting upon errors
+     is bad behaviour).
+
+`ARGP_NO_ARGS'
+     Don't parse any non-option args.  Normally non-option args are
+     parsed by calling the parse functions with a key of
+     `ARGP_KEY_ARG', and the actual arg as the value.  This flag
+     needn't normally be set, as the normal behavior is to stop parsing
+     as soon as some argument isn't accepted by a parsing function.
+     *Note Argp Parser Functions::.
+
+`ARGP_IN_ORDER'
+     Parse options and arguments in the same order they occur on the
+     command line--normally they're rearranged so that all options come
+     first
+
+`ARGP_NO_HELP'
+     Don't provide the standard long option `--help', which ordinarily
+     causes usage and option help information to be output to `stdout',
+     and `exit (0)' called.
+
+`ARGP_NO_EXIT'
+     Don't exit on errors (they may still result in error messages).
+
+`ARGP_LONG_ONLY'
+     Use the gnu getopt `long-only' rules for parsing arguments.  This
+     allows long-options to be recognized with only a single `-' (for
+     instances, `-help'), but results in a generally somewhat less
+     useful interface, that conflicts with the way most GNU programs
+     work.  For this reason, its use is discouraged.
+
+`ARGP_SILENT'
+     Turns off any message-printing/exiting options, specifically
+     `ARGP_NO_EXIT', `ARGP_NO_ERRS', and `ARGP_NO_HELP'.
+
+
+File: libc.info,  Node: Argp Help Filtering,  Prev: Argp Children,  Up: Argp Parsers
+
+Customizing Argp Help Output
+----------------------------
+
+   The `help_filter' field in a `struct argp' is a pointer to a
+function to filter the text of help messages before displaying them.
+They have a function signature like:
+
+     char *HELP-FILTER (int KEY, const char *TEXT, void *INPUT)
+
+where KEY is either a key from an option, in which case TEXT is that
+option's help text (*note Argp Option Vectors::), or one of the special
+keys with names beginning with `ARGP_KEY_HELP_', describing which other
+help text TEXT is (*note Argp Help Filter Keys::).
+
+   The function should return either TEXT, if it should be used as-is,
+a replacement string, which should be allocated using `malloc', and
+will be freed by argp, or zero, meaning `print nothing'.  The value of
+TEXT supplied is _after_ any translation has been done, so if any of
+the replacement text also needs translation, that should be done by the
+filter function.  INPUT is either the input supplied to `argp_parse',
+or zero, if `argp_help' was called directly by the user.
+
+* Menu:
+
+* Keys: Argp Help Filter Keys.  Special KEY values for help filter functions.
+
+
+File: libc.info,  Node: Argp Help Filter Keys,  Up: Argp Help Filtering
+
+Special Keys for Argp Help Filter Functions
+...........................................
+
+   The following special values may be passed to an argp help filter
+function as the first argument, in addition to key values for user
+options, and specify which help text the TEXT argument contains:
+
+`ARGP_KEY_HELP_PRE_DOC'
+     Help text preceding options.
+
+`ARGP_KEY_HELP_POST_DOC'
+     Help text following options.
+
+`ARGP_KEY_HELP_HEADER'
+     Option header string.
+
+`ARGP_KEY_HELP_EXTRA'
+     After all other documentation; TEXT is zero for this key.
+
+`ARGP_KEY_HELP_DUP_ARGS_NOTE'
+     The explanatory note emitted when duplicate option arguments have
+     been suppressed.
+
+`ARGP_KEY_HELP_ARGS_DOC'
+     The argument doc string (the `args_doc' field from the argp parser;
+     *note Argp Parsers::).
+
+
+File: libc.info,  Node: Argp Help,  Next: Argp Examples,  Prev: Argp Flags,  Up: Argp
+
+The `argp_help' Function
+------------------------
+
+   Normally programs using argp need not worry too much about printing
+argument-usage-type help messages, because the standard `--help' option
+is handled automatically by argp, and the typical error cases can be
+handled using `argp_usage' and `argp_error' (*note Argp Helper
+Functions::).
+
+   However, if it's desirable to print a standard help message in some
+context other than parsing the program options, argp offers the
+`argp_help' interface.
+
+ - Function: void argp_help (const struct argp *ARGP, FILE *STREAM,
+          unsigned FLAGS, char *NAME)
+     Output a help message for the argp parser ARGP to STREAM.  What
+     sort of messages is printed is determined by FLAGS.
+
+     Any options such as `--help' that are implemented automatically by
+     argp itself will _not_ be present in the help output; for this
+     reason, it is better to use `argp_state_help' if calling from
+     within an argp parser function.  *Note Argp Helper Functions::.
+
+* Menu:
+
+* Flags: Argp Help Flags.       Specifying what sort of help message to print.
+
+
+File: libc.info,  Node: Argp Help Flags,  Up: Argp Help
+
+Flags for the `argp_help' Function
+----------------------------------
+
+   When calling `argp_help' (*note Argp Help::), or `argp_state_help'
+(*note Argp Helper Functions::), exactly what is output is determined
+by the FLAGS argument, which should consist of any of the following
+flags, or'd together:
+
+`ARGP_HELP_USAGE'
+     A unix `Usage:' message that explicitly lists all options.
+
+`ARGP_HELP_SHORT_USAGE'
+     A unix `Usage:' message that displays only an appropriate
+     placeholder to indicate where the options go; useful for showing
+     the non-option argument syntax.
+
+`ARGP_HELP_SEE'
+     A `Try ... for more help' message; `...' contains the program name
+     and `--help'.
+
+`ARGP_HELP_LONG'
+     A verbose option help message that gives each option understood
+     along with its documentation string.
+
+`ARGP_HELP_PRE_DOC'
+     The part of the argp parser doc string that precedes the verbose
+     option help.
+
+`ARGP_HELP_POST_DOC'
+     The part of the argp parser doc string that follows the verbose
+     option help.
+
+`ARGP_HELP_DOC'
+     `(ARGP_HELP_PRE_DOC | ARGP_HELP_POST_DOC)'
+
+`ARGP_HELP_BUG_ADDR'
+     A message saying where to report bugs for this program, if the
+     `argp_program_bug_address' variable contains one.
+
+`ARGP_HELP_LONG_ONLY'
+     Modify any output appropriately to reflect `ARGP_LONG_ONLY' mode.
+
+   The following flags are only understood when used with
+`argp_state_help', and control whether the function returns after
+printing its output, or terminates the program:
+
+`ARGP_HELP_EXIT_ERR'
+     Terminate the program with `exit (argp_err_exit_status)'.
+
+`ARGP_HELP_EXIT_OK'
+     Terminate the program with `exit (0)'.
+
+   The following flags are combinations of the basic ones for printing
+standard messages:
+
+`ARGP_HELP_STD_ERR'
+     Assuming an error message for a parsing error has already printed,
+     prints a note on how to get help, and terminates the program with
+     an error.
+
+`ARGP_HELP_STD_USAGE'
+     Prints a standard usage message and terminates the program with an
+     error.  This is used when no more specific error message is
+     appropriate.
+
+`ARGP_HELP_STD_HELP'
+     Prints the standard response for a `--help' option, and terminates
+     the program successfully.
+
+
+File: libc.info,  Node: Argp Examples,  Next: Argp User Customization,  Prev: Argp Help,  Up: Argp
+
+Argp Examples
+-------------
+
+   These example programs demonstrate the basic usage of argp.
+
+* Menu:
+
+* 1: Argp Example 1.            A minimal program using argp.
+* 2: Argp Example 2.            A program using only default options.
+* 3: Argp Example 3.            A simple program with user options.
+* 4: Argp Example 4.            Combining multiple argp parsers.
+
+
+File: libc.info,  Node: Argp Example 1,  Next: Argp Example 2,  Up: Argp Examples
+
+A Minimal Program Using Argp
+............................
+
+   This is (probably) the smallest possible program that uses argp.  It
+won't do much except give an error messages and exit when there are any
+arguments, and print a (rather pointless) message for `--help'.
+
+     /* Argp example #1 - a minimal program using argp */
+     
+     /* This is (probably) the smallest possible program that
+        uses argp.  It won't do much except give an error
+        messages and exit when there are any arguments, and print
+        a (rather pointless) messages for -help. */
+     
+     #include <argp.h>
+     
+     int main (int argc, char **argv)
+     {
+       argp_parse (0, argc, argv, 0, 0, 0);
+       exit (0);
+     }
+
+
+File: libc.info,  Node: Argp Example 2,  Next: Argp Example 3,  Prev: Argp Example 1,  Up: Argp Examples
+
+A Program Using Argp with Only Default Options
+..............................................
+
+   This program doesn't use any options or arguments, but uses argp to
+be compliant with the GNU standard command line format.
+
+   In addition to making sure no arguments are given, and implementing a
+`--help' option, this example will have a `--version' option, and will
+put the given documentation string and bug address in the `--help'
+output, as per GNU standards.
+
+   The variable `argp' contains the argument parser specification;
+adding fields to this structure is the way most parameters are passed to
+`argp_parse' (the first three fields are usually used, but not in this
+small program).  There are also two global variables that argp knows
+about defined here, `argp_program_version' and
+`argp_program_bug_address' (they are global variables because they will
+almost always be constant for a given program, even if it uses
+different argument parsers for various tasks).
+
+     /* Argp example #2 - a pretty minimal program using argp */
+     
+     /* This program doesn't use any options or arguments, but uses
+        argp to be compliant with the GNU standard command line
+        format.
+     
+        In addition to making sure no arguments are given, and
+        implementing a -help option, this example will have a
+        -version option, and will put the given documentation string
+        and bug address in the -help output, as per GNU standards.
+     
+        The variable ARGP contains the argument parser specification;
+        adding fields to this structure is the way most parameters are
+        passed to argp_parse (the first three fields are usually used,
+        but not in this small program).  There are also two global
+        variables that argp knows about defined here,
+        ARGP_PROGRAM_VERSION and ARGP_PROGRAM_BUG_ADDRESS (they are
+        global variables becuase they will almost always be constant
+        for a given program, even if it uses different argument
+        parsers for various tasks). */
+     
+     #include <argp.h>
+     
+     const char *argp_program_version =
+       "argp-ex2 1.0";
+     const char *argp_program_bug_address =
+       "<bug-gnu-utils@gnu.org>";
+     
+     /* Program documentation. */
+     static char doc[] =
+       "Argp example #2 -- a pretty minimal program using argp";
+     
+     /* Our argument parser.  The `options', `parser', and
+        `args_doc' fields are zero because we have neither options or
+        arguments; `doc' and `argp_program_bug_address' will be
+        used in the output for `--help', and the `--version'
+        option will print out `argp_program_version'. */
+     static struct argp argp = { 0, 0, 0, doc };
+     
+     int main (int argc, char **argv)
+     {
+       argp_parse (&argp, argc, argv, 0, 0, 0);
+       exit (0);
+     }
+
+
+File: libc.info,  Node: Argp Example 3,  Next: Argp Example 4,  Prev: Argp Example 2,  Up: Argp Examples
+
+A Program Using Argp with User Options
+......................................
+
+   This program uses the same features as example 2, and adds user
+options and arguments.
+
+   We now use the first four fields in `argp' (*note Argp Parsers::),
+and specifies `parse_opt' as the parser function (*note Argp Parser
+Functions::).
+
+   Note that in this example, `main' uses a structure to communicate
+with the `parse_opt' function, a pointer to which it passes in the
+`input' argument to `argp_parse' (*note Argp::), and is retrieved by
+`parse_opt' through the `input' field in its `state' argument (*note
+Argp Parsing State::).  Of course, it's also possible to use global
+variables instead, but using a structure like this is somewhat more
+flexible and clean.
+
+     /* Argp example #3 - a program with options and arguments using argp */
+     
+     /* This program uses the same features as example 2, and uses options and
+        arguments.
+     
+        We now use the first four fields in ARGP, so here's a description of them:
+          OPTIONS  - A pointer to a vector of struct argp_option (see below)
+          PARSER   - A function to parse a single option, called by argp
+          ARGS_DOC - A string describing how the non-option arguments should look
+          DOC      - A descriptive string about this program; if it contains a
+                      vertical tab character (\v), the part after it will be
+                      printed *following* the options
+     
+        The function PARSER takes the following arguments:
+          KEY  - An integer specifying which option this is (taken
+                  from the KEY field in each struct argp_option), or
+                  a special key specifying something else; the only
+                  special keys we use here are ARGP_KEY_ARG, meaning
+                  a non-option argument, and ARGP_KEY_END, meaning
+                  that all arguments have been parsed
+          ARG  - For an option KEY, the string value of its
+                  argument, or NULL if it has none
+          STATE- A pointer to a struct argp_state, containing
+                  various useful information about the parsing state; used here
+                  are the INPUT field, which reflects the INPUT argument to
+                  argp_parse, and the ARG_NUM field, which is the number of the
+                  current non-option argument being parsed
+        It should return either 0, meaning success, ARGP_ERR_UNKNOWN, meaning the
+        given KEY wasn't recognized, or an errno value indicating some other
+        error.
+     
+        Note that in this example, main uses a structure to communicate with the
+        parse_opt function, a pointer to which it passes in the INPUT argument to
+        argp_parse.  Of course, it's also possible to use global variables
+        instead, but this is somewhat more flexible.
+     
+        The OPTIONS field contains a pointer to a vector of struct argp_option's;
+        that structure has the following fields (if you assign your option
+        structures using array initialization like this example, unspecified
+        fields will be defaulted to 0, and need not be specified):
+          NAME   - The name of this option's long option (may be zero)
+          KEY    - The KEY to pass to the PARSER function when parsing this option,
+                    *and* the name of this option's short option, if it is a
+                    printable ascii character
+          ARG    - The name of this option's argument, if any
+          FLAGS  - Flags describing this option; some of them are:
+                      OPTION_ARG_OPTIONAL - The argument to this option is optional
+                      OPTION_ALIAS        - This option is an alias for the
+                                             previous option
+                      OPTION_HIDDEN       - Don't show this option in -help output
+          DOC    - A documentation string for this option, shown in -help output
+     
+        An options vector should be terminated by an option with all fields zero. */
+     
+     #include <argp.h>
+     
+     const char *argp_program_version =
+       "argp-ex3 1.0";
+     const char *argp_program_bug_address =
+       "<bug-gnu-utils@gnu.org>";
+     
+     /* Program documentation. */
+     static char doc[] =
+       "Argp example #3 -- a program with options and arguments using argp";
+     
+     /* A description of the arguments we accept. */
+     static char args_doc[] = "ARG1 ARG2";
+     
+     /* The options we understand. */
+     static struct argp_option options[] = {
+       {"verbose",  'v', 0,      0,  "Produce verbose output" },
+       {"quiet",    'q', 0,      0,  "Don't produce any output" },
+       {"silent",   's', 0,      OPTION_ALIAS },
+       {"output",   'o', "FILE", 0,
+        "Output to FILE instead of standard output" },
+       { 0 }
+     };
+     
+     /* Used by `main' to communicate with `parse_opt'. */
+     struct arguments
+     {
+       char *args[2];                /* ARG1 & ARG2 */
+       int silent, verbose;
+       char *output_file;
+     };
+     
+     /* Parse a single option. */
+     static error_t
+     parse_opt (int key, char *arg, struct argp_state *state)
+     {
+       /* Get the INPUT argument from `argp_parse', which we
+          know is a pointer to our arguments structure. */
+       struct arguments *arguments = state->input;
+     
+       switch (key)
+         {
+         case 'q': case 's':
+           arguments->silent = 1;
+           break;
+         case 'v':
+           arguments->verbose = 1;
+           break;
+         case 'o':
+           arguments->output_file = arg;
+           break;
+     
+         case ARGP_KEY_ARG:
+           if (state->arg_num >= 2)
+             /* Too many arguments. */
+             argp_usage (state);
+     
+           arguments->args[state->arg_num] = arg;
+     
+           break;
+     
+         case ARGP_KEY_END:
+           if (state->arg_num < 2)
+             /* Not enough arguments. */
+             argp_usage (state);
+           break;
+     
+         default:
+           return ARGP_ERR_UNKNOWN;
+         }
+       return 0;
+     }
+     
+     /* Our argp parser. */
+     static struct argp argp = { options, parse_opt, args_doc, doc };
+     
+     int main (int argc, char **argv)
+     {
+       struct arguments arguments;
+     
+       /* Default values. */
+       arguments.silent = 0;
+       arguments.verbose = 0;
+       arguments.output_file = "-";
+     
+       /* Parse our arguments; every option seen by `parse_opt' will
+          be reflected in `arguments'. */
+       argp_parse (&argp, argc, argv, 0, 0, &arguments);
+     
+       printf ("ARG1 = %s\nARG2 = %s\nOUTPUT_FILE = %s\n"
+               "VERBOSE = %s\nSILENT = %s\n",
+               arguments.args[0], arguments.args[1],
+               arguments.output_file,
+               arguments.verbose ? "yes" : "no",
+               arguments.silent ? "yes" : "no");
+     
+       exit (0);
+     }
+

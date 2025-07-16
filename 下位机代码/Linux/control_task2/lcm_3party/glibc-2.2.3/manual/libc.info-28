@@ -1,0 +1,1172 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Socket Option Functions,  Next: Socket-Level Options,  Up: Socket Options
+
+Socket Option Functions
+-----------------------
+
+   Here are the functions for examining and modifying socket options.
+They are declared in `sys/socket.h'.
+
+ - Function: int getsockopt (int SOCKET, int LEVEL, int OPTNAME, void
+          *OPTVAL, socklen_t *OPTLEN-PTR)
+     The `getsockopt' function gets information about the value of
+     option OPTNAME at level LEVEL for socket SOCKET.
+
+     The option value is stored in a buffer that OPTVAL points to.
+     Before the call, you should supply in `*OPTLEN-PTR' the size of
+     this buffer; on return, it contains the number of bytes of
+     information actually stored in the buffer.
+
+     Most options interpret the OPTVAL buffer as a single `int' value.
+
+     The actual return value of `getsockopt' is `0' on success and `-1'
+     on failure.  The following `errno' error conditions are defined:
+
+    `EBADF'
+          The SOCKET argument is not a valid file descriptor.
+
+    `ENOTSOCK'
+          The descriptor SOCKET is not a socket.
+
+    `ENOPROTOOPT'
+          The OPTNAME doesn't make sense for the given LEVEL.
+
+ - Function: int setsockopt (int SOCKET, int LEVEL, int OPTNAME, void
+          *OPTVAL, socklen_t OPTLEN)
+     This function is used to set the socket option OPTNAME at level
+     LEVEL for socket SOCKET.  The value of the option is passed in the
+     buffer OPTVAL of size OPTLEN.
+
+     The return value and error codes for `setsockopt' are the same as
+     for `getsockopt'.
+
+
+
+File: libc.info,  Node: Socket-Level Options,  Prev: Socket Option Functions,  Up: Socket Options
+
+Socket-Level Options
+--------------------
+
+ - Constant: int SOL_SOCKET
+     Use this constant as the LEVEL argument to `getsockopt' or
+     `setsockopt' to manipulate the socket-level options described in
+     this section.
+
+Here is a table of socket-level option names; all are defined in the
+header file `sys/socket.h'.
+
+`SO_DEBUG'
+     This option toggles recording of debugging information in the
+     underlying protocol modules.  The value has type `int'; a nonzero
+     value means "yes".
+
+`SO_REUSEADDR'
+     This option controls whether `bind' (*note Setting Address::)
+     should permit reuse of local addresses for this socket.  If you
+     enable this option, you can actually have two sockets with the
+     same Internet port number; but the system won't allow you to use
+     the two identically-named sockets in a way that would confuse the
+     Internet.  The reason for this option is that some higher-level
+     Internet protocols, including FTP, require you to keep reusing the
+     same port number.
+
+     The value has type `int'; a nonzero value means "yes".
+
+`SO_KEEPALIVE'
+     This option controls whether the underlying protocol should
+     periodically transmit messages on a connected socket.  If the peer
+     fails to respond to these messages, the connection is considered
+     broken.  The value has type `int'; a nonzero value means "yes".
+
+`SO_DONTROUTE'
+     This option controls whether outgoing messages bypass the normal
+     message routing facilities.  If set, messages are sent directly to
+     the network interface instead.  The value has type `int'; a nonzero
+     value means "yes".
+
+`SO_LINGER'
+     This option specifies what should happen when the socket of a type
+     that promises reliable delivery still has untransmitted messages
+     when it is closed; see *Note Closing a Socket::.  The value has
+     type `struct linger'.
+
+      - Data Type: struct linger
+          This structure type has the following members:
+
+         `int l_onoff'
+               This field is interpreted as a boolean.  If nonzero,
+               `close' blocks until the data are transmitted or the
+               timeout period has expired.
+
+         `int l_linger'
+               This specifies the timeout period, in seconds.
+
+`SO_BROADCAST'
+     This option controls whether datagrams may be broadcast from the
+     socket.  The value has type `int'; a nonzero value means "yes".
+
+`SO_OOBINLINE'
+     If this option is set, out-of-band data received on the socket is
+     placed in the normal input queue.  This permits it to be read using
+     `read' or `recv' without specifying the `MSG_OOB' flag.  *Note
+     Out-of-Band Data::.  The value has type `int'; a nonzero value
+     means "yes".
+
+`SO_SNDBUF'
+     This option gets or sets the size of the output buffer.  The value
+     is a `size_t', which is the size in bytes.
+
+`SO_RCVBUF'
+     This option gets or sets the size of the input buffer.  The value
+     is a `size_t', which is the size in bytes.
+
+`SO_STYLE'
+`SO_TYPE'
+     This option can be used with `getsockopt' only.  It is used to get
+     the socket's communication style.  `SO_TYPE' is the historical
+     name, and `SO_STYLE' is the preferred name in GNU.  The value has
+     type `int' and its value designates a communication style; see
+     *Note Communication Styles::.
+
+`SO_ERROR'
+     This option can be used with `getsockopt' only.  It is used to
+     reset the error status of the socket.  The value is an `int',
+     which represents the previous error status.
+
+
+File: libc.info,  Node: Networks Database,  Prev: Socket Options,  Up: Sockets
+
+Networks Database
+=================
+
+   Many systems come with a database that records a list of networks
+known to the system developer.  This is usually kept either in the file
+`/etc/networks' or in an equivalent from a name server.  This data base
+is useful for routing programs such as `route', but it is not useful
+for programs that simply communicate over the network.  We provide
+functions to access this database, which are declared in `netdb.h'.
+
+ - Data Type: struct netent
+     This data type is used to represent information about entries in
+     the networks database.  It has the following members:
+
+    `char *n_name'
+          This is the "official" name of the network.
+
+    `char **n_aliases'
+          These are alternative names for the network, represented as a
+          vector of strings.  A null pointer terminates the array.
+
+    `int n_addrtype'
+          This is the type of the network number; this is always equal
+          to `AF_INET' for Internet networks.
+
+    `unsigned long int n_net'
+          This is the network number.  Network numbers are returned in
+          host byte order; see *Note Byte Order::.
+
+   Use the `getnetbyname' or `getnetbyaddr' functions to search the
+networks database for information about a specific network.  The
+information is returned in a statically-allocated structure; you must
+copy the information if you need to save it.
+
+ - Function: struct netent * getnetbyname (const char *NAME)
+     The `getnetbyname' function returns information about the network
+     named NAME.  It returns a null pointer if there is no such network.
+
+ - Function: struct netent * getnetbyaddr (unsigned long int NET, int
+          TYPE)
+     The `getnetbyaddr' function returns information about the network
+     of type TYPE with number NET.  You should specify a value of
+     `AF_INET' for the TYPE argument for Internet networks.
+
+     `getnetbyaddr' returns a null pointer if there is no such network.
+
+   You can also scan the networks database using `setnetent',
+`getnetent' and `endnetent'.  Be careful when using these functions
+because they are not reentrant.
+
+ - Function: void setnetent (int STAYOPEN)
+     This function opens and rewinds the networks database.
+
+     If the STAYOPEN argument is nonzero, this sets a flag so that
+     subsequent calls to `getnetbyname' or `getnetbyaddr' will not
+     close the database (as they usually would).  This makes for more
+     efficiency if you call those functions several times, by avoiding
+     reopening the database for each call.
+
+ - Function: struct netent * getnetent (void)
+     This function returns the next entry in the networks database.  It
+     returns a null pointer if there are no more entries.
+
+ - Function: void endnetent (void)
+     This function closes the networks database.
+
+
+File: libc.info,  Node: Low-Level Terminal Interface,  Next: Syslog,  Prev: Sockets,  Up: Top
+
+Low-Level Terminal Interface
+****************************
+
+   This chapter describes functions that are specific to terminal
+devices.  You can use these functions to do things like turn off input
+echoing; set serial line characteristics such as line speed and flow
+control; and change which characters are used for end-of-file,
+command-line editing, sending signals, and similar control functions.
+
+   Most of the functions in this chapter operate on file descriptors.
+*Note Low-Level I/O::, for more information about what a file
+descriptor is and how to open a file descriptor for a terminal device.
+
+* Menu:
+
+* Is It a Terminal::            How to determine if a file is a terminal
+			         device, and what its name is.
+* I/O Queues::                  About flow control and typeahead.
+* Canonical or Not::            Two basic styles of input processing.
+* Terminal Modes::              How to examine and modify flags controlling
+			         details of terminal I/O: echoing,
+                                 signals, editing.  Posix.
+* BSD Terminal Modes::          BSD compatible terminal mode setting
+* Line Control::                Sending break sequences, clearing
+                                 terminal buffers ...
+* Noncanon Example::            How to read single characters without echo.
+* Pseudo-Terminals::            How to open a pseudo-terminal.
+
+
+File: libc.info,  Node: Is It a Terminal,  Next: I/O Queues,  Up: Low-Level Terminal Interface
+
+Identifying Terminals
+=====================
+
+   The functions described in this chapter only work on files that
+correspond to terminal devices.  You can find out whether a file
+descriptor is associated with a terminal by using the `isatty' function.
+
+   Prototypes for the functions in this section are declared in the
+header file `unistd.h'.
+
+ - Function: int isatty (int FILEDES)
+     This function returns `1' if FILEDES is a file descriptor
+     associated with an open terminal device, and 0 otherwise.
+
+   If a file descriptor is associated with a terminal, you can get its
+associated file name using the `ttyname' function.  See also the
+`ctermid' function, described in *Note Identifying the Terminal::.
+
+ - Function: char * ttyname (int FILEDES)
+     If the file descriptor FILEDES is associated with a terminal
+     device, the `ttyname' function returns a pointer to a
+     statically-allocated, null-terminated string containing the file
+     name of the terminal file.  The value is a null pointer if the
+     file descriptor isn't associated with a terminal, or the file name
+     cannot be determined.
+
+ - Function: int ttyname_r (int FILEDES, char *BUF, size_t LEN)
+     The `ttyname_r' function is similar to the `ttyname' function
+     except that it places its result into the user-specified buffer
+     starting at BUF with length LEN.
+
+     The normal return value from `ttyname_r' is 0.  Otherwise an error
+     number is returned to indicate the error.  The following `errno'
+     error conditions are defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal.
+
+    `ERANGE'
+          The buffer length LEN is too small to store the string to be
+          returned.
+
+
+File: libc.info,  Node: I/O Queues,  Next: Canonical or Not,  Prev: Is It a Terminal,  Up: Low-Level Terminal Interface
+
+I/O Queues
+==========
+
+   Many of the remaining functions in this section refer to the input
+and output queues of a terminal device.  These queues implement a form
+of buffering _within the kernel_ independent of the buffering
+implemented by I/O streams (*note I/O on Streams::).
+
+   The "terminal input queue" is also sometimes referred to as its
+"typeahead buffer".  It holds the characters that have been received
+from the terminal but not yet read by any process.
+
+   The size of the input queue is described by the `MAX_INPUT' and
+`_POSIX_MAX_INPUT' parameters; see *Note Limits for Files::.  You are
+guaranteed a queue size of at least `MAX_INPUT', but the queue might be
+larger, and might even dynamically change size.  If input flow control
+is enabled by setting the `IXOFF' input mode bit (*note Input Modes::),
+the terminal driver transmits STOP and START characters to the terminal
+when necessary to prevent the queue from overflowing.  Otherwise, input
+may be lost if it comes in too fast from the terminal.  In canonical
+mode, all input stays in the queue until a newline character is
+received, so the terminal input queue can fill up when you type a very
+long line.  *Note Canonical or Not::.
+
+   The "terminal output queue" is like the input queue, but for output;
+it contains characters that have been written by processes, but not yet
+transmitted to the terminal.  If output flow control is enabled by
+setting the `IXON' input mode bit (*note Input Modes::), the terminal
+driver obeys START and STOP characters sent by the terminal to stop and
+restart transmission of output.
+
+   "Clearing" the terminal input queue means discarding any characters
+that have been received but not yet read.  Similarly, clearing the
+terminal output queue means discarding any characters that have been
+written but not yet transmitted.
+
+
+File: libc.info,  Node: Canonical or Not,  Next: Terminal Modes,  Prev: I/O Queues,  Up: Low-Level Terminal Interface
+
+Two Styles of Input: Canonical or Not
+=====================================
+
+   POSIX systems support two basic modes of input: canonical and
+noncanonical.
+
+   In "canonical input processing" mode, terminal input is processed in
+lines terminated by newline (`'\n''), EOF, or EOL characters.  No input
+can be read until an entire line has been typed by the user, and the
+`read' function (*note I/O Primitives::) returns at most a single line
+of input, no matter how many bytes are requested.
+
+   In canonical input mode, the operating system provides input editing
+facilities: some characters are interpreted specially to perform editing
+operations within the current line of text, such as ERASE and KILL.
+*Note Editing Characters::.
+
+   The constants `_POSIX_MAX_CANON' and `MAX_CANON' parameterize the
+maximum number of bytes which may appear in a single line of canonical
+input.  *Note Limits for Files::.  You are guaranteed a maximum line
+length of at least `MAX_CANON' bytes, but the maximum might be larger,
+and might even dynamically change size.
+
+   In "noncanonical input processing" mode, characters are not grouped
+into lines, and ERASE and KILL processing is not performed.  The
+granularity with which bytes are read in noncanonical input mode is
+controlled by the MIN and TIME settings.  *Note Noncanonical Input::.
+
+   Most programs use canonical input mode, because this gives the user a
+way to edit input line by line.  The usual reason to use noncanonical
+mode is when the program accepts single-character commands or provides
+its own editing facilities.
+
+   The choice of canonical or noncanonical input is controlled by the
+`ICANON' flag in the `c_lflag' member of `struct termios'.  *Note Local
+Modes::.
+
+
+File: libc.info,  Node: Terminal Modes,  Next: BSD Terminal Modes,  Prev: Canonical or Not,  Up: Low-Level Terminal Interface
+
+Terminal Modes
+==============
+
+   This section describes the various terminal attributes that control
+how input and output are done.  The functions, data structures, and
+symbolic constants are all declared in the header file `termios.h'.
+
+   Don't confuse terminal attributes with file attributes.  A device
+special file which is associated with a terminal has file attributes as
+described in *Note File Attributes::.  These are unrelated to the
+attributes of the terminal device itself, which are discussed in this
+section.
+
+* Menu:
+
+* Mode Data Types::             The data type `struct termios' and
+                                 related types.
+* Mode Functions::              Functions to read and set the terminal
+                                 attributes.
+* Setting Modes::               The right way to set terminal attributes
+                                 reliably.
+* Input Modes::                 Flags controlling low-level input handling.
+* Output Modes::                Flags controlling low-level output handling.
+* Control Modes::               Flags controlling serial port behavior.
+* Local Modes::                 Flags controlling high-level input handling.
+* Line Speed::                  How to read and set the terminal line speed.
+* Special Characters::          Characters that have special effects,
+			         and how to change them.
+* Noncanonical Input::          Controlling how long to wait for input.
+
+
+File: libc.info,  Node: Mode Data Types,  Next: Mode Functions,  Up: Terminal Modes
+
+Terminal Mode Data Types
+------------------------
+
+   The entire collection of attributes of a terminal is stored in a
+structure of type `struct termios'.  This structure is used with the
+functions `tcgetattr' and `tcsetattr' to read and set the attributes.
+
+ - Data Type: struct termios
+     Structure that records all the I/O attributes of a terminal.  The
+     structure includes at least the following members:
+
+    `tcflag_t c_iflag'
+          A bit mask specifying flags for input modes; see *Note Input
+          Modes::.
+
+    `tcflag_t c_oflag'
+          A bit mask specifying flags for output modes; see *Note
+          Output Modes::.
+
+    `tcflag_t c_cflag'
+          A bit mask specifying flags for control modes; see *Note
+          Control Modes::.
+
+    `tcflag_t c_lflag'
+          A bit mask specifying flags for local modes; see *Note Local
+          Modes::.
+
+    `cc_t c_cc[NCCS]'
+          An array specifying which characters are associated with
+          various control functions; see *Note Special Characters::.
+
+     The `struct termios' structure also contains members which encode
+     input and output transmission speeds, but the representation is
+     not specified.  *Note Line Speed::, for how to examine and store
+     the speed values.
+
+   The following sections describe the details of the members of the
+`struct termios' structure.
+
+ - Data Type: tcflag_t
+     This is an unsigned integer type used to represent the various bit
+     masks for terminal flags.
+
+ - Data Type: cc_t
+     This is an unsigned integer type used to represent characters
+     associated with various terminal control functions.
+
+ - Macro: int NCCS
+     The value of this macro is the number of elements in the `c_cc'
+     array.
+
+
+File: libc.info,  Node: Mode Functions,  Next: Setting Modes,  Prev: Mode Data Types,  Up: Terminal Modes
+
+Terminal Mode Functions
+-----------------------
+
+ - Function: int tcgetattr (int FILEDES, struct termios *TERMIOS-P)
+     This function is used to examine the attributes of the terminal
+     device with file descriptor FILEDES.  The attributes are returned
+     in the structure that TERMIOS-P points to.
+
+     If successful, `tcgetattr' returns 0.  A return value of -1
+     indicates an error.  The following `errno' error conditions are
+     defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal.
+
+ - Function: int tcsetattr (int FILEDES, int WHEN, const struct termios
+          *TERMIOS-P)
+     This function sets the attributes of the terminal device with file
+     descriptor FILEDES.  The new attributes are taken from the
+     structure that TERMIOS-P points to.
+
+     The WHEN argument specifies how to deal with input and output
+     already queued.  It can be one of the following values:
+
+    `TCSANOW'
+          Make the change immediately.
+
+    `TCSADRAIN'
+          Make the change after waiting until all queued output has
+          been written.  You should usually use this option when
+          changing parameters that affect output.
+
+    `TCSAFLUSH'
+          This is like `TCSADRAIN', but also discards any queued input.
+
+    `TCSASOFT'
+          This is a flag bit that you can add to any of the above
+          alternatives.  Its meaning is to inhibit alteration of the
+          state of the terminal hardware.  It is a BSD extension; it is
+          only supported on BSD systems and the GNU system.
+
+          Using `TCSASOFT' is exactly the same as setting the `CIGNORE'
+          bit in the `c_cflag' member of the structure TERMIOS-P points
+          to.  *Note Control Modes::, for a description of `CIGNORE'.
+
+     If this function is called from a background process on its
+     controlling terminal, normally all processes in the process group
+     are sent a `SIGTTOU' signal, in the same way as if the process
+     were trying to write to the terminal.  The exception is if the
+     calling process itself is ignoring or blocking `SIGTTOU' signals,
+     in which case the operation is performed and no signal is sent.
+     *Note Job Control::.
+
+     If successful, `tcsetattr' returns 0.  A return value of -1
+     indicates an error.  The following `errno' error conditions are
+     defined for this function:
+
+    `EBADF'
+          The FILEDES argument is not a valid file descriptor.
+
+    `ENOTTY'
+          The FILEDES is not associated with a terminal.
+
+    `EINVAL'
+          Either the value of the `when' argument is not valid, or
+          there is something wrong with the data in the TERMIOS-P
+          argument.
+
+   Although `tcgetattr' and `tcsetattr' specify the terminal device
+with a file descriptor, the attributes are those of the terminal device
+itself and not of the file descriptor.  This means that the effects of
+changing terminal attributes are persistent; if another process opens
+the terminal file later on, it will see the changed attributes even
+though it doesn't have anything to do with the open file descriptor you
+originally specified in changing the attributes.
+
+   Similarly, if a single process has multiple or duplicated file
+descriptors for the same terminal device, changing the terminal
+attributes affects input and output to all of these file descriptors.
+This means, for example, that you can't open one file descriptor or
+stream to read from a terminal in the normal line-buffered, echoed
+mode; and simultaneously have another file descriptor for the same
+terminal that you use to read from it in single-character, non-echoed
+mode.  Instead, you have to explicitly switch the terminal back and
+forth between the two modes.
+
+
+File: libc.info,  Node: Setting Modes,  Next: Input Modes,  Prev: Mode Functions,  Up: Terminal Modes
+
+Setting Terminal Modes Properly
+-------------------------------
+
+   When you set terminal modes, you should call `tcgetattr' first to
+get the current modes of the particular terminal device, modify only
+those modes that you are really interested in, and store the result with
+`tcsetattr'.
+
+   It's a bad idea to simply initialize a `struct termios' structure to
+a chosen set of attributes and pass it directly to `tcsetattr'.  Your
+program may be run years from now, on systems that support members not
+documented in this manual.  The way to avoid setting these members to
+unreasonable values is to avoid changing them.
+
+   What's more, different terminal devices may require different mode
+settings in order to function properly.  So you should avoid blindly
+copying attributes from one terminal device to another.
+
+   When a member contains a collection of independent flags, as the
+`c_iflag', `c_oflag' and `c_cflag' members do, even setting the entire
+member is a bad idea, because particular operating systems have their
+own flags.  Instead, you should start with the current value of the
+member and alter only the flags whose values matter in your program,
+leaving any other flags unchanged.
+
+   Here is an example of how to set one flag (`ISTRIP') in the `struct
+termios' structure while properly preserving all the other data in the
+structure:
+
+     int
+     set_istrip (int desc, int value)
+     {
+       struct termios settings;
+       int result;
+     
+       result = tcgetattr (desc, &settings);
+       if (result < 0)
+         {
+           perror ("error in tcgetattr");
+           return 0;
+         }
+       settings.c_iflag &= ~ISTRIP;
+       if (value)
+         settings.c_iflag |= ISTRIP;
+       result = tcsetattr (desc, TCSANOW, &settings);
+       if (result < 0)
+         {
+           perror ("error in tcgetattr");
+           return;
+        }
+       return 1;
+     }
+
+
+File: libc.info,  Node: Input Modes,  Next: Output Modes,  Prev: Setting Modes,  Up: Terminal Modes
+
+Input Modes
+-----------
+
+   This section describes the terminal attribute flags that control
+fairly low-level aspects of input processing: handling of parity errors,
+break signals, flow control, and <RET> and <LFD> characters.
+
+   All of these flags are bits in the `c_iflag' member of the `struct
+termios' structure.  The member is an integer, and you change flags
+using the operators `&', `|' and `^'.  Don't try to specify the entire
+value for `c_iflag'--instead, change only specific flags and leave the
+rest untouched (*note Setting Modes::).
+
+ - Macro: tcflag_t INPCK
+     If this bit is set, input parity checking is enabled.  If it is
+     not set, no checking at all is done for parity errors on input; the
+     characters are simply passed through to the application.
+
+     Parity checking on input processing is independent of whether
+     parity detection and generation on the underlying terminal
+     hardware is enabled; see *Note Control Modes::.  For example, you
+     could clear the `INPCK' input mode flag and set the `PARENB'
+     control mode flag to ignore parity errors on input, but still
+     generate parity on output.
+
+     If this bit is set, what happens when a parity error is detected
+     depends on whether the `IGNPAR' or `PARMRK' bits are set.  If
+     neither of these bits are set, a byte with a parity error is
+     passed to the application as a `'\0'' character.
+
+ - Macro: tcflag_t IGNPAR
+     If this bit is set, any byte with a framing or parity error is
+     ignored.  This is only useful if `INPCK' is also set.
+
+ - Macro: tcflag_t PARMRK
+     If this bit is set, input bytes with parity or framing errors are
+     marked when passed to the program.  This bit is meaningful only
+     when `INPCK' is set and `IGNPAR' is not set.
+
+     The way erroneous bytes are marked is with two preceding bytes,
+     `377' and `0'.  Thus, the program actually reads three bytes for
+     one erroneous byte received from the terminal.
+
+     If a valid byte has the value `0377', and `ISTRIP' (see below) is
+     not set, the program might confuse it with the prefix that marks a
+     parity error.  So a valid byte `0377' is passed to the program as
+     two bytes, `0377' `0377', in this case.
+
+ - Macro: tcflag_t ISTRIP
+     If this bit is set, valid input bytes are stripped to seven bits;
+     otherwise, all eight bits are available for programs to read.
+
+ - Macro: tcflag_t IGNBRK
+     If this bit is set, break conditions are ignored.
+
+     A "break condition" is defined in the context of asynchronous
+     serial data transmission as a series of zero-value bits longer
+     than a single byte.
+
+ - Macro: tcflag_t BRKINT
+     If this bit is set and `IGNBRK' is not set, a break condition
+     clears the terminal input and output queues and raises a `SIGINT'
+     signal for the foreground process group associated with the
+     terminal.
+
+     If neither `BRKINT' nor `IGNBRK' are set, a break condition is
+     passed to the application as a single `'\0'' character if `PARMRK'
+     is not set, or otherwise as a three-character sequence `'\377'',
+     `'\0'', `'\0''.
+
+ - Macro: tcflag_t IGNCR
+     If this bit is set, carriage return characters (`'\r'') are
+     discarded on input.  Discarding carriage return may be useful on
+     terminals that send both carriage return and linefeed when you
+     type the <RET> key.
+
+ - Macro: tcflag_t ICRNL
+     If this bit is set and `IGNCR' is not set, carriage return
+     characters (`'\r'') received as input are passed to the
+     application as newline characters (`'\n'').
+
+ - Macro: tcflag_t INLCR
+     If this bit is set, newline characters (`'\n'') received as input
+     are passed to the application as carriage return characters
+     (`'\r'').
+
+ - Macro: tcflag_t IXOFF
+     If this bit is set, start/stop control on input is enabled.  In
+     other words, the computer sends STOP and START characters as
+     necessary to prevent input from coming in faster than programs are
+     reading it.  The idea is that the actual terminal hardware that is
+     generating the input data responds to a STOP character by
+     suspending transmission, and to a START character by resuming
+     transmission.  *Note Start/Stop Characters::.
+
+ - Macro: tcflag_t IXON
+     If this bit is set, start/stop control on output is enabled.  In
+     other words, if the computer receives a STOP character, it
+     suspends output until a START character is received.  In this
+     case, the STOP and START characters are never passed to the
+     application program.  If this bit is not set, then START and STOP
+     can be read as ordinary characters.  *Note Start/Stop Characters::.
+
+ - Macro: tcflag_t IXANY
+     If this bit is set, any input character restarts output when
+     output has been suspended with the STOP character.  Otherwise,
+     only the START character restarts output.
+
+     This is a BSD extension; it exists only on BSD systems and the GNU
+     system.
+
+ - Macro: tcflag_t IMAXBEL
+     If this bit is set, then filling up the terminal input buffer
+     sends a BEL character (code `007') to the terminal to ring the
+     bell.
+
+     This is a BSD extension.
+
+
+File: libc.info,  Node: Output Modes,  Next: Control Modes,  Prev: Input Modes,  Up: Terminal Modes
+
+Output Modes
+------------
+
+   This section describes the terminal flags and fields that control how
+output characters are translated and padded for display.  All of these
+are contained in the `c_oflag' member of the `struct termios' structure.
+
+   The `c_oflag' member itself is an integer, and you change the flags
+and fields using the operators `&', `|', and `^'.  Don't try to specify
+the entire value for `c_oflag'--instead, change only specific flags and
+leave the rest untouched (*note Setting Modes::).
+
+ - Macro: tcflag_t OPOST
+     If this bit is set, output data is processed in some unspecified
+     way so that it is displayed appropriately on the terminal device.
+     This typically includes mapping newline characters (`'\n'') onto
+     carriage return and linefeed pairs.
+
+     If this bit isn't set, the characters are transmitted as-is.
+
+   The following three bits are BSD features, and they exist only BSD
+systems and the GNU system.  They are effective only if `OPOST' is set.
+
+ - Macro: tcflag_t ONLCR
+     If this bit is set, convert the newline character on output into a
+     pair of characters, carriage return followed by linefeed.
+
+ - Macro: tcflag_t OXTABS
+     If this bit is set, convert tab characters on output into the
+     appropriate number of spaces to emulate a tab stop every eight
+     columns.
+
+ - Macro: tcflag_t ONOEOT
+     If this bit is set, discard `C-d' characters (code `004') on
+     output.  These characters cause many dial-up terminals to
+     disconnect.
+
+
+File: libc.info,  Node: Control Modes,  Next: Local Modes,  Prev: Output Modes,  Up: Terminal Modes
+
+Control Modes
+-------------
+
+   This section describes the terminal flags and fields that control
+parameters usually associated with asynchronous serial data
+transmission.  These flags may not make sense for other kinds of
+terminal ports (such as a network connection pseudo-terminal).  All of
+these are contained in the `c_cflag' member of the `struct termios'
+structure.
+
+   The `c_cflag' member itself is an integer, and you change the flags
+and fields using the operators `&', `|', and `^'.  Don't try to specify
+the entire value for `c_cflag'--instead, change only specific flags and
+leave the rest untouched (*note Setting Modes::).
+
+ - Macro: tcflag_t CLOCAL
+     If this bit is set, it indicates that the terminal is connected
+     "locally" and that the modem status lines (such as carrier detect)
+     should be ignored.
+
+     On many systems if this bit is not set and you call `open' without
+     the `O_NONBLOCK' flag set, `open' blocks until a modem connection
+     is established.
+
+     If this bit is not set and a modem disconnect is detected, a
+     `SIGHUP' signal is sent to the controlling process group for the
+     terminal (if it has one).  Normally, this causes the process to
+     exit; see *Note Signal Handling::.  Reading from the terminal
+     after a disconnect causes an end-of-file condition, and writing
+     causes an `EIO' error to be returned.  The terminal device must be
+     closed and reopened to clear the condition.
+
+ - Macro: tcflag_t HUPCL
+     If this bit is set, a modem disconnect is generated when all
+     processes that have the terminal device open have either closed
+     the file or exited.
+
+ - Macro: tcflag_t CREAD
+     If this bit is set, input can be read from the terminal.
+     Otherwise, input is discarded when it arrives.
+
+ - Macro: tcflag_t CSTOPB
+     If this bit is set, two stop bits are used.  Otherwise, only one
+     stop bit is used.
+
+ - Macro: tcflag_t PARENB
+     If this bit is set, generation and detection of a parity bit are
+     enabled.  *Note Input Modes::, for information on how input parity
+     errors are handled.
+
+     If this bit is not set, no parity bit is added to output
+     characters, and input characters are not checked for correct
+     parity.
+
+ - Macro: tcflag_t PARODD
+     This bit is only useful if `PARENB' is set.  If `PARODD' is set,
+     odd parity is used, otherwise even parity is used.
+
+   The control mode flags also includes a field for the number of bits
+per character.  You can use the `CSIZE' macro as a mask to extract the
+value, like this: `settings.c_cflag & CSIZE'.
+
+ - Macro: tcflag_t CSIZE
+     This is a mask for the number of bits per character.
+
+ - Macro: tcflag_t CS5
+     This specifies five bits per byte.
+
+ - Macro: tcflag_t CS6
+     This specifies six bits per byte.
+
+ - Macro: tcflag_t CS7
+     This specifies seven bits per byte.
+
+ - Macro: tcflag_t CS8
+     This specifies eight bits per byte.
+
+   The following four bits are BSD extensions; this exist only on BSD
+systems and the GNU system.
+
+ - Macro: tcflag_t CCTS_OFLOW
+     If this bit is set, enable flow control of output based on the CTS
+     wire (RS232 protocol).
+
+ - Macro: tcflag_t CRTS_IFLOW
+     If this bit is set, enable flow control of input based on the RTS
+     wire (RS232 protocol).
+
+ - Macro: tcflag_t MDMBUF
+     If this bit is set, enable carrier-based flow control of output.
+
+ - Macro: tcflag_t CIGNORE
+     If this bit is set, it says to ignore the control modes and line
+     speed values entirely.  This is only meaningful in a call to
+     `tcsetattr'.
+
+     The `c_cflag' member and the line speed values returned by
+     `cfgetispeed' and `cfgetospeed' will be unaffected by the call.
+     `CIGNORE' is useful if you want to set all the software modes in
+     the other members, but leave the hardware details in `c_cflag'
+     unchanged.  (This is how the `TCSASOFT' flag to `tcsettattr'
+     works.)
+
+     This bit is never set in the structure filled in by `tcgetattr'.
+
+
+File: libc.info,  Node: Local Modes,  Next: Line Speed,  Prev: Control Modes,  Up: Terminal Modes
+
+Local Modes
+-----------
+
+   This section describes the flags for the `c_lflag' member of the
+`struct termios' structure.  These flags generally control higher-level
+aspects of input processing than the input modes flags described in
+*Note Input Modes::, such as echoing, signals, and the choice of
+canonical or noncanonical input.
+
+   The `c_lflag' member itself is an integer, and you change the flags
+and fields using the operators `&', `|', and `^'.  Don't try to specify
+the entire value for `c_lflag'--instead, change only specific flags and
+leave the rest untouched (*note Setting Modes::).
+
+ - Macro: tcflag_t ICANON
+     This bit, if set, enables canonical input processing mode.
+     Otherwise, input is processed in noncanonical mode.  *Note
+     Canonical or Not::.
+
+ - Macro: tcflag_t ECHO
+     If this bit is set, echoing of input characters back to the
+     terminal is enabled.
+
+ - Macro: tcflag_t ECHOE
+     If this bit is set, echoing indicates erasure of input with the
+     ERASE character by erasing the last character in the current line
+     from the screen.  Otherwise, the character erased is re-echoed to
+     show what has happened (suitable for a printing terminal).
+
+     This bit only controls the display behavior; the `ICANON' bit by
+     itself controls actual recognition of the ERASE character and
+     erasure of input, without which `ECHOE' is simply irrelevant.
+
+ - Macro: tcflag_t ECHOPRT
+     This bit is like `ECHOE', enables display of the ERASE character in
+     a way that is geared to a hardcopy terminal.  When you type the
+     ERASE character, a `\' character is printed followed by the first
+     character erased.  Typing the ERASE character again just prints
+     the next character erased.  Then, the next time you type a normal
+     character, a `/' character is printed before the character echoes.
+
+     This is a BSD extension, and exists only in BSD systems and the
+     GNU system.
+
+ - Macro: tcflag_t ECHOK
+     This bit enables special display of the KILL character by moving
+     to a new line after echoing the KILL character normally.  The
+     behavior of `ECHOKE' (below) is nicer to look at.
+
+     If this bit is not set, the KILL character echoes just as it would
+     if it were not the KILL character.  Then it is up to the user to
+     remember that the KILL character has erased the preceding input;
+     there is no indication of this on the screen.
+
+     This bit only controls the display behavior; the `ICANON' bit by
+     itself controls actual recognition of the KILL character and
+     erasure of input, without which `ECHOK' is simply irrelevant.
+
+ - Macro: tcflag_t ECHOKE
+     This bit is similar to `ECHOK'.  It enables special display of the
+     KILL character by erasing on the screen the entire line that has
+     been killed.  This is a BSD extension, and exists only in BSD
+     systems and the GNU system.
+
+ - Macro: tcflag_t ECHONL
+     If this bit is set and the `ICANON' bit is also set, then the
+     newline (`'\n'') character is echoed even if the `ECHO' bit is not
+     set.
+
+ - Macro: tcflag_t ECHOCTL
+     If this bit is set and the `ECHO' bit is also set, echo control
+     characters with `^' followed by the corresponding text character.
+     Thus, control-A echoes as `^A'.  This is usually the preferred mode
+     for interactive input, because echoing a control character back to
+     the terminal could have some undesired effect on the terminal.
+
+     This is a BSD extension, and exists only in BSD systems and the
+     GNU system.
+
+ - Macro: tcflag_t ISIG
+     This bit controls whether the INTR, QUIT, and SUSP characters are
+     recognized.  The functions associated with these characters are
+     performed if and only if this bit is set.  Being in canonical or
+     noncanonical input mode has no affect on the interpretation of
+     these characters.
+
+     You should use caution when disabling recognition of these
+     characters.  Programs that cannot be interrupted interactively are
+     very user-unfriendly.  If you clear this bit, your program should
+     provide some alternate interface that allows the user to
+     interactively send the signals associated with these characters,
+     or to escape from the program.
+
+     *Note Signal Characters::.
+
+ - Macro: tcflag_t IEXTEN
+     POSIX.1 gives `IEXTEN' implementation-defined meaning, so you
+     cannot rely on this interpretation on all systems.
+
+     On BSD systems and the GNU system, it enables the LNEXT and
+     DISCARD characters.  *Note Other Special::.
+
+ - Macro: tcflag_t NOFLSH
+     Normally, the INTR, QUIT, and SUSP characters cause input and
+     output queues for the terminal to be cleared.  If this bit is set,
+     the queues are not cleared.
+
+ - Macro: tcflag_t TOSTOP
+     If this bit is set and the system supports job control, then
+     `SIGTTOU' signals are generated by background processes that
+     attempt to write to the terminal.  *Note Access to the Terminal::.
+
+   The following bits are BSD extensions; they exist only in BSD systems
+and the GNU system.
+
+ - Macro: tcflag_t ALTWERASE
+     This bit determines how far the WERASE character should erase.  The
+     WERASE character erases back to the beginning of a word; the
+     question is, where do words begin?
+
+     If this bit is clear, then the beginning of a word is a
+     nonwhitespace character following a whitespace character.  If the
+     bit is set, then the beginning of a word is an alphanumeric
+     character or underscore following a character which is none of
+     those.
+
+     *Note Editing Characters::, for more information about the WERASE
+     character.
+
+ - Macro: tcflag_t FLUSHO
+     This is the bit that toggles when the user types the DISCARD
+     character.  While this bit is set, all output is discarded.  *Note
+     Other Special::.
+
+ - Macro: tcflag_t NOKERNINFO
+     Setting this bit disables handling of the STATUS character.  *Note
+     Other Special::.
+
+ - Macro: tcflag_t PENDIN
+     If this bit is set, it indicates that there is a line of input that
+     needs to be reprinted.  Typing the REPRINT character sets this
+     bit; the bit remains set until reprinting is finished.  *Note
+     Editing Characters::.
+
+
+File: libc.info,  Node: Line Speed,  Next: Special Characters,  Prev: Local Modes,  Up: Terminal Modes
+
+Line Speed
+----------
+
+   The terminal line speed tells the computer how fast to read and write
+data on the terminal.
+
+   If the terminal is connected to a real serial line, the terminal
+speed you specify actually controls the line--if it doesn't match the
+terminal's own idea of the speed, communication does not work.  Real
+serial ports accept only certain standard speeds.  Also, particular
+hardware may not support even all the standard speeds.  Specifying a
+speed of zero hangs up a dialup connection and turns off modem control
+signals.
+
+   If the terminal is not a real serial line (for example, if it is a
+network connection), then the line speed won't really affect data
+transmission speed, but some programs will use it to determine the
+amount of padding needed.  It's best to specify a line speed value that
+matches the actual speed of the actual terminal, but you can safely
+experiment with different values to vary the amount of padding.
+
+   There are actually two line speeds for each terminal, one for input
+and one for output.  You can set them independently, but most often
+terminals use the same speed for both directions.
+
+   The speed values are stored in the `struct termios' structure, but
+don't try to access them in the `struct termios' structure directly.
+Instead, you should use the following functions to read and store them:
+
+ - Function: speed_t cfgetospeed (const struct termios *TERMIOS-P)
+     This function returns the output line speed stored in the structure
+     `*TERMIOS-P'.
+
+ - Function: speed_t cfgetispeed (const struct termios *TERMIOS-P)
+     This function returns the input line speed stored in the structure
+     `*TERMIOS-P'.
+
+ - Function: int cfsetospeed (struct termios *TERMIOS-P, speed_t SPEED)
+     This function stores SPEED in `*TERMIOS-P' as the output speed.
+     The normal return value is 0; a value of -1 indicates an error.
+     If SPEED is not a speed, `cfsetospeed' returns -1.
+
+ - Function: int cfsetispeed (struct termios *TERMIOS-P, speed_t SPEED)
+     This function stores SPEED in `*TERMIOS-P' as the input speed.
+     The normal return value is 0; a value of -1 indicates an error.
+     If SPEED is not a speed, `cfsetospeed' returns -1.
+
+ - Function: int cfsetspeed (struct termios *TERMIOS-P, speed_t SPEED)
+     This function stores SPEED in `*TERMIOS-P' as both the input and
+     output speeds.  The normal return value is 0; a value of -1
+     indicates an error.  If SPEED is not a speed, `cfsetspeed' returns
+     -1.  This function is an extension in 4.4 BSD.
+
+ - Data Type: speed_t
+     The `speed_t' type is an unsigned integer data type used to
+     represent line speeds.
+
+   The functions `cfsetospeed' and `cfsetispeed' report errors only for
+speed values that the system simply cannot handle.  If you specify a
+speed value that is basically acceptable, then those functions will
+succeed.  But they do not check that a particular hardware device can
+actually support the specified speeds--in fact, they don't know which
+device you plan to set the speed for.  If you use `tcsetattr' to set
+the speed of a particular device to a value that it cannot handle,
+`tcsetattr' returns -1.
+
+   *Portability note:* In the GNU library, the functions above accept
+speeds measured in bits per second as input, and return speed values
+measured in bits per second.  Other libraries require speeds to be
+indicated by special codes.  For POSIX.1 portability, you must use one
+of the following symbols to represent the speed; their precise numeric
+values are system-dependent, but each name has a fixed meaning: `B110'
+stands for 110 bps, `B300' for 300 bps, and so on.  There is no
+portable way to represent any speed but these, but these are the only
+speeds that typical serial lines can support.
+
+     B0  B50  B75  B110  B134  B150  B200
+     B300  B600  B1200  B1800  B2400  B4800
+     B9600  B19200  B38400  B57600  B115200
+     B230400  B460800
+
+   BSD defines two additional speed symbols as aliases: `EXTA' is an
+alias for `B19200' and `EXTB' is an alias for `B38400'.  These aliases
+are obsolete.
+
+
+File: libc.info,  Node: Special Characters,  Next: Noncanonical Input,  Prev: Line Speed,  Up: Terminal Modes
+
+Special Characters
+------------------
+
+   In canonical input, the terminal driver recognizes a number of
+special characters which perform various control functions.  These
+include the ERASE character (usually <DEL>) for editing input, and
+other editing characters.  The INTR character (normally `C-c') for
+sending a `SIGINT' signal, and other signal-raising characters, may be
+available in either canonical or noncanonical input mode.  All these
+characters are described in this section.
+
+   The particular characters used are specified in the `c_cc' member of
+the `struct termios' structure.  This member is an array; each element
+specifies the character for a particular role.  Each element has a
+symbolic constant that stands for the index of that element--for
+example, `VINTR' is the index of the element that specifies the INTR
+character, so storing `'='' in `TERMIOS.c_cc[VINTR]' specifies `=' as
+the INTR character.
+
+   On some systems, you can disable a particular special character
+function by specifying the value `_POSIX_VDISABLE' for that role.  This
+value is unequal to any possible character code.  *Note Options for
+Files::, for more information about how to tell whether the operating
+system you are using supports `_POSIX_VDISABLE'.
+
+* Menu:
+
+* Editing Characters::          Special characters that terminate lines and
+                                  delete text, and other editing functions.
+* Signal Characters::           Special characters that send or raise signals
+                                  to or for certain classes of processes.
+* Start/Stop Characters::       Special characters that suspend or resume
+                                  suspended output.
+* Other Special::		Other special characters for BSD systems:
+				  they can discard output, and print status.
+

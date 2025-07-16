@@ -1,0 +1,1241 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Formatting Calendar Time,  Next: Parsing Date and Time,  Prev: High Accuracy Clock,  Up: Calendar Time
+
+Formatting Calendar Time
+------------------------
+
+   The functions described in this section format calendar time values
+as strings.  These functions are declared in the header file `time.h'.
+
+ - Function: char * asctime (const struct tm *BROKENTIME)
+     The `asctime' function converts the broken-down time value that
+     BROKENTIME points to into a string in a standard format:
+
+          "Tue May 21 13:46:22 1991\n"
+
+     The abbreviations for the days of week are: `Sun', `Mon', `Tue',
+     `Wed', `Thu', `Fri', and `Sat'.
+
+     The abbreviations for the months are: `Jan', `Feb', `Mar', `Apr',
+     `May', `Jun', `Jul', `Aug', `Sep', `Oct', `Nov', and `Dec'.
+
+     The return value points to a statically allocated string, which
+     might be overwritten by subsequent calls to `asctime' or `ctime'.
+     (But no other library function overwrites the contents of this
+     string.)
+
+ - Function: char * asctime_r (const struct tm *BROKENTIME, char
+          *BUFFER)
+     This function is similar to `asctime' but instead of placing the
+     result in a static buffer it writes the string in the buffer
+     pointed to by the parameter BUFFER.  This buffer should have room
+     for at least 26 bytes, including the terminating null.
+
+     If no error occurred the function returns a pointer to the string
+     the result was written into, i.e., it returns BUFFER.  Otherwise
+     return `NULL'.
+
+ - Function: char * ctime (const time_t *TIME)
+     The `ctime' function is similar to `asctime', except that you
+     specify the calendar time argument as a `time_t' simple time value
+     rather than in broken-down local time format.  It is equivalent to
+
+          asctime (localtime (TIME))
+
+     `ctime' sets the variable `tzname', because `localtime' does so.
+     *Note Time Zone Functions::.
+
+ - Function: char * ctime_r (const time_t *TIME, char *BUFFER)
+     This function is similar to `ctime', but places the result in the
+     string pointed to by BUFFER.  It is equivalent to (written using
+     gcc extensions, *note Statement Exprs: (gcc)Statement Exprs.):
+
+          ({ struct tm tm; asctime_r (localtime_r (time, &tm), buf); })
+
+     If no error occurred the function returns a pointer to the string
+     the result was written into, i.e., it returns BUFFER.  Otherwise
+     return `NULL'.
+
+ - Function: size_t strftime (char *S, size_t SIZE, const char
+          *TEMPLATE, const struct tm *BROKENTIME)
+     This function is similar to the `sprintf' function (*note
+     Formatted Input::), but the conversion specifications that can
+     appear in the format template TEMPLATE are specialized for
+     printing components of the date and time BROKENTIME according to
+     the locale currently specified for time conversion (*note
+     Locales::).
+
+     Ordinary characters appearing in the TEMPLATE are copied to the
+     output string S; this can include multibyte character sequences.
+     Conversion specifiers are introduced by a `%' character, followed
+     by an optional flag which can be one of the following.  These flags
+     are all GNU extensions. The first three affect only the output of
+     numbers:
+
+    `_'
+          The number is padded with spaces.
+
+    `-'
+          The number is not padded at all.
+
+    `0'
+          The number is padded with zeros even if the format specifies
+          padding with spaces.
+
+    `^'
+          The output uses uppercase characters, but only if this is
+          possible (*note Case Conversion::).
+
+     The default action is to pad the number with zeros to keep it a
+     constant width.  Numbers that do not have a range indicated below
+     are never padded, since there is no natural width for them.
+
+     Following the flag an optional specification of the width is
+     possible.  This is specified in decimal notation.  If the natural
+     size of the output is of the field has less than the specified
+     number of characters, the result is written right adjusted and
+     space padded to the given size.
+
+     An optional modifier can follow the optional flag and width
+     specification.  The modifiers, which are POSIX.2 extensions, are:
+
+    `E'
+          Use the locale's alternate representation for date and time.
+          This modifier applies to the `%c', `%C', `%x', `%X', `%y' and
+          `%Y' format specifiers.  In a Japanese locale, for example,
+          `%Ex' might yield a date format based on the Japanese
+          Emperors' reigns.
+
+    `O'
+          Use the locale's alternate numeric symbols for numbers.  This
+          modifier applies only to numeric format specifiers.
+
+     If the format supports the modifier but no alternate representation
+     is available, it is ignored.
+
+     The conversion specifier ends with a format specifier taken from
+     the following list.  The whole `%' sequence is replaced in the
+     output string as follows:
+
+    `%a'
+          The abbreviated weekday name according to the current locale.
+
+    `%A'
+          The full weekday name according to the current locale.
+
+    `%b'
+          The abbreviated month name according to the current locale.
+
+    `%B'
+          The full month name according to the current locale.
+
+    `%c'
+          The preferred calendar time representation for the current
+          locale.
+
+    `%C'
+          The century of the year.  This is equivalent to the greatest
+          integer not greater than the year divided by 100.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%d'
+          The day of the month as a decimal number (range `01' through
+          `31').
+
+    `%D'
+          The date using the format `%m/%d/%y'.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%e'
+          The day of the month like with `%d', but padded with blank
+          (range ` 1' through `31').
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%F'
+          The date using the format `%Y-%m-%d'.  This is the form
+          specified in the ISO 8601 standard and is the preferred form
+          for all uses.
+
+          This format is a ISO C99 extension.
+
+    `%g'
+          The year corresponding to the ISO week number, but without
+          the century (range `00' through `99').  This has the same
+          format and value as `%y', except that if the ISO week number
+          (see `%V') belongs to the previous or next year, that year is
+          used instead.
+
+          This format was introduced in ISO C99.
+
+    `%G'
+          The year corresponding to the ISO week number.  This has the
+          same format and value as `%Y', except that if the ISO week
+          number (see `%V') belongs to the previous or next year, that
+          year is used instead.
+
+          This format was introduced in ISO C99 but was previously
+          available as a GNU extension.
+
+    `%h'
+          The abbreviated month name according to the current locale.
+          The action is the same as for `%b'.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%H'
+          The hour as a decimal number, using a 24-hour clock (range
+          `00' through `23').
+
+    `%I'
+          The hour as a decimal number, using a 12-hour clock (range
+          `01' through `12').
+
+    `%j'
+          The day of the year as a decimal number (range `001' through
+          `366').
+
+    `%k'
+          The hour as a decimal number, using a 24-hour clock like
+          `%H', but padded with blank (range ` 0' through `23').
+
+          This format is a GNU extension.
+
+    `%l'
+          The hour as a decimal number, using a 12-hour clock like
+          `%I', but padded with blank (range ` 1' through `12').
+
+          This format is a GNU extension.
+
+    `%m'
+          The month as a decimal number (range `01' through `12').
+
+    `%M'
+          The minute as a decimal number (range `00' through `59').
+
+    `%n'
+          A single `\n' (newline) character.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%p'
+          Either `AM' or `PM', according to the given time value; or the
+          corresponding strings for the current locale.  Noon is
+          treated as `PM' and midnight as `AM'.
+
+    `%P'
+          Either `am' or `pm', according to the given time value; or the
+          corresponding strings for the current locale, printed in
+          lowercase characters.  Noon is treated as `pm' and midnight
+          as `am'.
+
+          This format was introduced in ISO C99 but was previously
+          available as a GNU extension.
+
+    `%r'
+          The complete calendar time using the AM/PM format of the
+          current locale.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%R'
+          The hour and minute in decimal numbers using the format
+          `%H:%M'.
+
+          This format was introduced in ISO C99 but was previously
+          available as a GNU extension.
+
+    `%s'
+          The number of seconds since the epoch, i.e., since 1970-01-01
+          00:00:00 UTC.  Leap seconds are not counted unless leap
+          second support is available.
+
+          This format is a GNU extension.
+
+    `%S'
+          The seconds as a decimal number (range `00' through `60').
+
+    `%t'
+          A single `\t' (tabulator) character.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%T'
+          The time of day using decimal numbers using the format
+          `%H:%M:%S'.
+
+          This format is a POSIX.2 extension.
+
+    `%u'
+          The day of the week as a decimal number (range `1' through
+          `7'), Monday being `1'.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%U'
+          The week number of the current year as a decimal number
+          (range `00' through `53'), starting with the first Sunday as
+          the first day of the first week.  Days preceding the first
+          Sunday in the year are considered to be in week `00'.
+
+    `%V'
+          The ISO 8601:1988 week number as a decimal number (range `01'
+          through `53').  ISO weeks start with Monday and end with
+          Sunday.  Week `01' of a year is the first week which has the
+          majority of its days in that year; this is equivalent to the
+          week containing the year's first Thursday, and it is also
+          equivalent to the week containing January 4.  Week `01' of a
+          year can contain days from the previous year.  The week
+          before week `01' of a year is the last week (`52' or `53') of
+          the previous year even if it contains days from the new year.
+
+          This format is a POSIX.2 extension and also appears in
+          ISO C99.
+
+    `%w'
+          The day of the week as a decimal number (range `0' through
+          `6'), Sunday being `0'.
+
+    `%W'
+          The week number of the current year as a decimal number
+          (range `00' through `53'), starting with the first Monday as
+          the first day of the first week.  All days preceding the
+          first Monday in the year are considered to be in week `00'.
+
+    `%x'
+          The preferred date representation for the current locale.
+
+    `%X'
+          The preferred time of day representation for the current
+          locale.
+
+    `%y'
+          The year without a century as a decimal number (range `00'
+          through `99').  This is equivalent to the year modulo 100.
+
+    `%Y'
+          The year as a decimal number, using the Gregorian calendar.
+          Years before the year `1' are numbered `0', `-1', and so on.
+
+    `%z'
+          RFC 822/ISO 8601:1988 style numeric time zone (e.g., `-0600'
+          or `+0100'), or nothing if no time zone is determinable.
+
+          This format was introduced in ISO C99 but was previously
+          available as a GNU extension.
+
+          A full RFC 822 timestamp is generated by the format
+          `"%a, %d %b %Y %H:%M:%S %z"' (or the equivalent
+          `"%a, %d %b %Y %T %z"').
+
+    `%Z'
+          The time zone abbreviation (empty if the time zone can't be
+          determined).
+
+    `%%'
+          A literal `%' character.
+
+     The SIZE parameter can be used to specify the maximum number of
+     characters to be stored in the array S, including the terminating
+     null character.  If the formatted time requires more than SIZE
+     characters, `strftime' returns zero and the contents of the array
+     S are undefined.  Otherwise the return value indicates the number
+     of characters placed in the array S, not including the terminating
+     null character.
+
+     _Warning:_ This convention for the return value which is prescribed
+     in ISO C can lead to problems in some situations.  For certain
+     format strings and certain locales the output really can be the
+     empty string and this cannot be discovered by testing the return
+     value only.  E.g., in most locales the AM/PM time format is not
+     supported (most of the world uses the 24 hour time
+     representation).  In such locales `"%p"' will return the empty
+     string, i.e., the return value is zero.  To detect situations like
+     this something similar to the following code should be used:
+
+          buf[0] = '\1';
+          len = strftime (buf, bufsize, format, tp);
+          if (len == 0 && buf[0] != '\0')
+            {
+              /* Something went wrong in the strftime call.  */
+              ...
+            }
+
+     If S is a null pointer, `strftime' does not actually write
+     anything, but instead returns the number of characters it would
+     have written.
+
+     According to POSIX.1 every call to `strftime' implies a call to
+     `tzset'.  So the contents of the environment variable `TZ' is
+     examined before any output is produced.
+
+     For an example of `strftime', see *Note Time Functions Example::.
+
+ - Function: size_t wcsftime (wchar_t *S, size_t SIZE, const wchar_t
+          *TEMPLATE, const struct tm *BROKENTIME)
+     The `wcsftime' function is equivalent to the `strftime' function
+     with the difference that it operates on wide character strings.
+     The buffer where the result is stored, pointed to by S, must be an
+     array of wide characters.  The parameter SIZE which specifies the
+     size of the output buffer gives the number of wide character, not
+     the number of bytes.
+
+     Also the format string TEMPLATE is a wide character string.  Since
+     all characters needed to specify the format string are in the basic
+     character set it is portably possible to write format strings in
+     the C source code using the `L"..."' notation.  The parameter
+     BROKENTIME has the same meaning as in the `strftime' call.
+
+     The `wcsftime' function supports the same flags, modifiers, and
+     format specifiers as the `strftime' function.
+
+     The return value of `wcsftime' is the number of wide characters
+     stored in `s'.  When more characters would have to be written than
+     can be placed in the buffer S the return value is zero, with the
+     same problems indicated in the `strftime' documentation.
+
+
+File: libc.info,  Node: Parsing Date and Time,  Next: TZ Variable,  Prev: Formatting Calendar Time,  Up: Calendar Time
+
+Convert textual time and date information back
+----------------------------------------------
+
+   The ISO C standard does not specify any functions which can convert
+the output of the `strftime' function back into a binary format.  This
+led to a variety of more-or-less successful implementations with
+different interfaces over the years.  Then the Unix standard was
+extended by the addition of two functions: `strptime' and `getdate'.
+Both have strange interfaces but at least they are widely available.
+
+* Menu:
+
+* Low-Level Time String Parsing::  Interpret string according to given format.
+* General Time String Parsing::    User-friendly function to parse data and
+                                    time strings.
+
+
+File: libc.info,  Node: Low-Level Time String Parsing,  Next: General Time String Parsing,  Up: Parsing Date and Time
+
+Interpret string according to given format
+..........................................
+
+   he first function is rather low-level.  It is nevertheless frequently
+used in software since it is better known.  Its interface and
+implementation are heavily influenced by the `getdate' function, which
+is defined and implemented in terms of calls to `strptime'.
+
+ - Function: char * strptime (const char *S, const char *FMT, struct tm
+          *TP)
+     The `strptime' function parses the input string S according to the
+     format string FMT and stores its results in the structure TP.
+
+     The input string could be generated by a `strftime' call or
+     obtained any other way.  It does not need to be in a
+     human-recognizable format; e.g. a date passed as `"02:1999:9"' is
+     acceptable, even though it is ambiguous without context.  As long
+     as the format string FMT matches the input string the function
+     will succeed.
+
+     The format string consists of the same components as the format
+     string of the `strftime' function.  The only difference is that
+     the flags `_', `-', `0', and `^' are not allowed.  Several of the
+     distinct formats of `strftime' do the same work in `strptime'
+     since differences like case of the input do not matter.  For
+     reasons of symmetry all formats are supported, though.
+
+     The modifiers `E' and `O' are also allowed everywhere the
+     `strftime' function allows them.
+
+     The formats are:
+
+    `%a'
+    `%A'
+          The weekday name according to the current locale, in
+          abbreviated form or the full name.
+
+    `%b'
+    `%B'
+    `%h'
+          The month name according to the current locale, in
+          abbreviated form or the full name.
+
+    `%c'
+          The date and time representation for the current locale.
+
+    `%Ec'
+          Like `%c' but the locale's alternative date and time format
+          is used.
+
+    `%C'
+          The century of the year.
+
+          It makes sense to use this format only if the format string
+          also contains the `%y' format.
+
+    `%EC'
+          The locale's representation of the period.
+
+          Unlike `%C' it sometimes makes sense to use this format since
+          some cultures represent years relative to the beginning of
+          eras instead of using the Gregorian years.
+
+    `%d'
+
+    `%e'
+          The day of the month as a decimal number (range `1' through
+          `31').  Leading zeroes are permitted but not required.
+
+    `%Od'
+    `%Oe'
+          Same as `%d' but using the locale's alternative numeric
+          symbols.
+
+          Leading zeroes are permitted but not required.
+
+    `%D'
+          Equivalent to `%m/%d/%y'.
+
+    `%F'
+          Equivalent to `%Y-%m-%d', which is the ISO 8601 date format.
+
+          This is a GNU extension following an ISO C99 extension to
+          `strftime'.
+
+    `%g'
+          The year corresponding to the ISO week number, but without
+          the century (range `00' through `99').
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+          This format is a GNU extension following a GNU extension of
+          `strftime'.
+
+    `%G'
+          The year corresponding to the ISO week number.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+          This format is a GNU extension following a GNU extension of
+          `strftime'.
+
+    `%H'
+    `%k'
+          The hour as a decimal number, using a 24-hour clock (range
+          `00' through `23').
+
+          `%k' is a GNU extension following a GNU extension of
+          `strftime'.
+
+    `%OH'
+          Same as `%H' but using the locale's alternative numeric
+          symbols.
+
+    `%I'
+    `%l'
+          The hour as a decimal number, using a 12-hour clock (range
+          `01' through `12').
+
+          `%l' is a GNU extension following a GNU extension of
+          `strftime'.
+
+    `%OI'
+          Same as `%I' but using the locale's alternative numeric
+          symbols.
+
+    `%j'
+          The day of the year as a decimal number (range `1' through
+          `366').
+
+          Leading zeroes are permitted but not required.
+
+    `%m'
+          The month as a decimal number (range `1' through `12').
+
+          Leading zeroes are permitted but not required.
+
+    `%Om'
+          Same as `%m' but using the locale's alternative numeric
+          symbols.
+
+    `%M'
+          The minute as a decimal number (range `0' through `59').
+
+          Leading zeroes are permitted but not required.
+
+    `%OM'
+          Same as `%M' but using the locale's alternative numeric
+          symbols.
+
+    `%n'
+    `%t'
+          Matches any white space.
+
+    `%p'
+
+    `%P'
+          The locale-dependent equivalent to `AM' or `PM'.
+
+          This format is not useful unless `%I' or `%l' is also used.
+          Another complication is that the locale might not define
+          these values at all and therefore the conversion fails.
+
+          `%P' is a GNU extension following a GNU extension to
+          `strftime'.
+
+    `%r'
+          The complete time using the AM/PM format of the current
+          locale.
+
+          A complication is that the locale might not define this
+          format at all and therefore the conversion fails.
+
+    `%R'
+          The hour and minute in decimal numbers using the format
+          `%H:%M'.
+
+          `%R' is a GNU extension following a GNU extension to
+          `strftime'.
+
+    `%s'
+          The number of seconds since the epoch, i.e., since 1970-01-01
+          00:00:00 UTC.  Leap seconds are not counted unless leap
+          second support is available.
+
+          `%s' is a GNU extension following a GNU extension to
+          `strftime'.
+
+    `%S'
+          The seconds as a decimal number (range `0' through `60').
+
+          Leading zeroes are permitted but not required.
+
+          *Note:* The Unix specification says the upper bound on this
+          value is `61', a result of a decision to allow double leap
+          seconds.  You will not see the value `61' because no minute
+          has more than one leap second, but the myth persists.
+
+    `%OS'
+          Same as `%S' but using the locale's alternative numeric
+          symbols.
+
+    `%T'
+          Equivalent to the use of `%H:%M:%S' in this place.
+
+    `%u'
+          The day of the week as a decimal number (range `1' through
+          `7'), Monday being `1'.
+
+          Leading zeroes are permitted but not required.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+    `%U'
+          The week number of the current year as a decimal number
+          (range `0' through `53').
+
+          Leading zeroes are permitted but not required.
+
+    `%OU'
+          Same as `%U' but using the locale's alternative numeric
+          symbols.
+
+    `%V'
+          The ISO 8601:1988 week number as a decimal number (range `1'
+          through `53').
+
+          Leading zeroes are permitted but not required.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+    `%w'
+          The day of the week as a decimal number (range `0' through
+          `6'), Sunday being `0'.
+
+          Leading zeroes are permitted but not required.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+    `%Ow'
+          Same as `%w' but using the locale's alternative numeric
+          symbols.
+
+    `%W'
+          The week number of the current year as a decimal number
+          (range `0' through `53').
+
+          Leading zeroes are permitted but not required.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+    `%OW'
+          Same as `%W' but using the locale's alternative numeric
+          symbols.
+
+    `%x'
+          The date using the locale's date format.
+
+    `%Ex'
+          Like `%x' but the locale's alternative data representation is
+          used.
+
+    `%X'
+          The time using the locale's time format.
+
+    `%EX'
+          Like `%X' but the locale's alternative time representation is
+          used.
+
+    `%y'
+          The year without a century as a decimal number (range `0'
+          through `99').
+
+          Leading zeroes are permitted but not required.
+
+          Note that it is questionable to use this format without the
+          `%C' format.  The `strptime' function does regard input
+          values in the range 68 to 99 as the years 1969 to 1999 and
+          the values 0 to 68 as the years 2000 to 2068.  But maybe this
+          heuristic fails for some input data.
+
+          Therefore it is best to avoid `%y' completely and use `%Y'
+          instead.
+
+    `%Ey'
+          The offset from `%EC' in the locale's alternative
+          representation.
+
+    `%Oy'
+          The offset of the year (from `%C') using the locale's
+          alternative numeric symbols.
+
+    `%Y'
+          The year as a decimal number, using the Gregorian calendar.
+
+    `%EY'
+          The full alternative year representation.
+
+    `%z'
+          Equivalent to the use of `%a, %d %b %Y %H:%M:%S %z' in this
+          place.  This is the full ISO 8601 date and time format.
+
+    `%Z'
+          The timezone name.
+
+          _Note:_ Currently, this is not fully implemented.  The format
+          is recognized, input is consumed but no field in TM is set.
+
+    `%%'
+          A literal `%' character.
+
+     All other characters in the format string must have a matching
+     character in the input string.  Exceptions are white spaces in the
+     input string which can match zero or more white space characters
+     in the format string.
+
+     The `strptime' function processes the input string from right to
+     left.  Each of the three possible input elements (white space,
+     literal, or format) are handled one after the other.  If the input
+     cannot be matched to the format string the function stops.  The
+     remainder of the format and input strings are not processed.
+
+     The function returns a pointer to the first character it was
+     unable to process.  If the input string contains more characters
+     than required by the format string the return value points right
+     after the last consumed input character.  If the whole input
+     string is consumed the return value points to the `NULL' byte at
+     the end of the string.  If an error occurs, i.e. `strptime' fails
+     to match all of the format string, the function returns `NULL'.
+
+   The specification of the function in the XPG standard is rather
+vague, leaving out a few important pieces of information.  Most
+importantly, it does not specify what happens to those elements of TM
+which are not directly initialized by the different formats.  The
+implementations on different Unix systems vary here.
+
+   The GNU libc implementation does not touch those fields which are not
+directly initialized.  Exceptions are the `tm_wday' and `tm_yday'
+elements, which are recomputed if any of the year, month, or date
+elements changed.  This has two implications:
+
+   * Before calling the `strptime' function for a new input string, you
+     should prepare the TM structure you pass.  Normally this will mean
+     initializing all values are to zero.  Alternatively, you can set
+     all fields to values like `INT_MAX', allowing you to determine
+     which elements were set by the function call.  Zero does not work
+     here since it is a valid value for many of the fields.
+
+     Careful initialization is necessary if you want to find out
+     whether a certain field in TM was initialized by the function call.
+
+   * You can construct a `struct tm' value with several consecutive
+     `strptime' calls.  A useful application of this is e.g. the parsing
+     of two separate strings, one containing date information and the
+     other time information.  By parsing one after the other without
+     clearing the structure in-between, you can construct a complete
+     broken-down time.
+
+   The following example shows a function which parses a string which is
+contains the date information in either US style or ISO 8601 form:
+
+     const char *
+     parse_date (const char *input, struct tm *tm)
+     {
+       const char *cp;
+     
+       /* First clear the result structure.  */
+       memset (tm, '\0', sizeof (*tm));
+     
+       /* Try the ISO format first.  */
+       cp = strptime (input, "%F", tm);
+       if (cp == NULL)
+         {
+           /* Does not match.  Try the US form.  */
+           cp = strptime (input, "%D", tm);
+         }
+     
+       return cp;
+     }
+
+
+File: libc.info,  Node: General Time String Parsing,  Prev: Low-Level Time String Parsing,  Up: Parsing Date and Time
+
+A More User-friendly Way to Parse Times and Dates
+.................................................
+
+   The Unix standard defines another function for parsing date strings.
+The interface is weird, but if the function happens to suit your
+application it is just fine.  It is problematic to use this function in
+multi-threaded programs or libraries, since it returns a pointer to a
+static variable, and uses a global variable and global state (an
+environment variable).
+
+ - Variable: getdate_err
+     This variable of type `int' contains the error code of the last
+     unsuccessful call to `getdate'.  Defined values are:
+
+    1
+          The environment variable `DATEMSK' is not defined or null.
+
+    2
+          The template file denoted by the `DATEMSK' environment
+          variable cannot be opened.
+
+    3
+          Information about the template file cannot retrieved.
+
+    4
+          The template file is not a regular file.
+
+    5
+          An I/O error occurred while reading the template file.
+
+    6
+          Not enough memory available to execute the function.
+
+    7
+          The template file contains no matching template.
+
+    8
+          The input date is invalid, but would match a template
+          otherwise.  This includes dates like February 31st, and dates
+          which cannot be represented in a `time_t' variable.
+
+ - Function: struct tm * getdate (const char *STRING)
+     The interface to `getdate' is the simplest possible for a function
+     to parse a string and return the value.  STRING is the input
+     string and the result is returned in a statically-allocated
+     variable.
+
+     The details about how the string is processed are hidden from the
+     user.  In fact, they can be outside the control of the program.
+     Which formats are recognized is controlled by the file named by
+     the environment variable `DATEMSK'.  This file should contain
+     lines of valid format strings which could be passed to `strptime'.
+
+     The `getdate' function reads these format strings one after the
+     other and tries to match the input string.  The first line which
+     completely matches the input string is used.
+
+     Elements not initialized through the format string retain the
+     values present at the time of the `getdate' function call.
+
+     The formats recognized by `getdate' are the same as for
+     `strptime'.  See above for an explanation.  There are only a few
+     extensions to the `strptime' behavior:
+
+        * If the `%Z' format is given the broken-down time is based on
+          the current time of the timezone matched, not of the current
+          timezone of the runtime environment.
+
+          _Note_: This is not implemented (currently).  The problem is
+          that timezone names are not unique.  If a fixed timezone is
+          assumed for a given string (say `EST' meaning US East Coast
+          time), then uses for countries other than the USA will fail.
+          So far we have found no good solution to this.
+
+        * If only the weekday is specified the selected day depends on
+          the current date.  If the current weekday is greater or equal
+          to the `tm_wday' value the current week's day is chosen,
+          otherwise the day next week is chosen.
+
+        * A similar heuristic is used when only the month is given and
+          not the year.  If the month is greater than or equal to the
+          current month, then the current year is used.  Otherwise it
+          wraps to next year.  The first day of the month is assumed if
+          one is not explicitly specified.
+
+        * The current hour, minute, and second are used if the
+          appropriate value is not set through the format.
+
+        * If no date is given tomorrow's date is used if the time is
+          smaller than the current time.  Otherwise today's date is
+          taken.
+
+     It should be noted that the format in the template file need not
+     only contain format elements.  The following is a list of possible
+     format strings (taken from the Unix standard):
+
+          %m
+          %A %B %d, %Y %H:%M:%S
+          %A
+          %B
+          %m/%d/%y %I %p
+          %d,%m,%Y %H:%M
+          at %A the %dst of %B in %Y
+          run job at %I %p,%B %dnd
+          %A den %d. %B %Y %H.%M Uhr
+
+     As you can see, the template list can contain very specific
+     strings like `run job at %I %p,%B %dnd'.  Using the above list of
+     templates and assuming the current time is Mon Sep 22 12:19:47 EDT
+     1986 we can obtain the following results for the given input.
+
+     Input          Match        Result
+     Mon            %a           Mon Sep 22 12:19:47 EDT 1986
+     Sun            %a           Sun Sep 28 12:19:47 EDT 1986
+     Fri            %a           Fri Sep 26 12:19:47 EDT 1986
+     September      %B           Mon Sep 1 12:19:47 EDT 1986
+     January        %B           Thu Jan 1 12:19:47 EST 1987
+     December       %B           Mon Dec 1 12:19:47 EST 1986
+     Sep Mon        %b %a        Mon Sep 1 12:19:47 EDT 1986
+     Jan Fri        %b %a        Fri Jan 2 12:19:47 EST 1987
+     Dec Mon        %b %a        Mon Dec 1 12:19:47 EST 1986
+     Jan Wed 1989   %b %a %Y     Wed Jan 4 12:19:47 EST 1989
+     Fri 9          %a %H        Fri Sep 26 09:00:00 EDT 1986
+     Feb 10:30      %b %H:%S     Sun Feb 1 10:00:30 EST 1987
+     10:30          %H:%M        Tue Sep 23 10:30:00 EDT 1986
+     13:30          %H:%M        Mon Sep 22 13:30:00 EDT 1986
+
+     The return value of the function is a pointer to a static variable
+     of type `struct tm', or a null pointer if an error occurred.  The
+     result is only valid until the next `getdate' call, making this
+     function unusable in multi-threaded applications.
+
+     The `errno' variable is _not_ changed.  Error conditions are
+     stored in the global variable `getdate_err'.  See the description
+     above for a list of the possible error values.
+
+     _Warning:_ The `getdate' function should _never_ be used in
+     SUID-programs.  The reason is obvious: using the `DATEMSK'
+     environment variable you can get the function to open any
+     arbitrary file and chances are high that with some bogus input
+     (such as a binary file) the program will crash.
+
+ - Function: int getdate_r (const char *STRING, struct tm *TP)
+     The `getdate_r' function is the reentrant counterpart of
+     `getdate'.  It does not use the global variable `getdate_err' to
+     signal an error, but instead returns an error code.  The same error
+     codes as described in the `getdate_err' documentation above are
+     used, with 0 meaning success.
+
+     Moreover, `getdate_r' stores the broken-down time in the variable
+     of type `struct tm' pointed to by the second argument, rather than
+     in a static variable.
+
+     This function is not defined in the Unix standard.  Nevertheless
+     it is available on some other Unix systems as well.
+
+     The warning against using `getdate' in SUID-programs applies to
+     `getdate_r' as well.
+
+
+File: libc.info,  Node: TZ Variable,  Next: Time Zone Functions,  Prev: Parsing Date and Time,  Up: Calendar Time
+
+Specifying the Time Zone with `TZ'
+----------------------------------
+
+   In POSIX systems, a user can specify the time zone by means of the
+`TZ' environment variable.  For information about how to set
+environment variables, see *Note Environment Variables::.  The functions
+for accessing the time zone are declared in `time.h'.
+
+   You should not normally need to set `TZ'.  If the system is
+configured properly, the default time zone will be correct.  You might
+set `TZ' if you are using a computer over a network from a different
+time zone, and would like times reported to you in the time zone local
+to you, rather than what is local to the computer.
+
+   In POSIX.1 systems the value of the `TZ' variable can be in one of
+three formats.  With the GNU C library, the most common format is the
+last one, which can specify a selection from a large database of time
+zone information for many regions of the world.  The first two formats
+are used to describe the time zone information directly, which is both
+more cumbersome and less precise.  But the POSIX.1 standard only
+specifies the details of the first two formats, so it is good to be
+familiar with them in case you come across a POSIX.1 system that doesn't
+support a time zone information database.
+
+   The first format is used when there is no Daylight Saving Time (or
+summer time) in the local time zone:
+
+     STD OFFSET
+
+   The STD string specifies the name of the time zone.  It must be
+three or more characters long and must not contain a leading colon,
+embedded digits, commas, nor plus and minus signs.  There is no space
+character separating the time zone name from the OFFSET, so these
+restrictions are necessary to parse the specification correctly.
+
+   The OFFSET specifies the time value you must add to the local time
+to get a Coordinated Universal Time value.  It has syntax like
+[`+'|`-']HH[`:'MM[`:'SS]].  This is positive if the local time zone is
+west of the Prime Meridian and negative if it is east.  The hour must
+be between `0' and `23', and the minute and seconds between `0' and
+`59'.
+
+   For example, here is how we would specify Eastern Standard Time, but
+without any Daylight Saving Time alternative:
+
+     EST+5
+
+   The second format is used when there is Daylight Saving Time:
+
+     STD OFFSET DST [OFFSET]`,'START[`/'TIME]`,'END[`/'TIME]
+
+   The initial STD and OFFSET specify the standard time zone, as
+described above.  The DST string and OFFSET specify the name and offset
+for the corresponding Daylight Saving Time zone; if the OFFSET is
+omitted, it defaults to one hour ahead of standard time.
+
+   The remainder of the specification describes when Daylight Saving
+Time is in effect.  The START field is when Daylight Saving Time goes
+into effect and the END field is when the change is made back to
+standard time.  The following formats are recognized for these fields:
+
+`JN'
+     This specifies the Julian day, with N between `1' and `365'.
+     February 29 is never counted, even in leap years.
+
+`N'
+     This specifies the Julian day, with N between `0' and `365'.
+     February 29 is counted in leap years.
+
+`MM.W.D'
+     This specifies day D of week W of month M.  The day D must be
+     between `0' (Sunday) and `6'.  The week W must be between `1' and
+     `5'; week `1' is the first week in which day D occurs, and week
+     `5' specifies the _last_ D day in the month.  The month M should be
+     between `1' and `12'.
+
+   The TIME fields specify when, in the local time currently in effect,
+the change to the other time occurs.  If omitted, the default is
+`02:00:00'.
+
+   For example, here is how you would specify the Eastern time zone in
+the United States, including the appropriate Daylight Saving Time and
+its dates of applicability.  The normal offset from UTC is 5 hours;
+since this is west of the prime meridian, the sign is positive.  Summer
+time begins on the first Sunday in April at 2:00am, and ends on the
+last Sunday in October at 2:00am.
+
+     EST+5EDT,M4.1.0/2,M10.5.0/2
+
+   The schedule of Daylight Saving Time in any particular jurisdiction
+has changed over the years.  To be strictly correct, the conversion of
+dates and times in the past should be based on the schedule that was in
+effect then.  However, this format has no facilities to let you specify
+how the schedule has changed from year to year.  The most you can do is
+specify one particular schedule--usually the present day schedule--and
+this is used to convert any date, no matter when.  For precise time zone
+specifications, it is best to use the time zone information database
+(see below).
+
+   The third format looks like this:
+
+     :CHARACTERS
+
+   Each operating system interprets this format differently; in the GNU
+C library, CHARACTERS is the name of a file which describes the time
+zone.
+
+   If the `TZ' environment variable does not have a value, the
+operation chooses a time zone by default.  In the GNU C library, the
+default time zone is like the specification `TZ=:/etc/localtime' (or
+`TZ=:/usr/local/etc/localtime', depending on how GNU C library was
+configured; *note Installation::).  Other C libraries use their own
+rule for choosing the default time zone, so there is little we can say
+about them.
+
+   If CHARACTERS begins with a slash, it is an absolute file name;
+otherwise the library looks for the file
+`/share/lib/zoneinfo/CHARACTERS'.  The `zoneinfo' directory contains
+data files describing local time zones in many different parts of the
+world.  The names represent major cities, with subdirectories for
+geographical areas; for example, `America/New_York', `Europe/London',
+`Asia/Hong_Kong'.  These data files are installed by the system
+administrator, who also sets `/etc/localtime' to point to the data file
+for the local time zone.  The GNU C library comes with a large database
+of time zone information for most regions of the world, which is
+maintained by a community of volunteers and put in the public domain.
+
+
+File: libc.info,  Node: Time Zone Functions,  Next: Time Functions Example,  Prev: TZ Variable,  Up: Calendar Time
+
+Functions and Variables for Time Zones
+--------------------------------------
+
+ - Variable: char * tzname [2]
+     The array `tzname' contains two strings, which are the standard
+     names of the pair of time zones (standard and Daylight Saving)
+     that the user has selected.  `tzname[0]' is the name of the
+     standard time zone (for example, `"EST"'), and `tzname[1]' is the
+     name for the time zone when Daylight Saving Time is in use (for
+     example, `"EDT"').  These correspond to the STD and DST strings
+     (respectively) from the `TZ' environment variable.  If Daylight
+     Saving Time is never used, `tzname[1]' is the empty string.
+
+     The `tzname' array is initialized from the `TZ' environment
+     variable whenever `tzset', `ctime', `strftime', `mktime', or
+     `localtime' is called.  If multiple abbreviations have been used
+     (e.g. `"EWT"' and `"EDT"' for U.S. Eastern War Time and Eastern
+     Daylight Time), the array contains the most recent abbreviation.
+
+     The `tzname' array is required for POSIX.1 compatibility, but in
+     GNU programs it is better to use the `tm_zone' member of the
+     broken-down time structure, since `tm_zone' reports the correct
+     abbreviation even when it is not the latest one.
+
+     Though the strings are declared as `char *' the user must refrain
+     from modifying these strings.  Modifying the strings will almost
+     certainly lead to trouble.
+
+
+ - Function: void tzset (void)
+     The `tzset' function initializes the `tzname' variable from the
+     value of the `TZ' environment variable.  It is not usually
+     necessary for your program to call this function, because it is
+     called automatically when you use the other time conversion
+     functions that depend on the time zone.
+
+   The following variables are defined for compatibility with System V
+Unix.  Like `tzname', these variables are set by calling `tzset' or the
+other time conversion functions.
+
+ - Variable: long int timezone
+     This contains the difference between UTC and the latest local
+     standard time, in seconds west of UTC.  For example, in the U.S.
+     Eastern time zone, the value is `5*60*60'.  Unlike the `tm_gmtoff'
+     member of the broken-down time structure, this value is not
+     adjusted for daylight saving, and its sign is reversed.  In GNU
+     programs it is better to use `tm_gmtoff', since it contains the
+     correct offset even when it is not the latest one.
+
+ - Variable: int daylight
+     This variable has a nonzero value if Daylight Saving Time rules
+     apply.  A nonzero value does not necessarily mean that Daylight
+     Saving Time is now in effect; it means only that Daylight Saving
+     Time is sometimes in effect.
+
+
+File: libc.info,  Node: Time Functions Example,  Prev: Time Zone Functions,  Up: Calendar Time
+
+Time Functions Example
+----------------------
+
+   Here is an example program showing the use of some of the calendar
+time functions.
+
+     #include <time.h>
+     #include <stdio.h>
+     
+     #define SIZE 256
+     
+     int
+     main (void)
+     {
+       char buffer[SIZE];
+       time_t curtime;
+       struct tm *loctime;
+     
+       /* Get the current time. */
+       curtime = time (NULL);
+     
+       /* Convert it to local time representation. */
+       loctime = localtime (&curtime);
+     
+       /* Print out the date and time in the standard format. */
+       fputs (asctime (loctime), stdout);
+     
+       /* Print it out in a nice format. */
+       strftime (buffer, SIZE, "Today is %A, %B %d.\n", loctime);
+       fputs (buffer, stdout);
+       strftime (buffer, SIZE, "The time is %I:%M %p.\n", loctime);
+       fputs (buffer, stdout);
+     
+       return 0;
+     }
+
+   It produces output like this:
+
+     Wed Jul 31 13:02:36 1991
+     Today is Wednesday, July 31.
+     The time is 01:02 PM.
+

@@ -1,0 +1,1179 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Printf Extension Example,  Next: Predefined Printf Handlers,  Prev: Defining the Output Handler,  Up: Customizing Printf
+
+`printf' Extension Example
+--------------------------
+
+   Here is an example showing how to define a `printf' handler function.
+This program defines a data structure called a `Widget' and defines the
+`%W' conversion to print information about `Widget *' arguments,
+including the pointer value and the name stored in the data structure.
+The `%W' conversion supports the minimum field width and
+left-justification options, but ignores everything else.
+
+     #include <stdio.h>
+     #include <stdlib.h>
+     #include <printf.h>
+     
+     typedef struct
+     {
+       char *name;
+     }
+     Widget;
+     
+     int
+     print_widget (FILE *stream,
+                   const struct printf_info *info,
+                   const void *const *args)
+     {
+       const Widget *w;
+       char *buffer;
+       int len;
+     
+       /* Format the output into a string. */
+       w = *((const Widget **) (args[0]));
+       len = asprintf (&buffer, "<Widget %p: %s>", w, w->name);
+       if (len == -1)
+         return -1;
+     
+       /* Pad to the minimum field width and print to the stream. */
+       len = fprintf (stream, "%*s",
+                      (info->left ? -info->width : info->width),
+                      buffer);
+     
+       /* Clean up and return. */
+       free (buffer);
+       return len;
+     }
+     
+     
+     int
+     print_widget_arginfo (const struct printf_info *info, size_t n,
+                           int *argtypes)
+     {
+       /* We always take exactly one argument and this is a pointer to the
+          structure.. */
+       if (n > 0)
+         argtypes[0] = PA_POINTER;
+       return 1;
+     }
+     
+     
+     int
+     main (void)
+     {
+       /* Make a widget to print. */
+       Widget mywidget;
+       mywidget.name = "mywidget";
+     
+       /* Register the print function for widgets. */
+       register_printf_function ('W', print_widget, print_widget_arginfo);
+     
+       /* Now print the widget. */
+       printf ("|%W|\n", &mywidget);
+       printf ("|%35W|\n", &mywidget);
+       printf ("|%-35W|\n", &mywidget);
+     
+       return 0;
+     }
+
+   The output produced by this program looks like:
+
+     |<Widget 0xffeffb7c: mywidget>|
+     |      <Widget 0xffeffb7c: mywidget>|
+     |<Widget 0xffeffb7c: mywidget>      |
+
+
+File: libc.info,  Node: Predefined Printf Handlers,  Prev: Printf Extension Example,  Up: Customizing Printf
+
+Predefined `printf' Handlers
+----------------------------
+
+   The GNU libc also contains a concrete and useful application of the
+`printf' handler extension.  There are two functions available which
+implement a special way to print floating-point numbers.
+
+ - Function: int printf_size (FILE *FP, const struct printf_info *INFO,
+          const void *const *ARGS)
+     Print a given floating point number as for the format `%f' except
+     that there is a postfix character indicating the divisor for the
+     number to make this less than 1000.  There are two possible
+     divisors: powers of 1024 or powers of 1000.  Which one is used
+     depends on the format character specified while registered this
+     handler.  If the character is of lower case, 1024 is used.  For
+     upper case characters, 1000 is used.
+
+     The postfix tag corresponds to bytes, kilobytes, megabytes,
+     gigabytes, etc.  The full table is:
+
+     +------+--------------+--------+--------+---------------+
+     |low|Multiplier|From|Upper|Multiplier|
+     +------+--------------+--------+--------+---------------+
+     |' '|1||' '|1|
+     +------+--------------+--------+--------+---------------+
+     |k|2^10 (1024)|kilo|K|10^3 (1000)|
+     +------+--------------+--------+--------+---------------+
+     |m|2^20|mega|M|10^6|
+     +------+--------------+--------+--------+---------------+
+     |g|2^30|giga|G|10^9|
+     +------+--------------+--------+--------+---------------+
+     |t|2^40|tera|T|10^12|
+     +------+--------------+--------+--------+---------------+
+     |p|2^50|peta|P|10^15|
+     +------+--------------+--------+--------+---------------+
+     |e|2^60|exa|E|10^18|
+     +------+--------------+--------+--------+---------------+
+     |z|2^70|zetta|Z|10^21|
+     +------+--------------+--------+--------+---------------+
+     |y|2^80|yotta|Y|10^24|
+     +------+--------------+--------+--------+---------------+
+
+     The default precision is 3, i.e., 1024 is printed with a lower-case
+     format character as if it were `%.3fk' and will yield `1.000k'.
+
+   Due to the requirements of `register_printf_function' we must also
+provide the function which returns information about the arguments.
+
+ - Function: int printf_size_info (const struct printf_info *INFO,
+          size_t N, int *ARGTYPES)
+     This function will return in ARGTYPES the information about the
+     used parameters in the way the `vfprintf' implementation expects
+     it.  The format always takes one argument.
+
+   To use these functions both functions must be registered with a call
+like
+
+     register_printf_function ('B', printf_size, printf_size_info);
+
+   Here we register the functions to print numbers as powers of 1000
+since the format character `'B'' is an upper-case character.  If we
+would additionally use `'b'' in a line like
+
+     register_printf_function ('b', printf_size, printf_size_info);
+
+we could also print using a power of 1024.  Please note that all that is
+different in these two lines is the format specifier.  The
+`printf_size' function knows about the difference between lower and
+upper case format specifiers.
+
+   The use of `'B'' and `'b'' is no coincidence.  Rather it is the
+preferred way to use this functionality since it is available on some
+other systems which also use format specifiers.
+
+
+File: libc.info,  Node: Formatted Input,  Next: EOF and Errors,  Prev: Customizing Printf,  Up: I/O on Streams
+
+Formatted Input
+===============
+
+   The functions described in this section (`scanf' and related
+functions) provide facilities for formatted input analogous to the
+formatted output facilities.  These functions provide a mechanism for
+reading arbitrary values under the control of a "format string" or
+"template string".
+
+* Menu:
+
+* Formatted Input Basics::      Some basics to get you started.
+* Input Conversion Syntax::     Syntax of conversion specifications.
+* Table of Input Conversions::  Summary of input conversions and what they do.
+* Numeric Input Conversions::   Details of conversions for reading numbers.
+* String Input Conversions::    Details of conversions for reading strings.
+* Dynamic String Input::	String conversions that `malloc' the buffer.
+* Other Input Conversions::     Details of miscellaneous other conversions.
+* Formatted Input Functions::   Descriptions of the actual functions.
+* Variable Arguments Input::    `vscanf' and friends.
+
+
+File: libc.info,  Node: Formatted Input Basics,  Next: Input Conversion Syntax,  Up: Formatted Input
+
+Formatted Input Basics
+----------------------
+
+   Calls to `scanf' are superficially similar to calls to `printf' in
+that arbitrary arguments are read under the control of a template
+string.  While the syntax of the conversion specifications in the
+template is very similar to that for `printf', the interpretation of
+the template is oriented more towards free-format input and simple
+pattern matching, rather than fixed-field formatting.  For example,
+most `scanf' conversions skip over any amount of "white space"
+(including spaces, tabs, and newlines) in the input file, and there is
+no concept of precision for the numeric input conversions as there is
+for the corresponding output conversions.  Ordinarily, non-whitespace
+characters in the template are expected to match characters in the
+input stream exactly, but a matching failure is distinct from an input
+error on the stream.
+
+   Another area of difference between `scanf' and `printf' is that you
+must remember to supply pointers rather than immediate values as the
+optional arguments to `scanf'; the values that are read are stored in
+the objects that the pointers point to.  Even experienced programmers
+tend to forget this occasionally, so if your program is getting strange
+errors that seem to be related to `scanf', you might want to
+double-check this.
+
+   When a "matching failure" occurs, `scanf' returns immediately,
+leaving the first non-matching character as the next character to be
+read from the stream.  The normal return value from `scanf' is the
+number of values that were assigned, so you can use this to determine if
+a matching error happened before all the expected values were read.
+
+   The `scanf' function is typically used for things like reading in
+the contents of tables.  For example, here is a function that uses
+`scanf' to initialize an array of `double':
+
+     void
+     readarray (double *array, int n)
+     {
+       int i;
+       for (i=0; i<n; i++)
+         if (scanf (" %lf", &(array[i])) != 1)
+           invalid_input_error ();
+     }
+
+   The formatted input functions are not used as frequently as the
+formatted output functions.  Partly, this is because it takes some care
+to use them properly.  Another reason is that it is difficult to recover
+from a matching error.
+
+   If you are trying to read input that doesn't match a single, fixed
+pattern, you may be better off using a tool such as Flex to generate a
+lexical scanner, or Bison to generate a parser, rather than using
+`scanf'.  For more information about these tools, see *Note :
+(flex.info), and *Note : (bison.info).
+
+
+File: libc.info,  Node: Input Conversion Syntax,  Next: Table of Input Conversions,  Prev: Formatted Input Basics,  Up: Formatted Input
+
+Input Conversion Syntax
+-----------------------
+
+   A `scanf' template string is a string that contains ordinary
+multibyte characters interspersed with conversion specifications that
+start with `%'.
+
+   Any whitespace character (as defined by the `isspace' function;
+*note Classification of Characters::) in the template causes any number
+of whitespace characters in the input stream to be read and discarded.
+The whitespace characters that are matched need not be exactly the same
+whitespace characters that appear in the template string.  For example,
+write ` , ' in the template to recognize a comma with optional
+whitespace before and after.
+
+   Other characters in the template string that are not part of
+conversion specifications must match characters in the input stream
+exactly; if this is not the case, a matching failure occurs.
+
+   The conversion specifications in a `scanf' template string have the
+general form:
+
+     % FLAGS WIDTH TYPE CONVERSION
+
+   In more detail, an input conversion specification consists of an
+initial `%' character followed in sequence by:
+
+   * An optional "flag character" `*', which says to ignore the text
+     read for this specification.  When `scanf' finds a conversion
+     specification that uses this flag, it reads input as directed by
+     the rest of the conversion specification, but it discards this
+     input, does not use a pointer argument, and does not increment the
+     count of successful assignments.
+
+   * An optional flag character `a' (valid with string conversions only)
+     which requests allocation of a buffer long enough to store the
+     string in.  (This is a GNU extension.)  *Note Dynamic String
+     Input::.
+
+   * An optional decimal integer that specifies the "maximum field
+     width".  Reading of characters from the input stream stops either
+     when this maximum is reached or when a non-matching character is
+     found, whichever happens first.  Most conversions discard initial
+     whitespace characters (those that don't are explicitly
+     documented), and these discarded characters don't count towards
+     the maximum field width.  String input conversions store a null
+     character to mark the end of the input; the maximum field width
+     does not include this terminator.
+
+   * An optional "type modifier character".  For example, you can
+     specify a type modifier of `l' with integer conversions such as
+     `%d' to specify that the argument is a pointer to a `long int'
+     rather than a pointer to an `int'.
+
+   * A character that specifies the conversion to be applied.
+
+   The exact options that are permitted and how they are interpreted
+vary between the different conversion specifiers.  See the descriptions
+of the individual conversions for information about the particular
+options that they allow.
+
+   With the `-Wformat' option, the GNU C compiler checks calls to
+`scanf' and related functions.  It examines the format string and
+verifies that the correct number and types of arguments are supplied.
+There is also a GNU C syntax to tell the compiler that a function you
+write uses a `scanf'-style format string.  *Note Declaring Attributes
+of Functions: (gcc.info)Function Attributes, for more information.
+
+
+File: libc.info,  Node: Table of Input Conversions,  Next: Numeric Input Conversions,  Prev: Input Conversion Syntax,  Up: Formatted Input
+
+Table of Input Conversions
+--------------------------
+
+   Here is a table that summarizes the various conversion
+specifications:
+
+`%d'
+     Matches an optionally signed integer written in decimal.  *Note
+     Numeric Input Conversions::.
+
+`%i'
+     Matches an optionally signed integer in any of the formats that
+     the C language defines for specifying an integer constant.  *Note
+     Numeric Input Conversions::.
+
+`%o'
+     Matches an unsigned integer written in octal radix.  *Note Numeric
+     Input Conversions::.
+
+`%u'
+     Matches an unsigned integer written in decimal radix.  *Note
+     Numeric Input Conversions::.
+
+`%x', `%X'
+     Matches an unsigned integer written in hexadecimal radix.  *Note
+     Numeric Input Conversions::.
+
+`%e', `%f', `%g', `%E', `%G'
+     Matches an optionally signed floating-point number.  *Note Numeric
+     Input Conversions::.
+
+`%s'
+     Matches a string containing only non-whitespace characters.  *Note
+     String Input Conversions::.  The presence of the `l' modifier
+     determines whether the output is stored as a wide character string
+     or a multibyte string.  If `%s' is used in a wide character
+     function the string is converted as with multiple calls to
+     `wcrtomb' into a multibyte string.  This means that the buffer
+     must provide room for `MB_CUR_MAX' bytes for each wide character
+     read.  In case `%ls' is used in a multibyte function the result is
+     converted into wide characters as with multiple calls of `mbrtowc'
+     before being stored in the user provided buffer.
+
+`%S'
+     This is an alias for `%ls' which is supported for compatibility
+     with the Unix standard.
+
+`%['
+     Matches a string of characters that belong to a specified set.
+     *Note String Input Conversions::.  The presence of the `l' modifier
+     determines whether the output is stored as a wide character string
+     or a multibyte string.  If `%[' is used in a wide character
+     function the string is converted as with multiple calls to
+     `wcrtomb' into a multibyte string.  This means that the buffer
+     must provide room for `MB_CUR_MAX' bytes for each wide character
+     read.  In case `%l[' is used in a multibyte function the result is
+     converted into wide characters as with multiple calls of `mbrtowc'
+     before being stored in the user provided buffer.
+
+`%c'
+     Matches a string of one or more characters; the number of
+     characters read is controlled by the maximum field width given for
+     the conversion.  *Note String Input Conversions::.
+
+     If the `%c' is used in a wide stream function the read value is
+     converted from a wide character to the corresponding multibyte
+     character before storing it.  Note that this conversion can
+     produce more than one byte of output and therefore the provided
+     buffer be large enough for up to `MB_CUR_MAX' bytes for each
+     character.  If `%lc' is used in a multibyte function the input is
+     treated as a multibyte sequence (and not bytes) and the result is
+     converted as with calls to `mbrtowc'.
+
+`%C'
+     This is an alias for `%lc' which is supported for compatibility
+     with the Unix standard.
+
+`%p'
+     Matches a pointer value in the same implementation-defined format
+     used by the `%p' output conversion for `printf'.  *Note Other
+     Input Conversions::.
+
+`%n'
+     This conversion doesn't read any characters; it records the number
+     of characters read so far by this call.  *Note Other Input
+     Conversions::.
+
+`%%'
+     This matches a literal `%' character in the input stream.  No
+     corresponding argument is used.  *Note Other Input Conversions::.
+
+   If the syntax of a conversion specification is invalid, the behavior
+is undefined.  If there aren't enough function arguments provided to
+supply addresses for all the conversion specifications in the template
+strings that perform assignments, or if the arguments are not of the
+correct types, the behavior is also undefined.  On the other hand, extra
+arguments are simply ignored.
+
+
+File: libc.info,  Node: Numeric Input Conversions,  Next: String Input Conversions,  Prev: Table of Input Conversions,  Up: Formatted Input
+
+Numeric Input Conversions
+-------------------------
+
+   This section describes the `scanf' conversions for reading numeric
+values.
+
+   The `%d' conversion matches an optionally signed integer in decimal
+radix.  The syntax that is recognized is the same as that for the
+`strtol' function (*note Parsing of Integers::) with the value `10' for
+the BASE argument.
+
+   The `%i' conversion matches an optionally signed integer in any of
+the formats that the C language defines for specifying an integer
+constant.  The syntax that is recognized is the same as that for the
+`strtol' function (*note Parsing of Integers::) with the value `0' for
+the BASE argument.  (You can print integers in this syntax with
+`printf' by using the `#' flag character with the `%x', `%o', or `%d'
+conversion.  *Note Integer Conversions::.)
+
+   For example, any of the strings `10', `0xa', or `012' could be read
+in as integers under the `%i' conversion.  Each of these specifies a
+number with decimal value `10'.
+
+   The `%o', `%u', and `%x' conversions match unsigned integers in
+octal, decimal, and hexadecimal radices, respectively.  The syntax that
+is recognized is the same as that for the `strtoul' function (*note
+Parsing of Integers::) with the appropriate value (`8', `10', or `16')
+for the BASE argument.
+
+   The `%X' conversion is identical to the `%x' conversion.  They both
+permit either uppercase or lowercase letters to be used as digits.
+
+   The default type of the corresponding argument for the `%d' and `%i'
+conversions is `int *', and `unsigned int *' for the other integer
+conversions.  You can use the following type modifiers to specify other
+sizes of integer:
+
+`hh'
+     Specifies that the argument is a `signed char *' or `unsigned char
+     *'.
+
+     This modifier was introduced in ISO C99.
+
+`h'
+     Specifies that the argument is a `short int *' or `unsigned short
+     int *'.
+
+`j'
+     Specifies that the argument is a `intmax_t *' or `uintmax_t *'.
+
+     This modifier was introduced in ISO C99.
+
+`l'
+     Specifies that the argument is a `long int *' or `unsigned long
+     int *'.  Two `l' characters is like the `L' modifier, below.
+
+     If used with `%c' or `%s' the corresponding parameter is
+     considered as a pointer to a wide character or wide character
+     string respectively.  This use of `l' was introduced in
+     Amendment 1 to ISO C90.
+
+`ll'
+`L'
+`q'
+     Specifies that the argument is a `long long int *' or `unsigned
+     long long int *'.  (The `long long' type is an extension supported
+     by the GNU C compiler.  For systems that don't provide extra-long
+     integers, this is the same as `long int'.)
+
+     The `q' modifier is another name for the same thing, which comes
+     from 4.4 BSD; a `long long int' is sometimes called a "quad" `int'.
+
+`t'
+     Specifies that the argument is a `ptrdiff_t *'.
+
+     This modifier was introduced in ISO C99.
+
+`z'
+     Specifies that the argument is a `size_t *'.
+
+     This modifier was introduced in ISO C99.
+
+   All of the `%e', `%f', `%g', `%E', and `%G' input conversions are
+interchangeable.  They all match an optionally signed floating point
+number, in the same syntax as for the `strtod' function (*note Parsing
+of Floats::).
+
+   For the floating-point input conversions, the default argument type
+is `float *'.  (This is different from the corresponding output
+conversions, where the default type is `double'; remember that `float'
+arguments to `printf' are converted to `double' by the default argument
+promotions, but `float *' arguments are not promoted to `double *'.)
+You can specify other sizes of float using these type modifiers:
+
+`l'
+     Specifies that the argument is of type `double *'.
+
+`L'
+     Specifies that the argument is of type `long double *'.
+
+   For all the above number parsing formats there is an additional
+optional flag `''.  When this flag is given the `scanf' function
+expects the number represented in the input string to be formatted
+according to the grouping rules of the currently selected locale (*note
+General Numeric::).
+
+   If the `"C"' or `"POSIX"' locale is selected there is no difference.
+But for a locale which specifies values for the appropriate fields in
+the locale the input must have the correct form in the input.
+Otherwise the longest prefix with a correct form is processed.
+
+
+File: libc.info,  Node: String Input Conversions,  Next: Dynamic String Input,  Prev: Numeric Input Conversions,  Up: Formatted Input
+
+String Input Conversions
+------------------------
+
+   This section describes the `scanf' input conversions for reading
+string and character values: `%s', `%S', `%[', `%c', and `%C'.
+
+   You have two options for how to receive the input from these
+conversions:
+
+   * Provide a buffer to store it in.  This is the default.  You should
+     provide an argument of type `char *' or `wchar_t *' (the latter of
+     the `l' modifier is present).
+
+     *Warning:* To make a robust program, you must make sure that the
+     input (plus its terminating null) cannot possibly exceed the size
+     of the buffer you provide.  In general, the only way to do this is
+     to specify a maximum field width one less than the buffer size.
+     *If you provide the buffer, always specify a maximum field width
+     to prevent overflow.*
+
+   * Ask `scanf' to allocate a big enough buffer, by specifying the `a'
+     flag character.  This is a GNU extension.  You should provide an
+     argument of type `char **' for the buffer address to be stored in.
+     *Note Dynamic String Input::.
+
+   The `%c' conversion is the simplest: it matches a fixed number of
+characters, always.  The maximum field width says how many characters to
+read; if you don't specify the maximum, the default is 1.  This
+conversion doesn't append a null character to the end of the text it
+reads.  It also does not skip over initial whitespace characters.  It
+reads precisely the next N characters, and fails if it cannot get that
+many.  Since there is always a maximum field width with `%c' (whether
+specified, or 1 by default), you can always prevent overflow by making
+the buffer long enough.
+
+   If the format is `%lc' or `%C' the function stores wide characters
+which are converted using the conversion determined at the time the
+stream was opened from the external byte stream.  The number of bytes
+read from the medium is limited by `MB_CUR_LEN * N' but at most N wide
+character get stored in the output string.
+
+   The `%s' conversion matches a string of non-whitespace characters.
+It skips and discards initial whitespace, but stops when it encounters
+more whitespace after having read something.  It stores a null character
+at the end of the text that it reads.
+
+   For example, reading the input:
+
+      hello, world
+
+with the conversion `%10c' produces `" hello, wo"', but reading the
+same input with the conversion `%10s' produces `"hello,"'.
+
+   *Warning:* If you do not specify a field width for `%s', then the
+number of characters read is limited only by where the next whitespace
+character appears.  This almost certainly means that invalid input can
+make your program crash--which is a bug.
+
+   The `%ls' and `%S' format are handled just like `%s' except that the
+external byte sequence is converted using the conversion associated
+with the stream to wide characters with their own encoding.  A width or
+precision specified with the format do not directly determine how many
+bytes are read from the stream since they measure wide characters.  But
+an upper limit can be computed by multiplying the value of the width or
+precision by `MB_CUR_MAX'.
+
+   To read in characters that belong to an arbitrary set of your choice,
+use the `%[' conversion.  You specify the set between the `[' character
+and a following `]' character, using the same syntax used in regular
+expressions.  As special cases:
+
+   * A literal `]' character can be specified as the first character of
+     the set.
+
+   * An embedded `-' character (that is, one that is not the first or
+     last character of the set) is used to specify a range of
+     characters.
+
+   * If a caret character `^' immediately follows the initial `[', then
+     the set of allowed input characters is the everything _except_ the
+     characters listed.
+
+   The `%[' conversion does not skip over initial whitespace characters.
+
+   Here are some examples of `%[' conversions and what they mean:
+
+`%25[1234567890]'
+     Matches a string of up to 25 digits.
+
+`%25[][]'
+     Matches a string of up to 25 square brackets.
+
+`%25[^ \f\n\r\t\v]'
+     Matches a string up to 25 characters long that doesn't contain any
+     of the standard whitespace characters.  This is slightly different
+     from `%s', because if the input begins with a whitespace character,
+     `%[' reports a matching failure while `%s' simply discards the
+     initial whitespace.
+
+`%25[a-z]'
+     Matches up to 25 lowercase characters.
+
+   As for `%c' and `%s' the `%[' format is also modified to produce
+wide characters if the `l' modifier is present.  All what is said about
+`%ls' above is true for `%l['.
+
+   One more reminder: the `%s' and `%[' conversions are *dangerous* if
+you don't specify a maximum width or use the `a' flag, because input
+too long would overflow whatever buffer you have provided for it.  No
+matter how long your buffer is, a user could supply input that is
+longer.  A well-written program reports invalid input with a
+comprehensible error message, not with a crash.
+
+
+File: libc.info,  Node: Dynamic String Input,  Next: Other Input Conversions,  Prev: String Input Conversions,  Up: Formatted Input
+
+Dynamically Allocating String Conversions
+-----------------------------------------
+
+   A GNU extension to formatted input lets you safely read a string
+with no maximum size.  Using this feature, you don't supply a buffer;
+instead, `scanf' allocates a buffer big enough to hold the data and
+gives you its address.  To use this feature, write `a' as a flag
+character, as in `%as' or `%a[0-9a-z]'.
+
+   The pointer argument you supply for where to store the input should
+have type `char **'.  The `scanf' function allocates a buffer and
+stores its address in the word that the argument points to.  You should
+free the buffer with `free' when you no longer need it.
+
+   Here is an example of using the `a' flag with the `%[...]'
+conversion specification to read a "variable assignment" of the form
+`VARIABLE = VALUE'.
+
+     {
+       char *variable, *value;
+     
+       if (2 > scanf ("%a[a-zA-Z0-9] = %a[^\n]\n",
+                      &variable, &value))
+         {
+           invalid_input_error ();
+           return 0;
+         }
+     
+       ...
+     }
+
+
+File: libc.info,  Node: Other Input Conversions,  Next: Formatted Input Functions,  Prev: Dynamic String Input,  Up: Formatted Input
+
+Other Input Conversions
+-----------------------
+
+   This section describes the miscellaneous input conversions.
+
+   The `%p' conversion is used to read a pointer value.  It recognizes
+the same syntax used by the `%p' output conversion for `printf' (*note
+Other Output Conversions::); that is, a hexadecimal number just as the
+`%x' conversion accepts.  The corresponding argument should be of type
+`void **'; that is, the address of a place to store a pointer.
+
+   The resulting pointer value is not guaranteed to be valid if it was
+not originally written during the same program execution that reads it
+in.
+
+   The `%n' conversion produces the number of characters read so far by
+this call.  The corresponding argument should be of type `int *'.  This
+conversion works in the same way as the `%n' conversion for `printf';
+see *Note Other Output Conversions::, for an example.
+
+   The `%n' conversion is the only mechanism for determining the
+success of literal matches or conversions with suppressed assignments.
+If the `%n' follows the locus of a matching failure, then no value is
+stored for it since `scanf' returns before processing the `%n'.  If you
+store `-1' in that argument slot before calling `scanf', the presence
+of `-1' after `scanf' indicates an error occurred before the `%n' was
+reached.
+
+   Finally, the `%%' conversion matches a literal `%' character in the
+input stream, without using an argument.  This conversion does not
+permit any flags, field width, or type modifier to be specified.
+
+
+File: libc.info,  Node: Formatted Input Functions,  Next: Variable Arguments Input,  Prev: Other Input Conversions,  Up: Formatted Input
+
+Formatted Input Functions
+-------------------------
+
+   Here are the descriptions of the functions for performing formatted
+input.  Prototypes for these functions are in the header file `stdio.h'.
+
+ - Function: int scanf (const char *TEMPLATE, ...)
+     The `scanf' function reads formatted input from the stream `stdin'
+     under the control of the template string TEMPLATE.  The optional
+     arguments are pointers to the places which receive the resulting
+     values.
+
+     The return value is normally the number of successful assignments.
+     If an end-of-file condition is detected before any matches are
+     performed, including matches against whitespace and literal
+     characters in the template, then `EOF' is returned.
+
+ - Function: int wscanf (const wchar_t *TEMPLATE, ...)
+     The `wscanf' function reads formatted input from the stream
+     `stdin' under the control of the template string TEMPLATE.  The
+     optional arguments are pointers to the places which receive the
+     resulting values.
+
+     The return value is normally the number of successful assignments.
+     If an end-of-file condition is detected before any matches are
+     performed, including matches against whitespace and literal
+     characters in the template, then `WEOF' is returned.
+
+ - Function: int fscanf (FILE *STREAM, const char *TEMPLATE, ...)
+     This function is just like `scanf', except that the input is read
+     from the stream STREAM instead of `stdin'.
+
+ - Function: int fwscanf (FILE *STREAM, const wchar_t *TEMPLATE, ...)
+     This function is just like `wscanf', except that the input is read
+     from the stream STREAM instead of `stdin'.
+
+ - Function: int sscanf (const char *S, const char *TEMPLATE, ...)
+     This is like `scanf', except that the characters are taken from the
+     null-terminated string S instead of from a stream.  Reaching the
+     end of the string is treated as an end-of-file condition.
+
+     The behavior of this function is undefined if copying takes place
+     between objects that overlap--for example, if S is also given as
+     an argument to receive a string read under control of the `%s',
+     `%S', or `%[' conversion.
+
+ - Function: int swscanf (const wchar_t *WS, const char *TEMPLATE, ...)
+     This is like `wscanf', except that the characters are taken from
+     the null-terminated string WS instead of from a stream.  Reaching
+     the end of the string is treated as an end-of-file condition.
+
+     The behavior of this function is undefined if copying takes place
+     between objects that overlap--for example, if WS is also given as
+     an argument to receive a string read under control of the `%s',
+     `%S', or `%[' conversion.
+
+
+File: libc.info,  Node: Variable Arguments Input,  Prev: Formatted Input Functions,  Up: Formatted Input
+
+Variable Arguments Input Functions
+----------------------------------
+
+   The functions `vscanf' and friends are provided so that you can
+define your own variadic `scanf'-like functions that make use of the
+same internals as the built-in formatted output functions.  These
+functions are analogous to the `vprintf' series of output functions.
+*Note Variable Arguments Output::, for important information on how to
+use them.
+
+   *Portability Note:* The functions listed in this section were
+introduced in ISO C99 and were before available as GNU extensions.
+
+ - Function: int vscanf (const char *TEMPLATE, va_list AP)
+     This function is similar to `scanf', but instead of taking a
+     variable number of arguments directly, it takes an argument list
+     pointer AP of type `va_list' (*note Variadic Functions::).
+
+ - Function: int vwscanf (const wchar_t *TEMPLATE, va_list AP)
+     This function is similar to `wscanf', but instead of taking a
+     variable number of arguments directly, it takes an argument list
+     pointer AP of type `va_list' (*note Variadic Functions::).
+
+ - Function: int vfscanf (FILE *STREAM, const char *TEMPLATE, va_list
+          AP)
+     This is the equivalent of `fscanf' with the variable argument list
+     specified directly as for `vscanf'.
+
+ - Function: int vfwscanf (FILE *STREAM, const wchar_t *TEMPLATE,
+          va_list AP)
+     This is the equivalent of `fwscanf' with the variable argument list
+     specified directly as for `vwscanf'.
+
+ - Function: int vsscanf (const char *S, const char *TEMPLATE, va_list
+          AP)
+     This is the equivalent of `sscanf' with the variable argument list
+     specified directly as for `vscanf'.
+
+ - Function: int vswscanf (const wchar_t *S, const wchar_t *TEMPLATE,
+          va_list AP)
+     This is the equivalent of `swscanf' with the variable argument list
+     specified directly as for `vwscanf'.
+
+   In GNU C, there is a special construct you can use to let the
+compiler know that a function uses a `scanf'-style format string.  Then
+it can check the number and types of arguments in each call to the
+function, and warn you when they do not match the format string.  For
+details, *Note Declaring Attributes of Functions: (gcc.info)Function
+Attributes.
+
+
+File: libc.info,  Node: EOF and Errors,  Next: Error Recovery,  Prev: Formatted Input,  Up: I/O on Streams
+
+End-Of-File and Errors
+======================
+
+   Many of the functions described in this chapter return the value of
+the macro `EOF' to indicate unsuccessful completion of the operation.
+Since `EOF' is used to report both end of file and random errors, it's
+often better to use the `feof' function to check explicitly for end of
+file and `ferror' to check for errors.  These functions check
+indicators that are part of the internal state of the stream object,
+indicators set if the appropriate condition was detected by a previous
+I/O operation on that stream.
+
+ - Macro: int EOF
+     This macro is an integer value that is returned by a number of
+     narrow stream functions to indicate an end-of-file condition, or
+     some other error situation.  With the GNU library, `EOF' is `-1'.
+     In other libraries, its value may be some other negative number.
+
+     This symbol is declared in `stdio.h'.
+
+ - Macro: int WEOF
+     This macro is an integer value that is returned by a number of wide
+     stream functions to indicate an end-of-file condition, or some
+     other error situation.  With the GNU library, `WEOF' is `-1'.  In
+     other libraries, its value may be some other negative number.
+
+     This symbol is declared in `wchar.h'.
+
+ - Function: int feof (FILE *STREAM)
+     The `feof' function returns nonzero if and only if the end-of-file
+     indicator for the stream STREAM is set.
+
+     This symbol is declared in `stdio.h'.
+
+ - Function: int feof_unlocked (FILE *STREAM)
+     The `feof_unlocked' function is equivalent to the `feof' function
+     except that it does not implicitly lock the stream.
+
+     This function is a GNU extension.
+
+     This symbol is declared in `stdio.h'.
+
+ - Function: int ferror (FILE *STREAM)
+     The `ferror' function returns nonzero if and only if the error
+     indicator for the stream STREAM is set, indicating that an error
+     has occurred on a previous operation on the stream.
+
+     This symbol is declared in `stdio.h'.
+
+ - Function: int ferror_unlocked (FILE *STREAM)
+     The `ferror_unlocked' function is equivalent to the `ferror'
+     function except that it does not implicitly lock the stream.
+
+     This function is a GNU extension.
+
+     This symbol is declared in `stdio.h'.
+
+   In addition to setting the error indicator associated with the
+stream, the functions that operate on streams also set `errno' in the
+same way as the corresponding low-level functions that operate on file
+descriptors.  For example, all of the functions that perform output to a
+stream--such as `fputc', `printf', and `fflush'--are implemented in
+terms of `write', and all of the `errno' error conditions defined for
+`write' are meaningful for these functions.  For more information about
+the descriptor-level I/O functions, see *Note Low-Level I/O::.
+
+
+File: libc.info,  Node: Error Recovery,  Next: Binary Streams,  Prev: EOF and Errors,  Up: I/O on Streams
+
+Recovering from errors
+======================
+
+   You may explicitly clear the error and EOF flags with the `clearerr'
+function.
+
+ - Function: void clearerr (FILE *STREAM)
+     This function clears the end-of-file and error indicators for the
+     stream STREAM.
+
+     The file positioning functions (*note File Positioning::) also
+     clear the end-of-file indicator for the stream.
+
+ - Function: void clearerr_unlocked (FILE *STREAM)
+     The `clearerr_unlocked' function is equivalent to the `clearerr'
+     function except that it does not implicitly lock the stream.
+
+     This function is a GNU extension.
+
+   Note that it is _not_ correct to just clear the error flag and retry
+a failed stream operation.  After a failed write, any number of
+characters since the last buffer flush may have been committed to the
+file, while some buffered data may have been discarded.  Merely retrying
+can thus cause lost or repeated data.
+
+   A failed read may leave the file pointer in an inappropriate
+position for a second try.  In both cases, you should seek to a known
+position before retrying.
+
+   Most errors that can happen are not recoverable -- a second try will
+always fail again in the same way.  So usually it is best to give up and
+report the error to the user, rather than install complicated recovery
+logic.
+
+   One important exception is `EINTR' (*note Interrupted Primitives::).
+Many stream I/O implementations will treat it as an ordinary error,
+which can be quite inconvenient.  You can avoid this hassle by
+installing all signals with the `SA_RESTART' flag.
+
+   For similar reasons, setting nonblocking I/O on a stream's file
+descriptor is not usually advisable.
+
+
+File: libc.info,  Node: Binary Streams,  Next: File Positioning,  Prev: Error Recovery,  Up: I/O on Streams
+
+Text and Binary Streams
+=======================
+
+   The GNU system and other POSIX-compatible operating systems organize
+all files as uniform sequences of characters.  However, some other
+systems make a distinction between files containing text and files
+containing binary data, and the input and output facilities of ISO C
+provide for this distinction.  This section tells you how to write
+programs portable to such systems.
+
+   When you open a stream, you can specify either a "text stream" or a
+"binary stream".  You indicate that you want a binary stream by
+specifying the `b' modifier in the OPENTYPE argument to `fopen'; see
+*Note Opening Streams::.  Without this option, `fopen' opens the file
+as a text stream.
+
+   Text and binary streams differ in several ways:
+
+   * The data read from a text stream is divided into "lines" which are
+     terminated by newline (`'\n'') characters, while a binary stream is
+     simply a long series of characters.  A text stream might on some
+     systems fail to handle lines more than 254 characters long
+     (including the terminating newline character).
+
+   * On some systems, text files can contain only printing characters,
+     horizontal tab characters, and newlines, and so text streams may
+     not support other characters.  However, binary streams can handle
+     any character value.
+
+   * Space characters that are written immediately preceding a newline
+     character in a text stream may disappear when the file is read in
+     again.
+
+   * More generally, there need not be a one-to-one mapping between
+     characters that are read from or written to a text stream, and the
+     characters in the actual file.
+
+   Since a binary stream is always more capable and more predictable
+than a text stream, you might wonder what purpose text streams serve.
+Why not simply always use binary streams?  The answer is that on these
+operating systems, text and binary streams use different file formats,
+and the only way to read or write "an ordinary file of text" that can
+work with other text-oriented programs is through a text stream.
+
+   In the GNU library, and on all POSIX systems, there is no difference
+between text streams and binary streams.  When you open a stream, you
+get the same kind of stream regardless of whether you ask for binary.
+This stream can handle any file content, and has none of the
+restrictions that text streams sometimes have.
+
+
+File: libc.info,  Node: File Positioning,  Next: Portable Positioning,  Prev: Binary Streams,  Up: I/O on Streams
+
+File Positioning
+================
+
+   The "file position" of a stream describes where in the file the
+stream is currently reading or writing.  I/O on the stream advances the
+file position through the file.  In the GNU system, the file position is
+represented as an integer, which counts the number of bytes from the
+beginning of the file.  *Note File Position::.
+
+   During I/O to an ordinary disk file, you can change the file position
+whenever you wish, so as to read or write any portion of the file.  Some
+other kinds of files may also permit this.  Files which support changing
+the file position are sometimes referred to as "random-access" files.
+
+   You can use the functions in this section to examine or modify the
+file position indicator associated with a stream.  The symbols listed
+below are declared in the header file `stdio.h'.
+
+ - Function: long int ftell (FILE *STREAM)
+     This function returns the current file position of the stream
+     STREAM.
+
+     This function can fail if the stream doesn't support file
+     positioning, or if the file position can't be represented in a
+     `long int', and possibly for other reasons as well.  If a failure
+     occurs, a value of `-1' is returned.
+
+ - Function: off_t ftello (FILE *STREAM)
+     The `ftello' function is similar to `ftell', except that it
+     returns a value of type `off_t'.  Systems which support this type
+     use it to describe all file positions, unlike the POSIX
+     specification which uses a long int.  The two are not necessarily
+     the same size.  Therefore, using ftell can lead to problems if the
+     implementation is written on top of a POSIX compliant low-level
+     I/O implementation, and using `ftello' is preferable whenever it
+     is available.
+
+     If this function fails it returns `(off_t) -1'.  This can happen
+     due to missing support for file positioning or internal errors.
+     Otherwise the return value is the current file position.
+
+     The function is an extension defined in the Unix Single
+     Specification version 2.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32 bit system this function is in fact `ftello64'.  I.e., the LFS
+     interface transparently replaces the old interface.
+
+ - Function: off64_t ftello64 (FILE *STREAM)
+     This function is similar to `ftello' with the only difference that
+     the return value is of type `off64_t'.  This also requires that the
+     stream STREAM was opened using either `fopen64', `freopen64', or
+     `tmpfile64' since otherwise the underlying file operations to
+     position the file pointer beyond the 2^31 bytes limit might fail.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `ftello'
+     and so transparently replaces the old interface.
+
+ - Function: int fseek (FILE *STREAM, long int OFFSET, int WHENCE)
+     The `fseek' function is used to change the file position of the
+     stream STREAM.  The value of WHENCE must be one of the constants
+     `SEEK_SET', `SEEK_CUR', or `SEEK_END', to indicate whether the
+     OFFSET is relative to the beginning of the file, the current file
+     position, or the end of the file, respectively.
+
+     This function returns a value of zero if the operation was
+     successful, and a nonzero value to indicate failure.  A successful
+     call also clears the end-of-file indicator of STREAM and discards
+     any characters that were "pushed back" by the use of `ungetc'.
+
+     `fseek' either flushes any buffered output before setting the file
+     position or else remembers it so it will be written later in its
+     proper place in the file.
+
+ - Function: int fseeko (FILE *STREAM, off_t OFFSET, int WHENCE)
+     This function is similar to `fseek' but it corrects a problem with
+     `fseek' in a system with POSIX types.  Using a value of type `long
+     int' for the offset is not compatible with POSIX.  `fseeko' uses
+     the correct type `off_t' for the OFFSET parameter.
+
+     For this reason it is a good idea to prefer `ftello' whenever it is
+     available since its functionality is (if different at all) closer
+     the underlying definition.
+
+     The functionality and return value is the same as for `fseek'.
+
+     The function is an extension defined in the Unix Single
+     Specification version 2.
+
+     When the sources are compiled with `_FILE_OFFSET_BITS == 64' on a
+     32 bit system this function is in fact `fseeko64'.  I.e., the LFS
+     interface transparently replaces the old interface.
+
+ - Function: int fseeko64 (FILE *STREAM, off64_t OFFSET, int WHENCE)
+     This function is similar to `fseeko' with the only difference that
+     the OFFSET parameter is of type `off64_t'.  This also requires
+     that the stream STREAM was opened using either `fopen64',
+     `freopen64', or `tmpfile64' since otherwise the underlying file
+     operations to position the file pointer beyond the 2^31 bytes
+     limit might fail.
+
+     If the sources are compiled with `_FILE_OFFSET_BITS == 64' on a 32
+     bits machine this function is available under the name `fseeko'
+     and so transparently replaces the old interface.
+
+   *Portability Note:* In non-POSIX systems, `ftell', `ftello', `fseek'
+and `fseeko' might work reliably only on binary streams.  *Note Binary
+Streams::.
+
+   The following symbolic constants are defined for use as the WHENCE
+argument to `fseek'.  They are also used with the `lseek' function
+(*note I/O Primitives::) and to specify offsets for file locks (*note
+Control Operations::).
+
+ - Macro: int SEEK_SET
+     This is an integer constant which, when used as the WHENCE
+     argument to the `fseek' or `fseeko' function, specifies that the
+     offset provided is relative to the beginning of the file.
+
+ - Macro: int SEEK_CUR
+     This is an integer constant which, when used as the WHENCE
+     argument to the `fseek' or `fseeko' function, specifies that the
+     offset provided is relative to the current file position.
+
+ - Macro: int SEEK_END
+     This is an integer constant which, when used as the WHENCE
+     argument to the `fseek' or `fseeko' function, specifies that the
+     offset provided is relative to the end of the file.
+
+ - Function: void rewind (FILE *STREAM)
+     The `rewind' function positions the stream STREAM at the beginning
+     of the file.  It is equivalent to calling `fseek' or `fseeko' on
+     the STREAM with an OFFSET argument of `0L' and a WHENCE argument
+     of `SEEK_SET', except that the return value is discarded and the
+     error indicator for the stream is reset.
+
+   These three aliases for the `SEEK_...' constants exist for the sake
+of compatibility with older BSD systems.  They are defined in two
+different header files: `fcntl.h' and `sys/file.h'.
+
+`L_SET'
+     An alias for `SEEK_SET'.
+
+`L_INCR'
+     An alias for `SEEK_CUR'.
+
+`L_XTND'
+     An alias for `SEEK_END'.
+

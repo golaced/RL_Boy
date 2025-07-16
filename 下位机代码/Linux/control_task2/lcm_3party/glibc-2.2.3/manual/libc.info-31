@@ -1,0 +1,1198 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: BSD Random,  Next: SVID Random,  Prev: ISO Random,  Up: Pseudo-Random Numbers
+
+BSD Random Number Functions
+---------------------------
+
+   This section describes a set of random number generation functions
+that are derived from BSD.  There is no advantage to using these
+functions with the GNU C library; we support them for BSD compatibility
+only.
+
+   The prototypes for these functions are in `stdlib.h'.
+
+ - Function: long int random (void)
+     This function returns the next pseudo-random number in the
+     sequence.  The value returned ranges from `0' to `RAND_MAX'.
+
+     *Note:* Temporarily this function was defined to return a
+     `int32_t' value to indicate that the return value always contains
+     32 bits even if `long int' is wider.  The standard demands it
+     differently.  Users must always be aware of the 32-bit limitation,
+     though.
+
+ - Function: void srandom (unsigned int SEED)
+     The `srandom' function sets the state of the random number
+     generator based on the integer SEED.  If you supply a SEED value
+     of `1', this will cause `random' to reproduce the default set of
+     random numbers.
+
+     To produce a different set of pseudo-random numbers each time your
+     program runs, do `srandom (time (0))'.
+
+ - Function: void * initstate (unsigned int SEED, void *STATE, size_t
+          SIZE)
+     The `initstate' function is used to initialize the random number
+     generator state.  The argument STATE is an array of SIZE bytes,
+     used to hold the state information.  It is initialized based on
+     SEED.  The size must be between 8 and 256 bytes, and should be a
+     power of two.  The bigger the STATE array, the better.
+
+     The return value is the previous value of the state information
+     array.  You can use this value later as an argument to `setstate'
+     to restore that state.
+
+ - Function: void * setstate (void *STATE)
+     The `setstate' function restores the random number state
+     information STATE.  The argument must have been the result of a
+     previous call to INITSTATE or SETSTATE.
+
+     The return value is the previous value of the state information
+     array.  You can use this value later as an argument to `setstate'
+     to restore that state.
+
+     If the function fails the return value is `NULL'.
+
+   The four functions described so far in this section all work on a
+state which is shared by all threads.  The state is not directly
+accessible to the user and can only be modified by these functions.
+This makes it hard to deal with situations where each thread should
+have its own pseudo-random number generator.
+
+   The GNU C library contains four additional functions which contain
+the state as an explicit parameter and therefore make it possible to
+handle thread-local PRNGs.  Beside this there are no difference.  In
+fact, the four functions already discussed are implemented internally
+using the following interfaces.
+
+   The `stdlib.h' header contains a definition of the following type:
+
+ - Data Type: struct random_data
+     Objects of type `struct random_data' contain the information
+     necessary to represent the state of the PRNG.  Although a complete
+     definition of the type is present the type should be treated as
+     opaque.
+
+   The functions modifying the state follow exactly the already
+described functions.
+
+ - Function: int random_r (struct random_data *restrict BUF, int32_t
+          *restrict RESULT)
+     The `random_r' function behaves exactly like the `random' function
+     except that it uses and modifies the state in the object pointed
+     to by the first parameter instead of the global state.
+
+ - Function: int srandom_r (unsigned int SEED, struct random_data *BUF)
+     The `srandom_r' function behaves exactly like the `srandom'
+     function except that it uses and modifies the state in the object
+     pointed to by the second parameter instead of the global state.
+
+ - Function: int initstate_r (unsigned int SEED, char *restrict
+          STATEBUF, size_t STATELEN, struct random_data *restrict BUF)
+     The `initstate_r' function behaves exactly like the `initstate'
+     function except that it uses and modifies the state in the object
+     pointed to by the fourth parameter instead of the global state.
+
+ - Function: int setstate_r (char *restrict STATEBUF, struct
+          random_data *restrict BUF)
+     The `setstate_r' function behaves exactly like the `setstate'
+     function except that it uses and modifies the state in the object
+     pointed to by the first parameter instead of the global state.
+
+
+File: libc.info,  Node: SVID Random,  Prev: BSD Random,  Up: Pseudo-Random Numbers
+
+SVID Random Number Function
+---------------------------
+
+   The C library on SVID systems contains yet another kind of random
+number generator functions.  They use a state of 48 bits of data.  The
+user can choose among a collection of functions which return the random
+bits in different forms.
+
+   Generally there are two kinds of function.  The first uses a state of
+the random number generator which is shared among several functions and
+by all threads of the process.  The second requires the user to handle
+the state.
+
+   All functions have in common that they use the same congruential
+formula with the same constants.  The formula is
+
+     Y = (a * X + c) mod m
+
+where X is the state of the generator at the beginning and Y the state
+at the end.  `a' and `c' are constants determining the way the
+generator works.  By default they are
+
+     a = 0x5DEECE66D = 25214903917
+     c = 0xb = 11
+
+but they can also be changed by the user.  `m' is of course 2^48 since
+the state consists of a 48-bit array.
+
+   The prototypes for these functions are in `stdlib.h'.
+
+ - Function: double drand48 (void)
+     This function returns a `double' value in the range of `0.0' to
+     `1.0' (exclusive).  The random bits are determined by the global
+     state of the random number generator in the C library.
+
+     Since the `double' type according to IEEE 754 has a 52-bit
+     mantissa this means 4 bits are not initialized by the random number
+     generator.  These are (of course) chosen to be the least
+     significant bits and they are initialized to `0'.
+
+ - Function: double erand48 (unsigned short int XSUBI[3])
+     This function returns a `double' value in the range of `0.0' to
+     `1.0' (exclusive), similarly to `drand48'.  The argument is an
+     array describing the state of the random number generator.
+
+     This function can be called subsequently since it updates the
+     array to guarantee random numbers.  The array should have been
+     initialized before initial use to obtain reproducible results.
+
+ - Function: long int lrand48 (void)
+     The `lrand48' function returns an integer value in the range of
+     `0' to `2^31' (exclusive).  Even if the size of the `long int'
+     type can take more than 32 bits, no higher numbers are returned.
+     The random bits are determined by the global state of the random
+     number generator in the C library.
+
+ - Function: long int nrand48 (unsigned short int XSUBI[3])
+     This function is similar to the `lrand48' function in that it
+     returns a number in the range of `0' to `2^31' (exclusive) but the
+     state of the random number generator used to produce the random
+     bits is determined by the array provided as the parameter to the
+     function.
+
+     The numbers in the array are updated afterwards so that subsequent
+     calls to this function yield different results (as is expected of
+     a random number generator).  The array should have been
+     initialized before the first call to obtain reproducible results.
+
+ - Function: long int mrand48 (void)
+     The `mrand48' function is similar to `lrand48'.  The only
+     difference is that the numbers returned are in the range `-2^31' to
+     `2^31' (exclusive).
+
+ - Function: long int jrand48 (unsigned short int XSUBI[3])
+     The `jrand48' function is similar to `nrand48'.  The only
+     difference is that the numbers returned are in the range `-2^31' to
+     `2^31' (exclusive).  For the `xsubi' parameter the same
+     requirements are necessary.
+
+   The internal state of the random number generator can be initialized
+in several ways.  The methods differ in the completeness of the
+information provided.
+
+ - Function: void srand48 (long int SEEDVAL)
+     The `srand48' function sets the most significant 32 bits of the
+     internal state of the random number generator to the least
+     significant 32 bits of the SEEDVAL parameter.  The lower 16 bits
+     are initialized to the value `0x330E'.  Even if the `long int'
+     type contains more than 32 bits only the lower 32 bits are used.
+
+     Owing to this limitation, initialization of the state of this
+     function is not very useful.  But it makes it easy to use a
+     construct like `srand48 (time (0))'.
+
+     A side-effect of this function is that the values `a' and `c' from
+     the internal state, which are used in the congruential formula,
+     are reset to the default values given above.  This is of
+     importance once the user has called the `lcong48' function (see
+     below).
+
+ - Function: unsigned short int * seed48 (unsigned short int SEED16V[3])
+     The `seed48' function initializes all 48 bits of the state of the
+     internal random number generator from the contents of the parameter
+     SEED16V.  Here the lower 16 bits of the first element of SEE16V
+     initialize the least significant 16 bits of the internal state,
+     the lower 16 bits of `SEED16V[1]' initialize the mid-order 16 bits
+     of the state and the 16 lower bits of `SEED16V[2]' initialize the
+     most significant 16 bits of the state.
+
+     Unlike `srand48' this function lets the user initialize all 48 bits
+     of the state.
+
+     The value returned by `seed48' is a pointer to an array containing
+     the values of the internal state before the change.  This might be
+     useful to restart the random number generator at a certain state.
+     Otherwise the value can simply be ignored.
+
+     As for `srand48', the values `a' and `c' from the congruential
+     formula are reset to the default values.
+
+   There is one more function to initialize the random number generator
+which enables you to specify even more information by allowing you to
+change the parameters in the congruential formula.
+
+ - Function: void lcong48 (unsigned short int PARAM[7])
+     The `lcong48' function allows the user to change the complete state
+     of the random number generator.  Unlike `srand48' and `seed48',
+     this function also changes the constants in the congruential
+     formula.
+
+     From the seven elements in the array PARAM the least significant
+     16 bits of the entries `PARAM[0]' to `PARAM[2]' determine the
+     initial state, the least significant 16 bits of `PARAM[3]' to
+     `PARAM[5]' determine the 48 bit constant `a' and `PARAM[6]'
+     determines the 16-bit value `c'.
+
+   All the above functions have in common that they use the global
+parameters for the congruential formula.  In multi-threaded programs it
+might sometimes be useful to have different parameters in different
+threads.  For this reason all the above functions have a counterpart
+which works on a description of the random number generator in the
+user-supplied buffer instead of the global state.
+
+   Please note that it is no problem if several threads use the global
+state if all threads use the functions which take a pointer to an array
+containing the state.  The random numbers are computed following the
+same loop but if the state in the array is different all threads will
+obtain an individual random number generator.
+
+   The user-supplied buffer must be of type `struct drand48_data'.
+This type should be regarded as opaque and not manipulated directly.
+
+ - Function: int drand48_r (struct drand48_data *BUFFER, double *RESULT)
+     This function is equivalent to the `drand48' function with the
+     difference that it does not modify the global random number
+     generator parameters but instead the parameters in the buffer
+     supplied through the pointer BUFFER.  The random number is
+     returned in the variable pointed to by RESULT.
+
+     The return value of the function indicates whether the call
+     succeeded.  If the value is less than `0' an error occurred and
+     ERRNO is set to indicate the problem.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int erand48_r (unsigned short int XSUBI[3], struct
+          drand48_data *BUFFER, double *RESULT)
+     The `erand48_r' function works like `erand48', but in addition it
+     takes an argument BUFFER which describes the random number
+     generator.  The state of the random number generator is taken from
+     the `xsubi' array, the parameters for the congruential formula
+     from the global random number generator data.  The random number
+     is returned in the variable pointed to by RESULT.
+
+     The return value is non-negative if the call succeeded.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int lrand48_r (struct drand48_data *BUFFER, double *RESULT)
+     This function is similar to `lrand48', but in addition it takes a
+     pointer to a buffer describing the state of the random number
+     generator just like `drand48'.
+
+     If the return value of the function is non-negative the variable
+     pointed to by RESULT contains the result.  Otherwise an error
+     occurred.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int nrand48_r (unsigned short int XSUBI[3], struct
+          drand48_data *BUFFER, long int *RESULT)
+     The `nrand48_r' function works like `nrand48' in that it produces
+     a random number in the range `0' to `2^31'.  But instead of using
+     the global parameters for the congruential formula it uses the
+     information from the buffer pointed to by BUFFER.  The state is
+     described by the values in XSUBI.
+
+     If the return value is non-negative the variable pointed to by
+     RESULT contains the result.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int mrand48_r (struct drand48_data *BUFFER, double *RESULT)
+     This function is similar to `mrand48' but like the other reentrant
+     functions it uses the random number generator described by the
+     value in the buffer pointed to by BUFFER.
+
+     If the return value is non-negative the variable pointed to by
+     RESULT contains the result.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int jrand48_r (unsigned short int XSUBI[3], struct
+          drand48_data *BUFFER, long int *RESULT)
+     The `jrand48_r' function is similar to `jrand48'.  Like the other
+     reentrant functions of this function family it uses the
+     congruential formula parameters from the buffer pointed to by
+     BUFFER.
+
+     If the return value is non-negative the variable pointed to by
+     RESULT contains the result.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+   Before any of the above functions are used the buffer of type
+`struct drand48_data' should be initialized.  The easiest way to do
+this is to fill the whole buffer with null bytes, e.g. by
+
+     memset (buffer, '\0', sizeof (struct drand48_data));
+
+Using any of the reentrant functions of this family now will
+automatically initialize the random number generator to the default
+values for the state and the parameters of the congruential formula.
+
+   The other possibility is to use any of the functions which explicitly
+initialize the buffer.  Though it might be obvious how to initialize the
+buffer from looking at the parameter to the function, it is highly
+recommended to use these functions since the result might not always be
+what you expect.
+
+ - Function: int srand48_r (long int SEEDVAL, struct drand48_data
+          *BUFFER)
+     The description of the random number generator represented by the
+     information in BUFFER is initialized similarly to what the function
+     `srand48' does.  The state is initialized from the parameter
+     SEEDVAL and the parameters for the congruential formula are
+     initialized to their default values.
+
+     If the return value is non-negative the function call succeeded.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int seed48_r (unsigned short int SEED16V[3], struct
+          drand48_data *BUFFER)
+     This function is similar to `srand48_r' but like `seed48' it
+     initializes all 48 bits of the state from the parameter SEED16V.
+
+     If the return value is non-negative the function call succeeded.
+     It does not return a pointer to the previous state of the random
+     number generator like the `seed48' function does.  If the user
+     wants to preserve the state for a later re-run s/he can copy the
+     whole buffer pointed to by BUFFER.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+ - Function: int lcong48_r (unsigned short int PARAM[7], struct
+          drand48_data *BUFFER)
+     This function initializes all aspects of the random number
+     generator described in BUFFER with the data in PARAM.  Here it is
+     especially true that the function does more than just copying the
+     contents of PARAM and BUFFER.  More work is required and therefore
+     it is important to use this function rather than initializing the
+     random number generator directly.
+
+     If the return value is non-negative the function call succeeded.
+
+     This function is a GNU extension and should not be used in portable
+     programs.
+
+
+File: libc.info,  Node: FP Function Optimizations,  Prev: Pseudo-Random Numbers,  Up: Mathematics
+
+Is Fast Code or Small Code preferred?
+=====================================
+
+   If an application uses many floating point functions it is often the
+case that the cost of the function calls themselves is not negligible.
+Modern processors can often execute the operations themselves very
+fast, but the function call disrupts the instruction pipeline.
+
+   For this reason the GNU C Library provides optimizations for many of
+the frequently-used math functions.  When GNU CC is used and the user
+activates the optimizer, several new inline functions and macros are
+defined.  These new functions and macros have the same names as the
+library functions and so are used instead of the latter.  In the case of
+inline functions the compiler will decide whether it is reasonable to
+use them, and this decision is usually correct.
+
+   This means that no calls to the library functions may be necessary,
+and can increase the speed of generated code significantly.  The
+drawback is that code size will increase, and the increase is not
+always negligible.
+
+   There are two kind of inline functions: Those that give the same
+result as the library functions and others that might not set `errno'
+and might have a reduced precision and/or argument range in comparison
+with the library functions.  The latter inline functions are only
+available if the flag `-ffast-math' is given to GNU CC.
+
+   In cases where the inline functions and macros are not wanted the
+symbol `__NO_MATH_INLINES' should be defined before any system header is
+included.  This will ensure that only library functions are used.  Of
+course, it can be determined for each file in the project whether
+giving this option is preferable or not.
+
+   Not all hardware implements the entire IEEE 754 standard, and even
+if it does there may be a substantial performance penalty for using some
+of its features.  For example, enabling traps on some processors forces
+the FPU to run un-pipelined, which can more than double calculation
+time.
+
+
+File: libc.info,  Node: Arithmetic,  Next: Date and Time,  Prev: Mathematics,  Up: Top
+
+Arithmetic Functions
+********************
+
+   This chapter contains information about functions for doing basic
+arithmetic operations, such as splitting a float into its integer and
+fractional parts or retrieving the imaginary part of a complex value.
+These functions are declared in the header files `math.h' and
+`complex.h'.
+
+* Menu:
+
+* Integers::                    Basic integer types and concepts
+* Integer Division::            Integer division with guaranteed rounding.
+* Floating Point Numbers::      Basic concepts.  IEEE 754.
+* Floating Point Classes::      The five kinds of floating-point number.
+* Floating Point Errors::       When something goes wrong in a calculation.
+* Rounding::                    Controlling how results are rounded.
+* Control Functions::           Saving and restoring the FPU's state.
+* Arithmetic Functions::        Fundamental operations provided by the library.
+* Complex Numbers::             The types.  Writing complex constants.
+* Operations on Complex::       Projection, conjugation, decomposition.
+* Parsing of Numbers::          Converting strings to numbers.
+* System V Number Conversion::  An archaic way to convert numbers to strings.
+
+
+File: libc.info,  Node: Integers,  Next: Integer Division,  Up: Arithmetic
+
+Integers
+========
+
+   The C language defines several integer data types: integer, short
+integer, long integer, and character, all in both signed and unsigned
+varieties.  The GNU C compiler extends the language to contain long
+long integers as well.
+
+   The C integer types were intended to allow code to be portable among
+machines with different inherent data sizes (word sizes), so each type
+may have different ranges on different machines.  The problem with this
+is that a program often needs to be written for a particular range of
+integers, and sometimes must be written for a particular size of
+storage, regardless of what machine the program runs on.
+
+   To address this problem, the GNU C library contains C type
+definitions you can use to declare integers that meet your exact needs.
+Because the GNU C library header files are customized to a specific
+machine, your program source code doesn't have to be.
+
+   These `typedef's are in `stdint.h'.
+
+   If you require that an integer be represented in exactly N bits, use
+one of the following types, with the obvious mapping to bit size and
+signedness:
+
+   * int8_t
+
+   * int16_t
+
+   * int32_t
+
+   * int64_t
+
+   * uint8_t
+
+   * uint16_t
+
+   * uint32_t
+
+   * uint64_t
+
+   If your C compiler and target machine do not allow integers of a
+certain size, the corresponding above type does not exist.
+
+   If you don't need a specific storage size, but want the smallest data
+structure with _at least_ N bits, use one of these:
+
+   * int_least8_t
+
+   * int_least16_t
+
+   * int_least32_t
+
+   * int_least64_t
+
+   * uint_least8_t
+
+   * uint_least16_t
+
+   * uint_least32_t
+
+   * uint_least64_t
+
+   If you don't need a specific storage size, but want the data
+structure that allows the fastest access while having at least N bits
+(and among data structures with the same access speed, the smallest
+one), use one of these:
+
+   * int_fast8_t
+
+   * int_fast16_t
+
+   * int_fast32_t
+
+   * int_fast64_t
+
+   * uint_fast8_t
+
+   * uint_fast16_t
+
+   * uint_fast32_t
+
+   * uint_fast64_t
+
+   If you want an integer with the widest range possible on the
+platform on which it is being used, use one of the following.  If you
+use these, you should write code that takes into account the variable
+size and range of the integer.
+
+   * intmax_t
+
+   * uintmax_t
+
+   The GNU C library also provides macros that tell you the maximum and
+minimum possible values for each integer data type.  The macro names
+follow these examples: `INT32_MAX', `UINT8_MAX', `INT_FAST32_MIN',
+`INT_LEAST64_MIN', `UINTMAX_MAX', `INTMAX_MAX', `INTMAX_MIN'.  Note
+that there are no macros for unsigned integer minima.  These are always
+zero.
+
+   There are similar macros for use with C's built in integer types
+which should come with your C compiler.  These are described in *Note
+Data Type Measurements::.
+
+   Don't forget you can use the C `sizeof' function with any of these
+data types to get the number of bytes of storage each uses.
+
+
+File: libc.info,  Node: Integer Division,  Next: Floating Point Numbers,  Prev: Integers,  Up: Arithmetic
+
+Integer Division
+================
+
+   This section describes functions for performing integer division.
+These functions are redundant when GNU CC is used, because in GNU C the
+`/' operator always rounds towards zero.  But in other C
+implementations, `/' may round differently with negative arguments.
+`div' and `ldiv' are useful because they specify how to round the
+quotient: towards zero.  The remainder has the same sign as the
+numerator.
+
+   These functions are specified to return a result R such that the
+value `R.quot*DENOMINATOR + R.rem' equals NUMERATOR.
+
+   To use these facilities, you should include the header file
+`stdlib.h' in your program.
+
+ - Data Type: div_t
+     This is a structure type used to hold the result returned by the
+     `div' function.  It has the following members:
+
+    `int quot'
+          The quotient from the division.
+
+    `int rem'
+          The remainder from the division.
+
+ - Function: div_t div (int NUMERATOR, int DENOMINATOR)
+     This function `div' computes the quotient and remainder from the
+     division of NUMERATOR by DENOMINATOR, returning the result in a
+     structure of type `div_t'.
+
+     If the result cannot be represented (as in a division by zero), the
+     behavior is undefined.
+
+     Here is an example, albeit not a very useful one.
+
+          div_t result;
+          result = div (20, -6);
+
+     Now `result.quot' is `-3' and `result.rem' is `2'.
+
+ - Data Type: ldiv_t
+     This is a structure type used to hold the result returned by the
+     `ldiv' function.  It has the following members:
+
+    `long int quot'
+          The quotient from the division.
+
+    `long int rem'
+          The remainder from the division.
+
+     (This is identical to `div_t' except that the components are of
+     type `long int' rather than `int'.)
+
+ - Function: ldiv_t ldiv (long int NUMERATOR, long int DENOMINATOR)
+     The `ldiv' function is similar to `div', except that the arguments
+     are of type `long int' and the result is returned as a structure
+     of type `ldiv_t'.
+
+ - Data Type: lldiv_t
+     This is a structure type used to hold the result returned by the
+     `lldiv' function.  It has the following members:
+
+    `long long int quot'
+          The quotient from the division.
+
+    `long long int rem'
+          The remainder from the division.
+
+     (This is identical to `div_t' except that the components are of
+     type `long long int' rather than `int'.)
+
+ - Function: lldiv_t lldiv (long long int NUMERATOR, long long int
+          DENOMINATOR)
+     The `lldiv' function is like the `div' function, but the arguments
+     are of type `long long int' and the result is returned as a
+     structure of type `lldiv_t'.
+
+     The `lldiv' function was added in ISO C99.
+
+ - Data Type: imaxdiv_t
+     This is a structure type used to hold the result returned by the
+     `imaxdiv' function.  It has the following members:
+
+    `intmax_t quot'
+          The quotient from the division.
+
+    `intmax_t rem'
+          The remainder from the division.
+
+     (This is identical to `div_t' except that the components are of
+     type `intmax_t' rather than `int'.)
+
+     See *Note Integers:: for a description of the `intmax_t' type.
+
+
+ - Function: imaxdiv_t imaxdiv (intmax_t NUMERATOR, intmax_t
+          DENOMINATOR)
+     The `imaxdiv' function is like the `div' function, but the
+     arguments are of type `intmax_t' and the result is returned as a
+     structure of type `imaxdiv_t'.
+
+     See *Note Integers:: for a description of the `intmax_t' type.
+
+     The `imaxdiv' function was added in ISO C99.
+
+
+File: libc.info,  Node: Floating Point Numbers,  Next: Floating Point Classes,  Prev: Integer Division,  Up: Arithmetic
+
+Floating Point Numbers
+======================
+
+   Most computer hardware has support for two different kinds of
+numbers: integers (...-3, -2, -1, 0, 1, 2, 3...) and floating-point
+numbers.  Floating-point numbers have three parts: the "mantissa", the
+"exponent", and the "sign bit".  The real number represented by a
+floating-point value is given by (s ? -1 : 1) * 2^e * M where s is the
+sign bit, e the exponent, and M the mantissa.  *Note Floating Point
+Concepts::, for details.  (It is possible to have a different "base"
+for the exponent, but all modern hardware uses 2.)
+
+   Floating-point numbers can represent a finite subset of the real
+numbers.  While this subset is large enough for most purposes, it is
+important to remember that the only reals that can be represented
+exactly are rational numbers that have a terminating binary expansion
+shorter than the width of the mantissa.  Even simple fractions such as
+1/5 can only be approximated by floating point.
+
+   Mathematical operations and functions frequently need to produce
+values that are not representable.  Often these values can be
+approximated closely enough for practical purposes, but sometimes they
+can't.  Historically there was no way to tell when the results of a
+calculation were inaccurate.  Modern computers implement the IEEE 754
+standard for numerical computations, which defines a framework for
+indicating to the program when the results of calculation are not
+trustworthy.  This framework consists of a set of "exceptions" that
+indicate why a result could not be represented, and the special values
+"infinity" and "not a number" (NaN).
+
+
+File: libc.info,  Node: Floating Point Classes,  Next: Floating Point Errors,  Prev: Floating Point Numbers,  Up: Arithmetic
+
+Floating-Point Number Classification Functions
+==============================================
+
+   ISO C99 defines macros that let you determine what sort of
+floating-point number a variable holds.
+
+ - Macro: int fpclassify (_float-type_ X)
+     This is a generic macro which works on all floating-point types and
+     which returns a value of type `int'.  The possible values are:
+
+    `FP_NAN'
+          The floating-point number X is "Not a Number" (*note Infinity
+          and NaN::)
+
+    `FP_INFINITE'
+          The value of X is either plus or minus infinity (*note
+          Infinity and NaN::)
+
+    `FP_ZERO'
+          The value of X is zero.  In floating-point formats like
+          IEEE 754, where zero can be signed, this value is also
+          returned if X is negative zero.
+
+    `FP_SUBNORMAL'
+          Numbers whose absolute value is too small to be represented
+          in the normal format are represented in an alternate,
+          "denormalized" format (*note Floating Point Concepts::).
+          This format is less precise but can represent values closer
+          to zero.  `fpclassify' returns this value for values of X in
+          this alternate format.
+
+    `FP_NORMAL'
+          This value is returned for all other values of X.  It
+          indicates that there is nothing special about the number.
+
+
+   `fpclassify' is most useful if more than one property of a number
+must be tested.  There are more specific macros which only test one
+property at a time.  Generally these macros execute faster than
+`fpclassify', since there is special hardware support for them.  You
+should therefore use the specific macros whenever possible.
+
+ - Macro: int isfinite (_float-type_ X)
+     This macro returns a nonzero value if X is finite: not plus or
+     minus infinity, and not NaN.  It is equivalent to
+
+          (fpclassify (x) != FP_NAN && fpclassify (x) != FP_INFINITE)
+
+     `isfinite' is implemented as a macro which accepts any
+     floating-point type.
+
+ - Macro: int isnormal (_float-type_ X)
+     This macro returns a nonzero value if X is finite and normalized.
+     It is equivalent to
+
+          (fpclassify (x) == FP_NORMAL)
+
+ - Macro: int isnan (_float-type_ X)
+     This macro returns a nonzero value if X is NaN.  It is equivalent
+     to
+
+          (fpclassify (x) == FP_NAN)
+
+   Another set of floating-point classification functions was provided
+by BSD.  The GNU C library also supports these functions; however, we
+recommend that you use the ISO C99 macros in new code.  Those are
+standard and will be available more widely.  Also, since they are
+macros, you do not have to worry about the type of their argument.
+
+ - Function: int isinf (double X)
+ - Function: int isinff (float X)
+ - Function: int isinfl (long double X)
+     This function returns `-1' if X represents negative infinity, `1'
+     if X represents positive infinity, and `0' otherwise.
+
+ - Function: int isnan (double X)
+ - Function: int isnanf (float X)
+ - Function: int isnanl (long double X)
+     This function returns a nonzero value if X is a "not a number"
+     value, and zero otherwise.
+
+     *Note:* The `isnan' macro defined by ISO C99 overrides the BSD
+     function.  This is normally not a problem, because the two
+     routines behave identically.  However, if you really need to get
+     the BSD function for some reason, you can write
+
+          (isnan) (x)
+
+ - Function: int finite (double X)
+ - Function: int finitef (float X)
+ - Function: int finitel (long double X)
+     This function returns a nonzero value if X is finite or a "not a
+     number" value, and zero otherwise.
+
+ - Function: double infnan (int ERROR)
+     This function is provided for compatibility with BSD.  Its
+     argument is an error code, `EDOM' or `ERANGE'; `infnan' returns the
+     value that a math function would return if it set `errno' to that
+     value.  *Note Math Error Reporting::.  `-ERANGE' is also acceptable
+     as an argument, and corresponds to `-HUGE_VAL' as a value.
+
+     In the BSD library, on certain machines, `infnan' raises a fatal
+     signal in all cases.  The GNU library does not do likewise,
+     because that does not fit the ISO C specification.
+
+   *Portability Note:* The functions listed in this section are BSD
+extensions.
+
+
+File: libc.info,  Node: Floating Point Errors,  Next: Rounding,  Prev: Floating Point Classes,  Up: Arithmetic
+
+Errors in Floating-Point Calculations
+=====================================
+
+* Menu:
+
+* FP Exceptions::               IEEE 754 math exceptions and how to detect them.
+* Infinity and NaN::            Special values returned by calculations.
+* Status bit operations::       Checking for exceptions after the fact.
+* Math Error Reporting::        How the math functions report errors.
+
+
+File: libc.info,  Node: FP Exceptions,  Next: Infinity and NaN,  Up: Floating Point Errors
+
+FP Exceptions
+-------------
+
+   The IEEE 754 standard defines five "exceptions" that can occur
+during a calculation.  Each corresponds to a particular sort of error,
+such as overflow.
+
+   When exceptions occur (when exceptions are "raised", in the language
+of the standard), one of two things can happen.  By default the
+exception is simply noted in the floating-point "status word", and the
+program continues as if nothing had happened.  The operation produces a
+default value, which depends on the exception (see the table below).
+Your program can check the status word to find out which exceptions
+happened.
+
+   Alternatively, you can enable "traps" for exceptions.  In that case,
+when an exception is raised, your program will receive the `SIGFPE'
+signal.  The default action for this signal is to terminate the
+program.  *Note Signal Handling::, for how you can change the effect of
+the signal.
+
+   In the System V math library, the user-defined function `matherr' is
+called when certain exceptions occur inside math library functions.
+However, the Unix98 standard deprecates this interface.  We support it
+for historical compatibility, but recommend that you do not use it in
+new programs.
+
+The exceptions defined in IEEE 754 are:
+
+`Invalid Operation'
+     This exception is raised if the given operands are invalid for the
+     operation to be performed.  Examples are (see IEEE 754, section 7):
+       1. Addition or subtraction: oo - oo.  (But oo + oo = oo).
+
+       2. Multiplication: 0 * oo.
+
+       3. Division: 0/0 or oo/oo.
+
+       4. Remainder: x REM y, where y is zero or x is infinite.
+
+       5. Square root if the operand is less then zero.  More
+          generally, any mathematical function evaluated outside its
+          domain produces this exception.
+
+       6. Conversion of a floating-point number to an integer or decimal
+          string, when the number cannot be represented in the target
+          format (due to overflow, infinity, or NaN).
+
+       7. Conversion of an unrecognizable input string.
+
+       8. Comparison via predicates involving < or >, when one or other
+          of the operands is NaN.  You can prevent this exception by
+          using the unordered comparison functions instead; see *Note
+          FP Comparison Functions::.
+
+     If the exception does not trap, the result of the operation is NaN.
+
+`Division by Zero'
+     This exception is raised when a finite nonzero number is divided
+     by zero.  If no trap occurs the result is either +oo or -oo,
+     depending on the signs of the operands.
+
+`Overflow'
+     This exception is raised whenever the result cannot be represented
+     as a finite value in the precision format of the destination.  If
+     no trap occurs the result depends on the sign of the intermediate
+     result and the current rounding mode (IEEE 754, section 7.3):
+       1. Round to nearest carries all overflows to oo with the sign of
+          the intermediate result.
+
+       2. Round toward 0 carries all overflows to the largest
+          representable finite number with the sign of the intermediate
+          result.
+
+       3. Round toward -oo carries positive overflows to the largest
+          representable finite number and negative overflows to -oo.
+
+       4. Round toward oo carries negative overflows to the most
+          negative representable finite number and positive overflows
+          to oo.
+
+     Whenever the overflow exception is raised, the inexact exception
+     is also raised.
+
+`Underflow'
+     The underflow exception is raised when an intermediate result is
+     too small to be calculated accurately, or if the operation's
+     result rounded to the destination precision is too small to be
+     normalized.
+
+     When no trap is installed for the underflow exception, underflow is
+     signaled (via the underflow flag) only when both tininess and loss
+     of accuracy have been detected.  If no trap handler is installed
+     the operation continues with an imprecise small value, or zero if
+     the destination precision cannot hold the small exact result.
+
+`Inexact'
+     This exception is signalled if a rounded result is not exact (such
+     as when calculating the square root of two) or a result overflows
+     without an overflow trap.
+
+
+File: libc.info,  Node: Infinity and NaN,  Next: Status bit operations,  Prev: FP Exceptions,  Up: Floating Point Errors
+
+Infinity and NaN
+----------------
+
+   IEEE 754 floating point numbers can represent positive or negative
+infinity, and "NaN" (not a number).  These three values arise from
+calculations whose result is undefined or cannot be represented
+accurately.  You can also deliberately set a floating-point variable to
+any of them, which is sometimes useful.  Some examples of calculations
+that produce infinity or NaN:
+
+     1/0 = oo
+     log (0) = -oo
+     sqrt (-1) = NaN
+
+   When a calculation produces any of these values, an exception also
+occurs; see *Note FP Exceptions::.
+
+   The basic operations and math functions all accept infinity and NaN
+and produce sensible output.  Infinities propagate through calculations
+as one would expect: for example, 2 + oo = oo, 4/oo = 0, atan (oo) =
+pi/2.  NaN, on the other hand, infects any calculation that involves
+it.  Unless the calculation would produce the same result no matter
+what real value replaced NaN, the result is NaN.
+
+   In comparison operations, positive infinity is larger than all values
+except itself and NaN, and negative infinity is smaller than all values
+except itself and NaN.  NaN is "unordered": it is not equal to, greater
+than, or less than anything, _including itself_. `x == x' is false if
+the value of `x' is NaN.  You can use this to test whether a value is
+NaN or not, but the recommended way to test for NaN is with the `isnan'
+function (*note Floating Point Classes::).  In addition, `<', `>',
+`<=', and `>=' will raise an exception when applied to NaNs.
+
+   `math.h' defines macros that allow you to explicitly set a variable
+to infinity or NaN.
+
+ - Macro: float INFINITY
+     An expression representing positive infinity.  It is equal to the
+     value produced  by mathematical operations like `1.0 / 0.0'.
+     `-INFINITY' represents negative infinity.
+
+     You can test whether a floating-point value is infinite by
+     comparing it to this macro.  However, this is not recommended; you
+     should use the `isfinite' macro instead.  *Note Floating Point
+     Classes::.
+
+     This macro was introduced in the ISO C99 standard.
+
+ - Macro: float NAN
+     An expression representing a value which is "not a number".  This
+     macro is a GNU extension, available only on machines that support
+     the "not a number" value--that is to say, on all machines that
+     support IEEE floating point.
+
+     You can use `#ifdef NAN' to test whether the machine supports NaN.
+     (Of course, you must arrange for GNU extensions to be visible,
+     such as by defining `_GNU_SOURCE', and then you must include
+     `math.h'.)
+
+   IEEE 754 also allows for another unusual value: negative zero.  This
+value is produced when you divide a positive number by negative
+infinity, or when a negative result is smaller than the limits of
+representation.  Negative zero behaves identically to zero in all
+calculations, unless you explicitly test the sign bit with `signbit' or
+`copysign'.
+
+
+File: libc.info,  Node: Status bit operations,  Next: Math Error Reporting,  Prev: Infinity and NaN,  Up: Floating Point Errors
+
+Examining the FPU status word
+-----------------------------
+
+   ISO C99 defines functions to query and manipulate the floating-point
+status word.  You can use these functions to check for untrapped
+exceptions when it's convenient, rather than worrying about them in the
+middle of a calculation.
+
+   These constants represent the various IEEE 754 exceptions.  Not all
+FPUs report all the different exceptions.  Each constant is defined if
+and only if the FPU you are compiling for supports that exception, so
+you can test for FPU support with `#ifdef'.  They are defined in
+`fenv.h'.
+
+`FE_INEXACT'
+     The inexact exception.
+
+`FE_DIVBYZERO'
+     The divide by zero exception.
+
+`FE_UNDERFLOW'
+     The underflow exception.
+
+`FE_OVERFLOW'
+     The overflow exception.
+
+`FE_INVALID'
+     The invalid exception.
+
+   The macro `FE_ALL_EXCEPT' is the bitwise OR of all exception macros
+which are supported by the FP implementation.
+
+   These functions allow you to clear exception flags, test for
+exceptions, and save and restore the set of exceptions flagged.
+
+ - Function: int feclearexcept (int EXCEPTS)
+     This function clears all of the supported exception flags
+     indicated by EXCEPTS.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+ - Function: int feraiseexcept (int EXCEPTS)
+     This function raises the supported exceptions indicated by
+     EXCEPTS.  If more than one exception bit in EXCEPTS is set the
+     order in which the exceptions are raised is undefined except that
+     overflow (`FE_OVERFLOW') or underflow (`FE_UNDERFLOW') are raised
+     before inexact (`FE_INEXACT').  Whether for overflow or underflow
+     the inexact exception is also raised is also implementation
+     dependent.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+ - Function: int fetestexcept (int EXCEPTS)
+     Test whether the exception flags indicated by the parameter EXCEPT
+     are currently set.  If any of them are, a nonzero value is returned
+     which specifies which exceptions are set.  Otherwise the result is
+     zero.
+
+   To understand these functions, imagine that the status word is an
+integer variable named STATUS.  `feclearexcept' is then equivalent to
+`status &= ~excepts' and `fetestexcept' is equivalent to `(status &
+excepts)'.  The actual implementation may be very different, of course.
+
+   Exception flags are only cleared when the program explicitly
+requests it, by calling `feclearexcept'.  If you want to check for
+exceptions from a set of calculations, you should clear all the flags
+first.  Here is a simple example of the way to use `fetestexcept':
+
+     {
+       double f;
+       int raised;
+       feclearexcept (FE_ALL_EXCEPT);
+       f = compute ();
+       raised = fetestexcept (FE_OVERFLOW | FE_INVALID);
+       if (raised & FE_OVERFLOW) { /* ... */ }
+       if (raised & FE_INVALID) { /* ... */ }
+       /* ... */
+     }
+
+   You cannot explicitly set bits in the status word.  You can, however,
+save the entire status word and restore it later.  This is done with the
+following functions:
+
+ - Function: int fegetexceptflag (fexcept_t *FLAGP, int EXCEPTS)
+     This function stores in the variable pointed to by FLAGP an
+     implementation-defined value representing the current setting of
+     the exception flags indicated by EXCEPTS.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+ - Function: int fesetexceptflag (const fexcept_t *FLAGP, int
+     EXCEPTS) This function restores the flags for the exceptions
+     indicated by EXCEPTS to the values stored in the variable pointed
+     to by FLAGP.
+
+     The function returns zero in case the operation was successful, a
+     non-zero value otherwise.
+
+   Note that the value stored in `fexcept_t' bears no resemblance to
+the bit mask returned by `fetestexcept'.  The type may not even be an
+integer.  Do not attempt to modify an `fexcept_t' variable.
+
+
+File: libc.info,  Node: Math Error Reporting,  Prev: Status bit operations,  Up: Floating Point Errors
+
+Error Reporting by Mathematical Functions
+-----------------------------------------
+
+   Many of the math functions are defined only over a subset of the
+real or complex numbers.  Even if they are mathematically defined,
+their result may be larger or smaller than the range representable by
+their return type.  These are known as "domain errors", "overflows", and
+"underflows", respectively.  Math functions do several things when one
+of these errors occurs.  In this manual we will refer to the complete
+response as "signalling" a domain error, overflow, or underflow.
+
+   When a math function suffers a domain error, it raises the invalid
+exception and returns NaN.  It also sets ERRNO to `EDOM'; this is for
+compatibility with old systems that do not support IEEE 754 exception
+handling.  Likewise, when overflow occurs, math functions raise the
+overflow exception and return oo or -oo as appropriate.  They also set
+ERRNO to `ERANGE'.  When underflow occurs, the underflow exception is
+raised, and zero (appropriately signed) is returned.  ERRNO may be set
+to `ERANGE', but this is not guaranteed.
+
+   Some of the math functions are defined mathematically to result in a
+complex value over parts of their domains.  The most familiar example of
+this is taking the square root of a negative number.  The complex math
+functions, such as `csqrt', will return the appropriate complex value
+in this case.  The real-valued functions, such as `sqrt', will signal a
+domain error.
+
+   Some older hardware does not support infinities.  On that hardware,
+overflows instead return a particular very large number (usually the
+largest representable number).  `math.h' defines macros you can use to
+test for overflow on both old and new hardware.
+
+ - Macro: double HUGE_VAL
+ - Macro: float HUGE_VALF
+ - Macro: long double HUGE_VALL
+     An expression representing a particular very large number.  On
+     machines that use IEEE 754 floating point format, `HUGE_VAL' is
+     infinity.  On other machines, it's typically the largest positive
+     number that can be represented.
+
+     Mathematical functions return the appropriately typed version of
+     `HUGE_VAL' or `-HUGE_VAL' when the result is too large to be
+     represented.
+

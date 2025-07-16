@@ -1,0 +1,8 @@
+clone.S
+mremap.S
+oldgetrlimit64.c
+setresuid.c
+setresgid.c
+setfsuid.c
+setfsgid.c
+sys/reg.h

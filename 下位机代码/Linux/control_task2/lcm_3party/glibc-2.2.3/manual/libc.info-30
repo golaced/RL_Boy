@@ -1,0 +1,1115 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Mathematics,  Next: Arithmetic,  Prev: Syslog,  Up: Top
+
+Mathematics
+***********
+
+   This chapter contains information about functions for performing
+mathematical computations, such as trigonometric functions.  Most of
+these functions have prototypes declared in the header file `math.h'.
+The complex-valued functions are defined in `complex.h'.
+
+   All mathematical functions which take a floating-point argument have
+three variants, one each for `double', `float', and `long double'
+arguments.  The `double' versions are mostly defined in ISO C89.  The
+`float' and `long double' versions are from the numeric extensions to C
+included in ISO C99.
+
+   Which of the three versions of a function should be used depends on
+the situation.  For most calculations, the `float' functions are the
+fastest.  On the other hand, the `long double' functions have the
+highest precision.  `double' is somewhere in between.  It is usually
+wise to pick the narrowest type that can accommodate your data.  Not
+all machines have a distinct `long double' type; it may be the same as
+`double'.
+
+* Menu:
+
+* Mathematical Constants::      Precise numeric values for often-used
+                                 constants.
+* Trig Functions::              Sine, cosine, tangent, and friends.
+* Inverse Trig Functions::      Arcsine, arccosine, etc.
+* Exponents and Logarithms::    Also pow and sqrt.
+* Hyperbolic Functions::        sinh, cosh, tanh, etc.
+* Special Functions::           Bessel, gamma, erf.
+* Errors in Math Functions::    Known Maximum Errors in Math Functions.
+* Pseudo-Random Numbers::       Functions for generating pseudo-random
+				 numbers.
+* FP Function Optimizations::   Fast code or small code.
+
+
+File: libc.info,  Node: Mathematical Constants,  Next: Trig Functions,  Up: Mathematics
+
+Predefined Mathematical Constants
+=================================
+
+   The header `math.h' defines several useful mathematical constants.
+All values are defined as preprocessor macros starting with `M_'.  The
+values provided are:
+
+`M_E'
+     The base of natural logarithms.
+
+`M_LOG2E'
+     The logarithm to base `2' of `M_E'.
+
+`M_LOG10E'
+     The logarithm to base `10' of `M_E'.
+
+`M_LN2'
+     The natural logarithm of `2'.
+
+`M_LN10'
+     The natural logarithm of `10'.
+
+`M_PI'
+     Pi, the ratio of a circle's circumference to its diameter.
+
+`M_PI_2'
+     Pi divided by two.
+
+`M_PI_4'
+     Pi divided by four.
+
+`M_1_PI'
+     The reciprocal of pi (1/pi)
+
+`M_2_PI'
+     Two times the reciprocal of pi.
+
+`M_2_SQRTPI'
+     Two times the reciprocal of the square root of pi.
+
+`M_SQRT2'
+     The square root of two.
+
+`M_SQRT1_2'
+     The reciprocal of the square root of two (also the square root of
+     1/2).
+
+   These constants come from the Unix98 standard and were also
+available in 4.4BSD; therefore they are only defined if `_BSD_SOURCE' or
+`_XOPEN_SOURCE=500', or a more general feature select macro, is
+defined.  The default set of features includes these constants.  *Note
+Feature Test Macros::.
+
+   All values are of type `double'.  As an extension, the GNU C library
+also defines these constants with type `long double'.  The `long
+double' macros have a lowercase `l' appended to their names: `M_El',
+`M_PIl', and so forth.  These are only available if `_GNU_SOURCE' is
+defined.
+
+   _Note:_ Some programs use a constant named `PI' which has the same
+value as `M_PI'.  This constant is not standard; it may have appeared
+in some old AT&T headers, and is mentioned in Stroustrup's book on C++.
+It infringes on the user's name space, so the GNU C library does not
+define it.  Fixing programs written to expect it is simple: replace
+`PI' with `M_PI' throughout, or put `-DPI=M_PI' on the compiler command
+line.
+
+
+File: libc.info,  Node: Trig Functions,  Next: Inverse Trig Functions,  Prev: Mathematical Constants,  Up: Mathematics
+
+Trigonometric Functions
+=======================
+
+   These are the familiar `sin', `cos', and `tan' functions.  The
+arguments to all of these functions are in units of radians; recall
+that pi radians equals 180 degrees.
+
+   The math library normally defines `M_PI' to a `double' approximation
+of pi.  If strict ISO and/or POSIX compliance are requested this
+constant is not defined, but you can easily define it yourself:
+
+     #define M_PI 3.14159265358979323846264338327
+
+You can also compute the value of pi with the expression `acos (-1.0)'.
+
+ - Function: double sin (double X)
+ - Function: float sinf (float X)
+ - Function: long double sinl (long double X)
+     These functions return the sine of X, where X is given in radians.
+     The return value is in the range `-1' to `1'.
+
+ - Function: double cos (double X)
+ - Function: float cosf (float X)
+ - Function: long double cosl (long double X)
+     These functions return the cosine of X, where X is given in
+     radians.  The return value is in the range `-1' to `1'.
+
+ - Function: double tan (double X)
+ - Function: float tanf (float X)
+ - Function: long double tanl (long double X)
+     These functions return the tangent of X, where X is given in
+     radians.
+
+     Mathematically, the tangent function has singularities at odd
+     multiples of pi/2.  If the argument X is too close to one of these
+     singularities, `tan' will signal overflow.
+
+   In many applications where `sin' and `cos' are used, the sine and
+cosine of the same angle are needed at the same time.  It is more
+efficient to compute them simultaneously, so the library provides a
+function to do that.
+
+ - Function: void sincos (double X, double *SINX, double *COSX)
+ - Function: void sincosf (float X, float *SINX, float *COSX)
+ - Function: void sincosl (long double X, long double *SINX, long
+          double *COSX)
+     These functions return the sine of X in `*SINX' and the cosine of
+     X in `*COS', where X is given in radians.  Both values, `*SINX'
+     and `*COSX', are in the range of `-1' to `1'.
+
+     This function is a GNU extension.  Portable programs should be
+     prepared to cope with its absence.
+
+   ISO C99 defines variants of the trig functions which work on complex
+numbers.  The GNU C library provides these functions, but they are only
+useful if your compiler supports the new complex types defined by the
+standard.  (As of this writing GCC supports complex numbers, but there
+are bugs in the implementation.)
+
+ - Function: complex double csin (complex double Z)
+ - Function: complex float csinf (complex float Z)
+ - Function: complex long double csinl (complex long double Z)
+     These functions return the complex sine of Z.  The mathematical
+     definition of the complex sine is
+
+     sin (z) = 1/(2*i) * (exp (z*i) - exp (-z*i)).
+
+ - Function: complex double ccos (complex double Z)
+ - Function: complex float ccosf (complex float Z)
+ - Function: complex long double ccosl (complex long double Z)
+     These functions return the complex cosine of Z.  The mathematical
+     definition of the complex cosine is
+
+     cos (z) = 1/2 * (exp (z*i) + exp (-z*i))
+
+ - Function: complex double ctan (complex double Z)
+ - Function: complex float ctanf (complex float Z)
+ - Function: complex long double ctanl (complex long double Z)
+     These functions return the complex tangent of Z.  The mathematical
+     definition of the complex tangent is
+
+     tan (z) = -i * (exp (z*i) - exp (-z*i)) / (exp (z*i) + exp (-z*i))
+
+     The complex tangent has poles at pi/2 + 2n, where n is an integer.
+     `ctan' may signal overflow if Z is too close to a pole.
+
+
+File: libc.info,  Node: Inverse Trig Functions,  Next: Exponents and Logarithms,  Prev: Trig Functions,  Up: Mathematics
+
+Inverse Trigonometric Functions
+===============================
+
+   These are the usual arc sine, arc cosine and arc tangent functions,
+which are the inverses of the sine, cosine and tangent functions
+respectively.
+
+ - Function: double asin (double X)
+ - Function: float asinf (float X)
+ - Function: long double asinl (long double X)
+     These functions compute the arc sine of X--that is, the value whose
+     sine is X.  The value is in units of radians.  Mathematically,
+     there are infinitely many such values; the one actually returned
+     is the one between `-pi/2' and `pi/2' (inclusive).
+
+     The arc sine function is defined mathematically only over the
+     domain `-1' to `1'.  If X is outside the domain, `asin' signals a
+     domain error.
+
+ - Function: double acos (double X)
+ - Function: float acosf (float X)
+ - Function: long double acosl (long double X)
+     These functions compute the arc cosine of X--that is, the value
+     whose cosine is X.  The value is in units of radians.
+     Mathematically, there are infinitely many such values; the one
+     actually returned is the one between `0' and `pi' (inclusive).
+
+     The arc cosine function is defined mathematically only over the
+     domain `-1' to `1'.  If X is outside the domain, `acos' signals a
+     domain error.
+
+ - Function: double atan (double X)
+ - Function: float atanf (float X)
+ - Function: long double atanl (long double X)
+     These functions compute the arc tangent of X--that is, the value
+     whose tangent is X.  The value is in units of radians.
+     Mathematically, there are infinitely many such values; the one
+     actually returned is the one between `-pi/2' and `pi/2'
+     (inclusive).
+
+ - Function: double atan2 (double Y, double X)
+ - Function: float atan2f (float Y, float X)
+ - Function: long double atan2l (long double Y, long double X)
+     This function computes the arc tangent of Y/X, but the signs of
+     both arguments are used to determine the quadrant of the result,
+     and X is permitted to be zero.  The return value is given in
+     radians and is in the range `-pi' to `pi', inclusive.
+
+     If X and Y are coordinates of a point in the plane, `atan2'
+     returns the signed angle between the line from the origin to that
+     point and the x-axis.  Thus, `atan2' is useful for converting
+     Cartesian coordinates to polar coordinates.  (To compute the
+     radial coordinate, use `hypot'; see *Note Exponents and
+     Logarithms::.)
+
+     If both X and Y are zero, `atan2' returns zero.
+
+   ISO C99 defines complex versions of the inverse trig functions.
+
+ - Function: complex double casin (complex double Z)
+ - Function: complex float casinf (complex float Z)
+ - Function: complex long double casinl (complex long double Z)
+     These functions compute the complex arc sine of Z--that is, the
+     value whose sine is Z.  The value returned is in radians.
+
+     Unlike the real-valued functions, `casin' is defined for all
+     values of Z.
+
+ - Function: complex double cacos (complex double Z)
+ - Function: complex float cacosf (complex float Z)
+ - Function: complex long double cacosl (complex long double Z)
+     These functions compute the complex arc cosine of Z--that is, the
+     value whose cosine is Z.  The value returned is in radians.
+
+     Unlike the real-valued functions, `cacos' is defined for all
+     values of Z.
+
+ - Function: complex double catan (complex double Z)
+ - Function: complex float catanf (complex float Z)
+ - Function: complex long double catanl (complex long double Z)
+     These functions compute the complex arc tangent of Z--that is, the
+     value whose tangent is Z.  The value is in units of radians.
+
+
+File: libc.info,  Node: Exponents and Logarithms,  Next: Hyperbolic Functions,  Prev: Inverse Trig Functions,  Up: Mathematics
+
+Exponentiation and Logarithms
+=============================
+
+ - Function: double exp (double X)
+ - Function: float expf (float X)
+ - Function: long double expl (long double X)
+     These functions compute `e' (the base of natural logarithms) raised
+     to the power X.
+
+     If the magnitude of the result is too large to be representable,
+     `exp' signals overflow.
+
+ - Function: double exp2 (double X)
+ - Function: float exp2f (float X)
+ - Function: long double exp2l (long double X)
+     These functions compute `2' raised to the power X.
+     Mathematically, `exp2 (x)' is the same as `exp (x * log (2))'.
+
+ - Function: double exp10 (double X)
+ - Function: float exp10f (float X)
+ - Function: long double exp10l (long double X)
+ - Function: double pow10 (double X)
+ - Function: float pow10f (float X)
+ - Function: long double pow10l (long double X)
+     These functions compute `10' raised to the power X.
+     Mathematically, `exp10 (x)' is the same as `exp (x * log (10))'.
+
+     These functions are GNU extensions.  The name `exp10' is
+     preferred, since it is analogous to `exp' and `exp2'.
+
+ - Function: double log (double X)
+ - Function: float logf (float X)
+ - Function: long double logl (long double X)
+     These functions compute the natural logarithm of X.  `exp (log
+     (X))' equals X, exactly in mathematics and approximately in C.
+
+     If X is negative, `log' signals a domain error.  If X is zero, it
+     returns negative infinity; if X is too close to zero, it may
+     signal overflow.
+
+ - Function: double log10 (double X)
+ - Function: float log10f (float X)
+ - Function: long double log10l (long double X)
+     These functions return the base-10 logarithm of X.  `log10 (X)'
+     equals `log (X) / log (10)'.
+
+
+ - Function: double log2 (double X)
+ - Function: float log2f (float X)
+ - Function: long double log2l (long double X)
+     These functions return the base-2 logarithm of X.  `log2 (X)'
+     equals `log (X) / log (2)'.
+
+ - Function: double logb (double X)
+ - Function: float logbf (float X)
+ - Function: long double logbl (long double X)
+     These functions extract the exponent of X and return it as a
+     floating-point value.  If `FLT_RADIX' is two, `logb' is equal to
+     `floor (log2 (x))', except it's probably faster.
+
+     If X is de-normalized, `logb' returns the exponent X would have if
+     it were normalized.  If X is infinity (positive or negative),
+     `logb' returns oo.  If X is zero, `logb' returns oo.  It does not
+     signal.
+
+ - Function: int ilogb (double X)
+ - Function: int ilogbf (float X)
+ - Function: int ilogbl (long double X)
+     These functions are equivalent to the corresponding `logb'
+     functions except that they return signed integer values.
+
+Since integers cannot represent infinity and NaN, `ilogb' instead
+returns an integer that can't be the exponent of a normal floating-point
+number.  `math.h' defines constants so you can check for this.
+
+ - Macro: int FP_ILOGB0
+     `ilogb' returns this value if its argument is `0'.  The numeric
+     value is either `INT_MIN' or `-INT_MAX'.
+
+     This macro is defined in ISO C99.
+
+ - Macro: int FP_ILOGBNAN
+     `ilogb' returns this value if its argument is `NaN'.  The numeric
+     value is either `INT_MIN' or `INT_MAX'.
+
+     This macro is defined in ISO C99.
+
+   These values are system specific.  They might even be the same.  The
+proper way to test the result of `ilogb' is as follows:
+
+     i = ilogb (f);
+     if (i == FP_ILOGB0 || i == FP_ILOGBNAN)
+       {
+         if (isnan (f))
+           {
+             /* Handle NaN.  */
+           }
+         else if (f  == 0.0)
+           {
+             /* Handle 0.0.  */
+           }
+         else
+           {
+             /* Some other value with large exponent,
+                perhaps +Inf.  */
+           }
+       }
+
+ - Function: double pow (double BASE, double POWER)
+ - Function: float powf (float BASE, float POWER)
+ - Function: long double powl (long double BASE, long double POWER)
+     These are general exponentiation functions, returning BASE raised
+     to POWER.
+
+     Mathematically, `pow' would return a complex number when BASE is
+     negative and POWER is not an integral value.  `pow' can't do that,
+     so instead it signals a domain error. `pow' may also underflow or
+     overflow the destination type.
+
+ - Function: double sqrt (double X)
+ - Function: float sqrtf (float X)
+ - Function: long double sqrtl (long double X)
+     These functions return the nonnegative square root of X.
+
+     If X is negative, `sqrt' signals a domain error.  Mathematically,
+     it should return a complex number.
+
+ - Function: double cbrt (double X)
+ - Function: float cbrtf (float X)
+ - Function: long double cbrtl (long double X)
+     These functions return the cube root of X.  They cannot fail;
+     every representable real value has a representable real cube root.
+
+ - Function: double hypot (double X, double Y)
+ - Function: float hypotf (float X, float Y)
+ - Function: long double hypotl (long double X, long double Y)
+     These functions return `sqrt (X*X + Y*Y)'.  This is the length of
+     the hypotenuse of a right triangle with sides of length X and Y,
+     or the distance of the point (X, Y) from the origin.  Using this
+     function instead of the direct formula is wise, since the error is
+     much smaller.  See also the function `cabs' in *Note Absolute
+     Value::.
+
+ - Function: double expm1 (double X)
+ - Function: float expm1f (float X)
+ - Function: long double expm1l (long double X)
+     These functions return a value equivalent to `exp (X) - 1'.  They
+     are computed in a way that is accurate even if X is near zero--a
+     case where `exp (X) - 1' would be inaccurate owing to subtraction
+     of two numbers that are nearly equal.
+
+ - Function: double log1p (double X)
+ - Function: float log1pf (float X)
+ - Function: long double log1pl (long double X)
+     These functions returns a value equivalent to `log (1 + X)'.  They
+     are computed in a way that is accurate even if X is near zero.
+
+   ISO C99 defines complex variants of some of the exponentiation and
+logarithm functions.
+
+ - Function: complex double cexp (complex double Z)
+ - Function: complex float cexpf (complex float Z)
+ - Function: complex long double cexpl (complex long double Z)
+     These functions return `e' (the base of natural logarithms) raised
+     to the power of Z.  Mathematically, this corresponds to the value
+
+     exp (z) = exp (creal (z)) * (cos (cimag (z)) + I * sin (cimag (z)))
+
+ - Function: complex double clog (complex double Z)
+ - Function: complex float clogf (complex float Z)
+ - Function: complex long double clogl (complex long double Z)
+     These functions return the natural logarithm of Z.
+     Mathematically, this corresponds to the value
+
+     log (z) = log (cabs (z)) + I * carg (z)
+
+     `clog' has a pole at 0, and will signal overflow if Z equals or is
+     very close to 0.  It is well-defined for all other values of Z.
+
+ - Function: complex double clog10 (complex double Z)
+ - Function: complex float clog10f (complex float Z)
+ - Function: complex long double clog10l (complex long double Z)
+     These functions return the base 10 logarithm of the complex value
+     Z. Mathematically, this corresponds to the value
+
+     log (z) = log10 (cabs (z)) + I * carg (z)
+
+     These functions are GNU extensions.
+
+ - Function: complex double csqrt (complex double Z)
+ - Function: complex float csqrtf (complex float Z)
+ - Function: complex long double csqrtl (complex long double Z)
+     These functions return the complex square root of the argument Z.
+     Unlike the real-valued functions, they are defined for all values
+     of Z.
+
+ - Function: complex double cpow (complex double BASE, complex double
+          POWER)
+ - Function: complex float cpowf (complex float BASE, complex float
+          POWER)
+ - Function: complex long double cpowl (complex long double BASE,
+          complex long double POWER)
+     These functions return BASE raised to the power of POWER.  This is
+     equivalent to `cexp (y * clog (x))'
+
+
+File: libc.info,  Node: Hyperbolic Functions,  Next: Special Functions,  Prev: Exponents and Logarithms,  Up: Mathematics
+
+Hyperbolic Functions
+====================
+
+   The functions in this section are related to the exponential
+functions; see *Note Exponents and Logarithms::.
+
+ - Function: double sinh (double X)
+ - Function: float sinhf (float X)
+ - Function: long double sinhl (long double X)
+     These functions return the hyperbolic sine of X, defined
+     mathematically as `(exp (X) - exp (-X)) / 2'.  They may signal
+     overflow if X is too large.
+
+ - Function: double cosh (double X)
+ - Function: float coshf (float X)
+ - Function: long double coshl (long double X)
+     These function return the hyperbolic cosine of X, defined
+     mathematically as `(exp (X) + exp (-X)) / 2'.  They may signal
+     overflow if X is too large.
+
+ - Function: double tanh (double X)
+ - Function: float tanhf (float X)
+ - Function: long double tanhl (long double X)
+     These functions return the hyperbolic tangent of X, defined
+     mathematically as `sinh (X) / cosh (X)'.  They may signal overflow
+     if X is too large.
+
+   There are counterparts for the hyperbolic functions which take
+complex arguments.
+
+ - Function: complex double csinh (complex double Z)
+ - Function: complex float csinhf (complex float Z)
+ - Function: complex long double csinhl (complex long double Z)
+     These functions return the complex hyperbolic sine of Z, defined
+     mathematically as `(exp (Z) - exp (-Z)) / 2'.
+
+ - Function: complex double ccosh (complex double Z)
+ - Function: complex float ccoshf (complex float Z)
+ - Function: complex long double ccoshl (complex long double Z)
+     These functions return the complex hyperbolic cosine of Z, defined
+     mathematically as `(exp (Z) + exp (-Z)) / 2'.
+
+ - Function: complex double ctanh (complex double Z)
+ - Function: complex float ctanhf (complex float Z)
+ - Function: complex long double ctanhl (complex long double Z)
+     These functions return the complex hyperbolic tangent of Z,
+     defined mathematically as `csinh (Z) / ccosh (Z)'.
+
+ - Function: double asinh (double X)
+ - Function: float asinhf (float X)
+ - Function: long double asinhl (long double X)
+     These functions return the inverse hyperbolic sine of X--the value
+     whose hyperbolic sine is X.
+
+ - Function: double acosh (double X)
+ - Function: float acoshf (float X)
+ - Function: long double acoshl (long double X)
+     These functions return the inverse hyperbolic cosine of X--the
+     value whose hyperbolic cosine is X.  If X is less than `1',
+     `acosh' signals a domain error.
+
+ - Function: double atanh (double X)
+ - Function: float atanhf (float X)
+ - Function: long double atanhl (long double X)
+     These functions return the inverse hyperbolic tangent of X--the
+     value whose hyperbolic tangent is X.  If the absolute value of X
+     is greater than `1', `atanh' signals a domain error; if it is
+     equal to 1, `atanh' returns infinity.
+
+ - Function: complex double casinh (complex double Z)
+ - Function: complex float casinhf (complex float Z)
+ - Function: complex long double casinhl (complex long double Z)
+     These functions return the inverse complex hyperbolic sine of
+     Z--the value whose complex hyperbolic sine is Z.
+
+ - Function: complex double cacosh (complex double Z)
+ - Function: complex float cacoshf (complex float Z)
+ - Function: complex long double cacoshl (complex long double Z)
+     These functions return the inverse complex hyperbolic cosine of
+     Z--the value whose complex hyperbolic cosine is Z.  Unlike the
+     real-valued functions, there are no restrictions on the value of Z.
+
+ - Function: complex double catanh (complex double Z)
+ - Function: complex float catanhf (complex float Z)
+ - Function: complex long double catanhl (complex long double Z)
+     These functions return the inverse complex hyperbolic tangent of
+     Z--the value whose complex hyperbolic tangent is Z.  Unlike the
+     real-valued functions, there are no restrictions on the value of Z.
+
+
+File: libc.info,  Node: Special Functions,  Next: Errors in Math Functions,  Prev: Hyperbolic Functions,  Up: Mathematics
+
+Special Functions
+=================
+
+   These are some more exotic mathematical functions which are sometimes
+useful.  Currently they only have real-valued versions.
+
+ - Function: double erf (double X)
+ - Function: float erff (float X)
+ - Function: long double erfl (long double X)
+     `erf' returns the error function of X.  The error function is
+     defined as
+          erf (x) = 2/sqrt(pi) * integral from 0 to x of exp(-t^2) dt
+
+ - Function: double erfc (double X)
+ - Function: float erfcf (float X)
+ - Function: long double erfcl (long double X)
+     `erfc' returns `1.0 - erf(X)', but computed in a fashion that
+     avoids round-off error when X is large.
+
+ - Function: double lgamma (double X)
+ - Function: float lgammaf (float X)
+ - Function: long double lgammal (long double X)
+     `lgamma' returns the natural logarithm of the absolute value of
+     the gamma function of X.  The gamma function is defined as
+          gamma (x) = integral from 0 to oo of t^(x-1) e^-t dt
+
+     The sign of the gamma function is stored in the global variable
+     SIGNGAM, which is declared in `math.h'.  It is `1' if the
+     intermediate result was positive or zero, or `-1' if it was
+     negative.
+
+     To compute the real gamma function you can use the `tgamma'
+     function or you can compute the values as follows:
+          lgam = lgamma(x);
+          gam  = signgam*exp(lgam);
+
+     The gamma function has singularities at the non-positive integers.
+     `lgamma' will raise the zero divide exception if evaluated at a
+     singularity.
+
+ - Function: double lgamma_r (double X, int *SIGNP)
+ - Function: float lgammaf_r (float X, int *SIGNP)
+ - Function: long double lgammal_r (long double X, int *SIGNP)
+     `lgamma_r' is just like `lgamma', but it stores the sign of the
+     intermediate result in the variable pointed to by SIGNP instead of
+     in the SIGNGAM global.  This means it is reentrant.
+
+ - Function: double gamma (double X)
+ - Function: float gammaf (float X)
+ - Function: long double gammal (long double X)
+     These functions exist for compatibility reasons.  They are
+     equivalent to `lgamma' etc.  It is better to use `lgamma' since
+     for one the name reflects better the actual computation, moreover
+     `lgamma' is standardized in ISO C99 while `gamma' is not.
+
+ - Function: double tgamma (double X)
+ - Function: float tgammaf (float X)
+ - Function: long double tgammal (long double X)
+     `tgamma' applies the gamma function to X.  The gamma function is
+     defined as
+          gamma (x) = integral from 0 to oo of t^(x-1) e^-t dt
+
+     This function was introduced in ISO C99.
+
+ - Function: double j0 (double X)
+ - Function: float j0f (float X)
+ - Function: long double j0l (long double X)
+     `j0' returns the Bessel function of the first kind of order 0 of
+     X.  It may signal underflow if X is too large.
+
+ - Function: double j1 (double X)
+ - Function: float j1f (float X)
+ - Function: long double j1l (long double X)
+     `j1' returns the Bessel function of the first kind of order 1 of
+     X.  It may signal underflow if X is too large.
+
+ - Function: double jn (int n, double X)
+ - Function: float jnf (int n, float X)
+ - Function: long double jnl (int n, long double X)
+     `jn' returns the Bessel function of the first kind of order N of
+     X.  It may signal underflow if X is too large.
+
+ - Function: double y0 (double X)
+ - Function: float y0f (float X)
+ - Function: long double y0l (long double X)
+     `y0' returns the Bessel function of the second kind of order 0 of
+     X.  It may signal underflow if X is too large.  If X is negative,
+     `y0' signals a domain error; if it is zero, `y0' signals overflow
+     and returns -oo.
+
+ - Function: double y1 (double X)
+ - Function: float y1f (float X)
+ - Function: long double y1l (long double X)
+     `y1' returns the Bessel function of the second kind of order 1 of
+     X.  It may signal underflow if X is too large.  If X is negative,
+     `y1' signals a domain error; if it is zero, `y1' signals overflow
+     and returns -oo.
+
+ - Function: double yn (int n, double X)
+ - Function: float ynf (int n, float X)
+ - Function: long double ynl (int n, long double X)
+     `yn' returns the Bessel function of the second kind of order N of
+     X.  It may signal underflow if X is too large.  If X is negative,
+     `yn' signals a domain error; if it is zero, `yn' signals overflow
+     and returns -oo.
+
+
+File: libc.info,  Node: Errors in Math Functions,  Next: Pseudo-Random Numbers,  Prev: Special Functions,  Up: Mathematics
+
+Known Maximum Errors in Math Functions
+======================================
+
+   This section lists the known errors of the functions in the math
+library.  Errors are measured in "units of the last place".  This is a
+measure for the relative error.  For a number z with the representation
+d.d...d*2^e (we assume IEEE floating-point numbers with base 2) the ULP
+is represented by
+
+     |d.d...d - (z / 2^e)| / 2^(p - 1)
+
+where p is the number of bits in the mantissa of the floating-point
+number representation.  Ideally the error for all functions is always
+less than 0.5ulps.  Using rounding bits this is also possible and
+normally implemented for the basic operations.  To achieve the same for
+the complex math functions requires a lot more work and this was not
+spend so far.
+
+   Therefore many of the functions in the math library have errors.  The
+table lists the maximum error for each function which is exposed by one
+of the existing tests in the test suite.  It is tried to cover as much
+as possible and really list the maximum error (or at least a ballpark
+figure) but this is often not achieved due to the large search space.
+
+   The table lists the ULP values for different architectures.
+Different architectures have different results since their hardware
+support for floating-point operations varies and also the existing
+hardware support is different.
+
+Function      Generic         ix86            powerpc/fpu
+acosf         -               -               -
+acos          -               -               -
+acosl         -               1149            -
+acoshf        -               -               -
+acosh         -               -               -
+acoshl        -               -               -
+asinf         -               -               2
+asin          -               1               1
+asinl         -               1147            -
+asinhf        -               -               -
+asinh         -               -               -
+asinhl        -               656             -
+atanf         -               -               -
+atan          -               -               -
+atanl         -               549             -
+atanhf        -               -               -
+atanh         -               1               1
+atanhl        -               1605            -
+atan2f        -               -               -
+atan2         -               -               -
+atan2l        -               549             -
+cabsf         -               1               1
+cabs          -               1               1
+cabsl         -               560             -
+cacosf        -               1 + i 2         1 + i 1
+cacos         -               1 + i 0         1 + i 0
+cacosl        -               151 + i 329     -
+cacoshf       -               4 + i 4         7 + i 3
+cacosh        -               1 + i 1         1 + i 1
+cacoshl       -               328 + i 151     -
+cargf         -               -               -
+carg          -               -               -
+cargl         -               -               -
+casinf        -               2 + i 2         2 + i 1
+casin         -               3 + i 0         3 + i 0
+casinl        -               603 + i 329     -
+casinhf       -               1 + i 6         1 + i 6
+casinh        -               5 + i 3         5 + i 3
+casinhl       -               892 + i 12      -
+catanf        -               0 + i 1         4 + i 1
+catan         -               0 + i 1         0 + i 1
+catanl        -               251 + i 474     -
+catanhf       -               1 + i 0         0 + i 6
+catanh        -               2 + i 0         4 + i 1
+catanhl       -               66 + i 447      -
+cbrtf         -               -               -
+cbrt          -               1               1
+cbrtl         -               716             -
+ccosf         -               1 + i 1         0 + i 1
+ccos          -               1 + i 1         1 + i 1
+ccosl         -               5 + i 1901      -
+ccoshf        -               1 + i 1         1 + i 1
+ccosh         -               1 + i 1         1 + i 1
+ccoshl        -               1467 + i 1183   -
+ceilf         -               -               -
+ceil          -               -               -
+ceill         -               -               -
+cexpf         -               1 + i 0         1 + i 1
+cexp          -               -               1 + i 0
+cexpl         -               940 + i 1067    -
+cimagf        -               -               -
+cimag         -               -               -
+cimagl        -               -               -
+clogf         -               -               0 + i 3
+clog          -               -               0 + i 1
+clogl         -               0 + i 1         -
+clog10f       -               1 + i 1         1 + i 5
+clog10        -               2 + i 1         1 + i 1
+clog10l       -               1402 + i 186    -
+conjf         -               -               -
+conj          -               -               -
+conjl         -               -               -
+copysignf     -               -               -
+copysign      -               -               -
+copysignl     -               -               -
+cosf          -               1               1
+cos           -               2               2
+cosl          -               529             -
+coshf         -               -               -
+cosh          -               -               -
+coshl         -               309             -
+cpowf         -               4 + i 2.5333    4 + i 2
+cpow          -               1 + i 1.104     1 + i 2
+cpowl         -               0 + i 2         -
+cprojf        -               -               -
+cproj         -               -               -
+cprojl        -               -               -
+crealf        -               -               -
+creal         -               -               -
+creall        -               -               -
+csinf         -               -               0 + i 1
+csin          -               -               -
+csinl         -               966 + i 168     -
+csinhf        -               1 + i 1         1 + i 1
+csinh         -               1 + i 1         0 + i 1
+csinhl        -               413 + i 477     -
+csqrtf        -               -               1 + i 1
+csqrt         -               1 + i 0         1 + i 0
+csqrtl        -               237 + i 128     -
+ctanf         -               1 + i 1         1 + i 1
+ctan          -               1 + i 1         1 + i 1
+ctanl         -               690 + i 367     -
+ctanhf        -               1 + i 1         2 + i 1
+ctanh         -               0 + i 1         2 + i 2
+ctanhl        -               286 + i 3074    -
+erff          -               -               -
+erf           -               -               -
+erfl          -               -               -
+erfcf         -               12              12
+erfc          -               24              24
+erfcl         -               -               -
+expf          -               -               -
+exp           -               -               -
+expl          -               412             -
+exp10f        -               -               2
+exp10         -               1               6
+exp10l        -               1182            -
+exp2f         -               -               -
+exp2          -               -               -
+exp2l         -               462             -
+expm1f        -               -               1
+expm1         -               -               -
+expm1l        -               825             -
+fabsf         -               -               -
+fabs          -               -               -
+fabsl         -               -               -
+fdimf         -               -               -
+fdim          -               -               -
+fdiml         -               -               -
+floorf        -               -               -
+floor         -               -               -
+floorl        -               -               -
+fmaf          -               -               -
+fma           -               -               -
+fmal          -               -               -
+fmaxf         -               -               -
+fmax          -               -               -
+fmaxl         -               -               -
+fminf         -               -               -
+fmin          -               -               -
+fminl         -               -               -
+fmodf         -               1               1
+fmod          -               2               2
+fmodl         -               4096            -
+frexpf        -               -               -
+frexp         -               -               -
+frexpl        -               -               -
+gammaf        -               -               -
+gamma         -               1               -
+gammal        -               -               -
+hypotf        -               1               1
+hypot         -               1               1
+hypotl        -               560             -
+ilogbf        -               -               -
+ilogb         -               -               -
+ilogbl        -               -               -
+j0f           -               1               1
+j0            -               2               2
+j0l           -               -               -
+j1f           -               1               2
+j1            -               2               1
+j1l           -               -               -
+jnf           -               2               4
+jn            -               4               6
+jnl           -               -               -
+lgammaf       -               2               2
+lgamma        -               1               1
+lgammal       -               -               -
+lrintf        -               -               -
+lrint         -               -               -
+lrintl        -               -               -
+llrintf       -               -               -
+llrint        -               -               -
+llrintl       -               -               -
+logf          -               1               1
+log           -               1               1
+logl          -               2341            -
+log10f        -               1               1
+log10         -               1               1
+log10l        -               2033            -
+log1pf        -               1               1
+log1p         -               1               1
+log1pl        -               585             -
+log2f         -               1               1
+log2          -               1               1
+log2l         -               1688            -
+logbf         -               -               -
+logb          -               -               -
+logbl         -               -               -
+lroundf       -               -               -
+lround        -               -               -
+lroundl       -               -               -
+llroundf      -               -               -
+llround       -               -               -
+llroundl      -               -               -
+modff         -               -               -
+modf          -               -               -
+modfl         -               -               -
+nearbyintf    -               -               -
+nearbyint     -               -               -
+nearbyintl    -               -               -
+nextafterf    -               -               -
+nextafter     -               -               -
+nextafterl    -               -               -
+nexttowardf   -               -               -
+nexttoward    -               -               -
+nexttowardl   -               -               -
+powf          -               -               -
+pow           -               -               -
+powl          -               725             -
+remainderf    -               -               -
+remainder     -               -               -
+remainderl    -               -               -
+remquof       -               -               -
+remquo        -               -               -
+remquol       -               -               -
+rintf         -               -               -
+rint          -               -               -
+rintl         -               -               -
+roundf        -               -               -
+round         -               -               -
+roundl        -               -               -
+scalbf        -               -               -
+scalb         -               -               -
+scalbl        -               -               -
+scalbnf       -               -               -
+scalbn        -               -               -
+scalbnl       -               -               -
+scalblnf      -               -               -
+scalbln       -               -               -
+scalblnl      -               -               -
+sinf          -               -               -
+sin           -               -               -
+sinl          -               627             -
+sincosf       -               1               1
+sincos        -               1               1
+sincosl       -               627             -
+sinhf         -               1               1
+sinh          -               -               1
+sinhl         -               1029            -
+sqrtf         -               -               -
+sqrt          -               -               -
+sqrtl         -               489             -
+tanf          -               -               -
+tan           -               0.5             1
+tanl          -               1401            -
+tanhf         -               -               1
+tanh          -               -               1
+tanhl         -               521             -
+tgammaf       -               1               1
+tgamma        -               2               1
+tgammal       -               -               -
+truncf        -               -               -
+trunc         -               -               -
+truncl        -               -               -
+y0f           -               1               1
+y0            -               2               2
+y0l           -               -               -
+y1f           -               2               2
+y1            -               3               3
+y1l           -               -               -
+ynf           -               3               2
+yn            -               6               3
+ynl           -               -               -
+
+
+File: libc.info,  Node: Pseudo-Random Numbers,  Next: FP Function Optimizations,  Prev: Errors in Math Functions,  Up: Mathematics
+
+Pseudo-Random Numbers
+=====================
+
+   This section describes the GNU facilities for generating a series of
+pseudo-random numbers.  The numbers generated are not truly random;
+typically, they form a sequence that repeats periodically, with a period
+so large that you can ignore it for ordinary purposes.  The random
+number generator works by remembering a "seed" value which it uses to
+compute the next random number and also to compute a new seed.
+
+   Although the generated numbers look unpredictable within one run of a
+program, the sequence of numbers is _exactly the same_ from one run to
+the next.  This is because the initial seed is always the same.  This
+is convenient when you are debugging a program, but it is unhelpful if
+you want the program to behave unpredictably.  If you want a different
+pseudo-random series each time your program runs, you must specify a
+different seed each time.  For ordinary purposes, basing the seed on the
+current time works well.
+
+   You can obtain repeatable sequences of numbers on a particular
+machine type by specifying the same initial seed value for the random
+number generator.  There is no standard meaning for a particular seed
+value; the same seed, used in different C libraries or on different CPU
+types, will give you different random numbers.
+
+   The GNU library supports the standard ISO C random number functions
+plus two other sets derived from BSD and SVID.  The BSD and ISO C
+functions provide identical, somewhat limited functionality.  If only a
+small number of random bits are required, we recommend you use the
+ISO C interface, `rand' and `srand'.  The SVID functions provide a more
+flexible interface, which allows better random number generator
+algorithms, provides more random bits (up to 48) per call, and can
+provide random floating-point numbers.  These functions are required by
+the XPG standard and therefore will be present in all modern Unix
+systems.
+
+* Menu:
+
+* ISO Random::                  `rand' and friends.
+* BSD Random::                  `random' and friends.
+* SVID Random::                 `drand48' and friends.
+
+
+File: libc.info,  Node: ISO Random,  Next: BSD Random,  Up: Pseudo-Random Numbers
+
+ISO C Random Number Functions
+-----------------------------
+
+   This section describes the random number functions that are part of
+the ISO C standard.
+
+   To use these facilities, you should include the header file
+`stdlib.h' in your program.
+
+ - Macro: int RAND_MAX
+     The value of this macro is an integer constant representing the
+     largest value the `rand' function can return.  In the GNU library,
+     it is `2147483647', which is the largest signed integer
+     representable in 32 bits.  In other libraries, it may be as low as
+     `32767'.
+
+ - Function: int rand (void)
+     The `rand' function returns the next pseudo-random number in the
+     series.  The value ranges from `0' to `RAND_MAX'.
+
+ - Function: void srand (unsigned int SEED)
+     This function establishes SEED as the seed for a new series of
+     pseudo-random numbers.  If you call `rand' before a seed has been
+     established with `srand', it uses the value `1' as a default seed.
+
+     To produce a different pseudo-random series each time your program
+     is run, do `srand (time (0))'.
+
+   POSIX.1 extended the C standard functions to support reproducible
+random numbers in multi-threaded programs.  However, the extension is
+badly designed and unsuitable for serious work.
+
+ - Function: int rand_r (unsigned int *SEED)
+     This function returns a random number in the range 0 to `RAND_MAX'
+     just as `rand' does.  However, all its state is stored in the SEED
+     argument.  This means the RNG's state can only have as many bits
+     as the type `unsigned int' has.  This is far too few to provide a
+     good RNG.
+
+     If your program requires a reentrant RNG, we recommend you use the
+     reentrant GNU extensions to the SVID random number generator.  The
+     POSIX.1 interface should only be used when the GNU extensions are
+     not available.
+

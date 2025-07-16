@@ -1,0 +1,936 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: The catgets Functions,  Next: The message catalog files,  Up: Message catalogs a la X/Open
+
+The `catgets' function family
+-----------------------------
+
+ - Function: nl_catd catopen (const char *CAT_NAME, int FLAG)
+     The `catgets' function tries to locate the message data file names
+     CAT_NAME and loads it when found.  The return value is of an
+     opaque type and can be used in calls to the other functions to
+     refer to this loaded catalog.
+
+     The return value is `(nl_catd) -1' in case the function failed and
+     no catalog was loaded.  The global variable ERRNO contains a code
+     for the error causing the failure.  But even if the function call
+     succeeded this does not mean that all messages can be translated.
+
+     Locating the catalog file must happen in a way which lets the user
+     of the program influence the decision.  It is up to the user to
+     decide about the language to use and sometimes it is useful to use
+     alternate catalog files.  All this can be specified by the user by
+     setting some environment variables.
+
+     The first problem is to find out where all the message catalogs are
+     stored.  Every program could have its own place to keep all the
+     different files but usually the catalog files are grouped by
+     languages and the catalogs for all programs are kept in the same
+     place.
+
+     To tell the `catopen' function where the catalog for the program
+     can be found the user can set the environment variable `NLSPATH' to
+     a value which describes her/his choice.  Since this value must be
+     usable for different languages and locales it cannot be a simple
+     string.  Instead it is a format string (similar to `printf''s).
+     An example is
+
+          /usr/share/locale/%L/%N:/usr/share/locale/%L/LC_MESSAGES/%N
+
+     First one can see that more than one directory can be specified
+     (with the usual syntax of separating them by colons).  The next
+     things to observe are the format string, `%L' and `%N' in this
+     case.  The `catopen' function knows about several of them and the
+     replacement for all of them is of course different.
+
+    `%N'
+          This format element is substituted with the name of the
+          catalog file.  This is the value of the CAT_NAME argument
+          given to `catgets'.
+
+    `%L'
+          This format element is substituted with the name of the
+          currently selected locale for translating messages.  How this
+          is determined is explained below.
+
+    `%l'
+          (This is the lowercase ell.) This format element is
+          substituted with the language element of the locale name.
+          The string describing the selected locale is expected to have
+          the form `LANG[_TERR[.CODESET]]' and this format uses the
+          first part LANG.
+
+    `%t'
+          This format element is substituted by the territory part TERR
+          of the name of the currently selected locale.  See the
+          explanation of the format above.
+
+    `%c'
+          This format element is substituted by the codeset part
+          CODESET of the name of the currently selected locale.  See
+          the explanation of the format above.
+
+    `%%'
+          Since `%' is used in a meta character there must be a way to
+          express the `%' character in the result itself.  Using `%%'
+          does this just like it works for `printf'.
+
+     Using `NLSPATH' allows arbitrary directories to be searched for
+     message catalogs while still allowing different languages to be
+     used.  If the `NLSPATH' environment variable is not set, the
+     default value is
+
+          PREFIX/share/locale/%L/%N:PREFIX/share/locale/%L/LC_MESSAGES/%N
+
+     where PREFIX is given to `configure' while installing the GNU C
+     Library (this value is in many cases `/usr' or the empty string).
+
+     The remaining problem is to decide which must be used.  The value
+     decides about the substitution of the format elements mentioned
+     above.  First of all the user can specify a path in the message
+     catalog name (i.e., the name contains a slash character).  In this
+     situation the `NLSPATH' environment variable is not used.  The
+     catalog must exist as specified in the program, perhaps relative
+     to the current working directory.  This situation in not desirable
+     and catalogs names never should be written this way.  Beside this,
+     this behavior is not portable to all other platforms providing the
+     `catgets' interface.
+
+     Otherwise the values of environment variables from the standard
+     environment are examined (*note Standard Environment::).  Which
+     variables are examined is decided by the FLAG parameter of
+     `catopen'.  If the value is `NL_CAT_LOCALE' (which is defined in
+     `nl_types.h') then the `catopen' function use the name of the
+     locale currently selected for the `LC_MESSAGES' category.
+
+     If FLAG is zero the `LANG' environment variable is examined.  This
+     is a left-over from the early days where the concept of the locales
+     had not even reached the level of POSIX locales.
+
+     The environment variable and the locale name should have a value
+     of the form `LANG[_TERR[.CODESET]]' as explained above.  If no
+     environment variable is set the `"C"' locale is used which
+     prevents any translation.
+
+     The return value of the function is in any case a valid string.
+     Either it is a translation from a message catalog or it is the
+     same as the STRING parameter.  So a piece of code to decide
+     whether a translation actually happened must look like this:
+
+          {
+            char *trans = catgets (desc, set, msg, input_string);
+            if (trans == input_string)
+              {
+                /* Something went wrong.  */
+              }
+          }
+
+     When an error occurred the global variable ERRNO is set to
+
+    EBADF
+          The catalog does not exist.
+
+    ENOMSG
+          The set/message tuple does not name an existing element in the
+          message catalog.
+
+     While it sometimes can be useful to test for errors programs
+     normally will avoid any test.  If the translation is not available
+     it is no big problem if the original, untranslated message is
+     printed.  Either the user understands this as well or s/he will
+     look for the reason why the messages are not translated.
+
+   Please note that the currently selected locale does not depend on a
+call to the `setlocale' function.  It is not necessary that the locale
+data files for this locale exist and calling `setlocale' succeeds.  The
+`catopen' function directly reads the values of the environment
+variables.
+
+ - Function: char * catgets (nl_catd CATALOG_DESC, int SET, int
+          MESSAGE, const char *STRING)
+     The function `catgets' has to be used to access the massage catalog
+     previously opened using the `catopen' function.  The CATALOG_DESC
+     parameter must be a value previously returned by `catopen'.
+
+     The next two parameters, SET and MESSAGE, reflect the internal
+     organization of the message catalog files.  This will be explained
+     in detail below.  For now it is interesting to know that a catalog
+     can consists of several set and the messages in each thread are
+     individually numbered using numbers.  Neither the set number nor
+     the message number must be consecutive.  They can be arbitrarily
+     chosen.  But each message (unless equal to another one) must have
+     its own unique pair of set and message number.
+
+     Since it is not guaranteed that the message catalog for the
+     language selected by the user exists the last parameter STRING
+     helps to handle this case gracefully.  If no matching string can
+     be found STRING is returned.  This means for the programmer that
+
+        * the STRING parameters should contain reasonable text (this
+          also helps to understand the program seems otherwise there
+          would be no hint on the string which is expected to be
+          returned.
+
+        * all STRING arguments should be written in the same language.
+
+   It is somewhat uncomfortable to write a program using the `catgets'
+functions if no supporting functionality is available.  Since each
+set/message number tuple must be unique the programmer must keep lists
+of the messages at the same time the code is written.  And the work
+between several people working on the same project must be coordinated.
+We will see some how these problems can be relaxed a bit (*note Common
+Usage::).
+
+ - Function: int catclose (nl_catd CATALOG_DESC)
+     The `catclose' function can be used to free the resources
+     associated with a message catalog which previously was opened by a
+     call to `catopen'.  If the resources can be successfully freed the
+     function returns `0'.  Otherwise it return `-1' and the global
+     variable ERRNO is set.  Errors can occur if the catalog descriptor
+     CATALOG_DESC is not valid in which case ERRNO is set to `EBADF'.
+
+
+File: libc.info,  Node: The message catalog files,  Next: The gencat program,  Prev: The catgets Functions,  Up: Message catalogs a la X/Open
+
+Format of the message catalog files
+-----------------------------------
+
+   The only reasonable way the translate all the messages of a function
+and store the result in a message catalog file which can be read by the
+`catopen' function is to write all the message text to the translator
+and let her/him translate them all.  I.e., we must have a file with
+entries which associate the set/message tuple with a specific
+translation.  This file format is specified in the X/Open standard and
+is as follows:
+
+   * Lines containing only whitespace characters or empty lines are
+     ignored.
+
+   * Lines which contain as the first non-whitespace character a `$'
+     followed by a whitespace character are comment and are also
+     ignored.
+
+   * If a line contains as the first non-whitespace characters the
+     sequence `$set' followed by a whitespace character an additional
+     argument is required to follow.  This argument can either be:
+
+        - a number.  In this case the value of this number determines
+          the set to which the following messages are added.
+
+        - an identifier consisting of alphanumeric characters plus the
+          underscore character.  In this case the set get automatically
+          a number assigned.  This value is one added to the largest
+          set number which so far appeared.
+
+          How to use the symbolic names is explained in section *Note
+          Common Usage::.
+
+          It is an error if a symbol name appears more than once.  All
+          following messages are placed in a set with this number.
+
+   * If a line contains as the first non-whitespace characters the
+     sequence `$delset' followed by a whitespace character an
+     additional argument is required to follow.  This argument can
+     either be:
+
+        - a number.  In this case the value of this number determines
+          the set which will be deleted.
+
+        - an identifier consisting of alphanumeric characters plus the
+          underscore character.  This symbolic identifier must match a
+          name for a set which previously was defined.  It is an error
+          if the name is unknown.
+
+     In both cases all messages in the specified set will be removed.
+     They will not appear in the output.  But if this set is later
+     again selected with a `$set' command again messages could be added
+     and these messages will appear in the output.
+
+   * If a line contains after leading whitespaces the sequence
+     `$quote', the quoting character used for this input file is
+     changed to the first non-whitespace character following the
+     `$quote'.  If no non-whitespace character is present before the
+     line ends quoting is disable.
+
+     By default no quoting character is used.  In this mode strings are
+     terminated with the first unescaped line break.  If there is a
+     `$quote' sequence present newline need not be escaped.  Instead a
+     string is terminated with the first unescaped appearance of the
+     quote character.
+
+     A common usage of this feature would be to set the quote character
+     to `"'.  Then any appearance of the `"' in the strings must be
+     escaped using the backslash (i.e., `\"' must be written).
+
+   * Any other line must start with a number or an alphanumeric
+     identifier (with the underscore character included).  The
+     following characters (starting after the first whitespace
+     character) will form the string which gets associated with the
+     currently selected set and the message number represented by the
+     number and identifier respectively.
+
+     If the start of the line is a number the message number is
+     obvious.  It is an error if the same message number already
+     appeared for this set.
+
+     If the leading token was an identifier the message number gets
+     automatically assigned.  The value is the current maximum messages
+     number for this set plus one.  It is an error if the identifier was
+     already used for a message in this set.  It is OK to reuse the
+     identifier for a message in another thread.  How to use the
+     symbolic identifiers will be explained below (*note Common
+     Usage::).  There is one limitation with the identifier: it must
+     not be `Set'.  The reason will be explained below.
+
+     The text of the messages can contain escape characters.  The usual
+     bunch of characters known from the ISO C language are recognized
+     (`\n', `\t', `\v', `\b', `\r', `\f', `\\', and `\NNN', where NNN
+     is the octal coding of a character code).
+
+   *Important:* The handling of identifiers instead of numbers for the
+set and messages is a GNU extension.  Systems strictly following the
+X/Open specification do not have this feature.  An example for a message
+catalog file is this:
+
+     $ This is a leading comment.
+     $quote "
+     
+     $set SetOne
+     1 Message with ID 1.
+     two "   Message with ID \"two\", which gets the value 2 assigned"
+     
+     $set SetTwo
+     $ Since the last set got the number 1 assigned this set has number 2.
+     4000 "The numbers can be arbitrary, they need not start at one."
+
+   This small example shows various aspects:
+   * Lines 1 and 9 are comments since they start with `$' followed by a
+     whitespace.
+
+   * The quoting character is set to `"'.  Otherwise the quotes in the
+     message definition would have to be left away and in this case the
+     message with the identifier `two' would loose its leading
+     whitespace.
+
+   * Mixing numbered messages with message having symbolic names is no
+     problem and the numbering happens automatically.
+
+   While this file format is pretty easy it is not the best possible for
+use in a running program.  The `catopen' function would have to parser
+the file and handle syntactic errors gracefully.  This is not so easy
+and the whole process is pretty slow.  Therefore the `catgets'
+functions expect the data in another more compact and ready-to-use file
+format.  There is a special program `gencat' which is explained in
+detail in the next section.
+
+   Files in this other format are not human readable.  To be easy to
+use by programs it is a binary file.  But the format is byte order
+independent so translation files can be shared by systems of arbitrary
+architecture (as long as they use the GNU C Library).
+
+   Details about the binary file format are not important to know since
+these files are always created by the `gencat' program.  The sources of
+the GNU C Library also provide the sources for the `gencat' program and
+so the interested reader can look through these source files to learn
+about the file format.
+
+
+File: libc.info,  Node: The gencat program,  Next: Common Usage,  Prev: The message catalog files,  Up: Message catalogs a la X/Open
+
+Generate Message Catalogs files
+-------------------------------
+
+   The `gencat' program is specified in the X/Open standard and the GNU
+implementation follows this specification and so processes all
+correctly formed input files.  Additionally some extension are
+implemented which help to work in a more reasonable way with the
+`catgets' functions.
+
+   The `gencat' program can be invoked in two ways:
+
+     `gencat [OPTION]... [OUTPUT-FILE [INPUT-FILE]...]`
+
+   This is the interface defined in the X/Open standard.  If no
+INPUT-FILE parameter is given input will be read from standard input.
+Multiple input files will be read as if they are concatenated.  If
+OUTPUT-FILE is also missing, the output will be written to standard
+output.  To provide the interface one is used to from other programs a
+second interface is provided.
+
+     `gencat [OPTION]... -o OUTPUT-FILE [INPUT-FILE]...`
+
+   The option `-o' is used to specify the output file and all file
+arguments are used as input files.
+
+   Beside this one can use `-' or `/dev/stdin' for INPUT-FILE to denote
+the standard input.  Corresponding one can use `-' and `/dev/stdout'
+for OUTPUT-FILE to denote standard output.  Using `-' as a file name is
+allowed in X/Open while using the device names is a GNU extension.
+
+   The `gencat' program works by concatenating all input files and then
+*merge* the resulting collection of message sets with a possibly
+existing output file.  This is done by removing all messages with
+set/message number tuples matching any of the generated messages from
+the output file and then adding all the new messages.  To regenerate a
+catalog file while ignoring the old contents therefore requires to
+remove the output file if it exists.  If the output is written to
+standard output no merging takes place.
+
+The following table shows the options understood by the `gencat'
+program.  The X/Open standard does not specify any option for the
+program so all of these are GNU extensions.
+
+`-V'
+`--version'
+     Print the version information and exit.
+
+`-h'
+`--help'
+     Print a usage message listing all available options, then exit
+     successfully.
+
+`--new'
+     Do never merge the new messages from the input files with the old
+     content of the output files.  The old content of the output file
+     is discarded.
+
+`-H'
+`--header=name'
+     This option is used to emit the symbolic names given to sets and
+     messages in the input files for use in the program.  Details about
+     how to use this are given in the next section.  The NAME parameter
+     to this option specifies the name of the output file.  It will
+     contain a number of C preprocessor `#define's to associate a name
+     with a number.
+
+     Please note that the generated file only contains the symbols from
+     the input files.  If the output is merged with the previous
+     content of the output file the possibly existing symbols from the
+     file(s) which generated the old output files are not in the
+     generated header file.
+
+
+File: libc.info,  Node: Common Usage,  Prev: The gencat program,  Up: Message catalogs a la X/Open
+
+How to use the `catgets' interface
+----------------------------------
+
+   The `catgets' functions can be used in two different ways.  By
+following slavishly the X/Open specs and not relying on the extension
+and by using the GNU extensions.  We will take a look at the former
+method first to understand the benefits of extensions.
+
+Not using symbolic names
+........................
+
+   Since the X/Open format of the message catalog files does not allow
+symbol names we have to work with numbers all the time.  When we start
+writing a program we have to replace all appearances of translatable
+strings with something like
+
+     catgets (catdesc, set, msg, "string")
+
+CATGETS is retrieved from a call to `catopen' which is normally done
+once at the program start.  The `"string"' is the string we want to
+translate.  The problems start with the set and message numbers.
+
+   In a bigger program several programmers usually work at the same
+time on the program and so coordinating the number allocation is
+crucial.  Though no two different strings must be indexed by the same
+tuple of numbers it is highly desirable to reuse the numbers for equal
+strings with equal translations (please note that there might be
+strings which are equal in one language but have different translations
+due to difference contexts).
+
+   The allocation process can be relaxed a bit by different set numbers
+for different parts of the program.  So the number of developers who
+have to coordinate the allocation can be reduced.  But still lists must
+be keep track of the allocation and errors can easily happen.  These
+errors cannot be discovered by the compiler or the `catgets' functions.
+Only the user of the program might see wrong messages printed.  In the
+worst cases the messages are so irritating that they cannot be
+recognized as wrong.  Think about the translations for `"true"' and
+`"false"' being exchanged.  This could result in a disaster.
+
+Using symbolic names
+....................
+
+   The problems mentioned in the last section derive from the fact that:
+
+  1. the numbers are allocated once and due to the possibly frequent
+     use of them it is difficult to change a number later.
+
+  2. the numbers do not allow to guess anything about the string and
+     therefore collisions can easily happen.
+
+   By constantly using symbolic names and by providing a method which
+maps the string content to a symbolic name (however this will happen)
+one can prevent both problems above.  The cost of this is that the
+programmer has to write a complete message catalog file while s/he is
+writing the program itself.
+
+   This is necessary since the symbolic names must be mapped to numbers
+before the program sources can be compiled.  In the last section it was
+described how to generate a header containing the mapping of the names.
+E.g., for the example message file given in the last section we could
+call the `gencat' program as follow (assume `ex.msg' contains the
+sources).
+
+     gencat -H ex.h -o ex.cat ex.msg
+
+This generates a header file with the following content:
+
+     #define SetTwoSet 0x2   /* ex.msg:8 */
+     
+     #define SetOneSet 0x1   /* ex.msg:4 */
+     #define SetOnetwo 0x2   /* ex.msg:6 */
+
+   As can be seen the various symbols given in the source file are
+mangled to generate unique identifiers and these identifiers get numbers
+assigned.  Reading the source file and knowing about the rules will
+allow to predict the content of the header file (it is deterministic)
+but this is not necessary.  The `gencat' program can take care for
+everything.  All the programmer has to do is to put the generated header
+file in the dependency list of the source files of her/his project and
+to add a rules to regenerate the header of any of the input files
+change.
+
+   One word about the symbol mangling.  Every symbol consists of two
+parts: the name of the message set plus the name of the message or the
+special string `Set'.  So `SetOnetwo' means this macro can be used to
+access the translation with identifier `two' in the message set
+`SetOne'.
+
+   The other names denote the names of the message sets.  The special
+string `Set' is used in the place of the message identifier.
+
+   If in the code the second string of the set `SetOne' is used the C
+code should look like this:
+
+     catgets (catdesc, SetOneSet, SetOnetwo,
+              "   Message with ID \"two\", which gets the value 2 assigned")
+
+   Writing the function this way will allow to change the message number
+and even the set number without requiring any change in the C source
+code.  (The text of the string is normally not the same; this is only
+for this example.)
+
+How does to this allow to develop
+.................................
+
+   To illustrate the usual way to work with the symbolic version numbers
+here is a little example.  Assume we want to write the very complex and
+famous greeting program.  We start by writing the code as usual:
+
+     #include <stdio.h>
+     int
+     main (void)
+     {
+       printf ("Hello, world!\n");
+       return 0;
+     }
+
+   Now we want to internationalize the message and therefore replace the
+message with whatever the user wants.
+
+     #include <nl_types.h>
+     #include <stdio.h>
+     #include "msgnrs.h"
+     int
+     main (void)
+     {
+       nl_catd catdesc = catopen ("hello.cat", NL_CAT_LOCALE);
+       printf (catgets (catdesc, SetMainSet, SetMainHello,
+                        "Hello, world!\n"));
+       catclose (catdesc);
+       return 0;
+     }
+
+   We see how the catalog object is opened and the returned descriptor
+used in the other function calls.  It is not really necessary to check
+for failure of any of the functions since even in these situations the
+functions will behave reasonable.  They simply will be return a
+translation.
+
+   What remains unspecified here are the constants `SetMainSet' and
+`SetMainHello'.  These are the symbolic names describing the message.
+To get the actual definitions which match the information in the
+catalog file we have to create the message catalog source file and
+process it using the `gencat' program.
+
+     $ Messages for the famous greeting program.
+     $quote "
+     
+     $set Main
+     Hello "Hallo, Welt!\n"
+
+   Now we can start building the program (assume the message catalog
+source file is named `hello.msg' and the program source file `hello.c'):
+
+     % gencat -H msgnrs.h -o hello.cat hello.msg
+     % cat msgnrs.h
+     #define MainSet 0x1     /* hello.msg:4 */
+     #define MainHello 0x1   /* hello.msg:5 */
+     % gcc -o hello hello.c -I.
+     % cp hello.cat /usr/share/locale/de/LC_MESSAGES
+     % echo $LC_ALL
+     de
+     % ./hello
+     Hallo, Welt!
+     %
+
+   The call of the `gencat' program creates the missing header file
+`msgnrs.h' as well as the message catalog binary.  The former is used
+in the compilation of `hello.c' while the later is placed in a
+directory in which the `catopen' function will try to locate it.
+Please check the `LC_ALL' environment variable and the default path for
+`catopen' presented in the description above.
+
+
+File: libc.info,  Node: The Uniforum approach,  Prev: Message catalogs a la X/Open,  Up: Message Translation
+
+The Uniforum approach to Message Translation
+============================================
+
+   Sun Microsystems tried to standardize a different approach to message
+translation in the Uniforum group.  There never was a real standard
+defined but still the interface was used in Sun's operation systems.
+Since this approach fits better in the development process of free
+software it is also used throughout the GNU project and the GNU
+`gettext' package provides support for this outside the GNU C Library.
+
+   The code of the `libintl' from GNU `gettext' is the same as the code
+in the GNU C Library.  So the documentation in the GNU `gettext' manual
+is also valid for the functionality here.  The following text will
+describe the library functions in detail.  But the numerous helper
+programs are not described in this manual.  Instead people should read
+the GNU `gettext' manual (*note GNU gettext utilities: (gettext)Top.).
+We will only give a short overview.
+
+   Though the `catgets' functions are available by default on more
+systems the `gettext' interface is at least as portable as the former.
+The GNU `gettext' package can be used wherever the functions are not
+available.
+
+* Menu:
+
+* Message catalogs with gettext::  The `gettext' family of functions.
+* Helper programs for gettext::    Programs to handle message catalogs
+                                    for `gettext'.
+
+
+File: libc.info,  Node: Message catalogs with gettext,  Next: Helper programs for gettext,  Up: The Uniforum approach
+
+The `gettext' family of functions
+---------------------------------
+
+   The paradigms underlying the `gettext' approach to message
+translations is different from that of the `catgets' functions the
+basic functionally is equivalent.  There are functions of the following
+categories:
+
+* Menu:
+
+* Translation with gettext::       What has to be done to translate a message.
+* Locating gettext catalog::       How to determine which catalog to be used.
+* Advanced gettext functions::     Additional functions for more complicated
+                                    situations.
+* Charset conversion in gettext::  How to specify the output character set
+                                    `gettext' uses.
+* GUI program problems::           How to use `gettext' in GUI programs.
+* Using gettextized software::     The possibilities of the user to influence
+                                    the way `gettext' works.
+
+
+File: libc.info,  Node: Translation with gettext,  Next: Locating gettext catalog,  Up: Message catalogs with gettext
+
+What has to be done to translate a message?
+...........................................
+
+   The `gettext' functions have a very simple interface.  The most
+basic function just takes the string which shall be translated as the
+argument and it returns the translation.  This is fundamentally
+different from the `catgets' approach where an extra key is necessary
+and the original string is only used for the error case.
+
+   If the string which has to be translated is the only argument this of
+course means the string itself is the key.  I.e., the translation will
+be selected based on the original string.  The message catalogs must
+therefore contain the original strings plus one translation for any such
+string.  The task of the `gettext' function is it to compare the
+argument string with the available strings in the catalog and return the
+appropriate translation.  Of course this process is optimized so that
+this process is not more expensive than an access using an atomic key
+like in `catgets'.
+
+   The `gettext' approach has some advantages but also some
+disadvantages.  Please see the GNU `gettext' manual for a detailed
+discussion of the pros and cons.
+
+   All the definitions and declarations for `gettext' can be found in
+the `libintl.h' header file.  On systems where these functions are not
+part of the C library they can be found in a separate library named
+`libintl.a' (or accordingly different for shared libraries).
+
+ - Function: char * gettext (const char *MSGID)
+     The `gettext' function searches the currently selected message
+     catalogs for a string which is equal to MSGID.  If there is such a
+     string available it is returned.  Otherwise the argument string
+     MSGID is returned.
+
+     Please note that all though the return value is `char *' the
+     returned string must not be changed.  This broken type results
+     from the history of the function and does not reflect the way the
+     function should be used.
+
+     Please note that above we wrote "message catalogs" (plural).  This
+     is a specialty of the GNU implementation of these functions and we
+     will say more about this when we talk about the ways message
+     catalogs are selected (*note Locating gettext catalog::).
+
+     The `gettext' function does not modify the value of the global
+     ERRNO variable.  This is necessary to make it possible to write
+     something like
+
+            printf (gettext ("Operation failed: %m\n"));
+
+     Here the ERRNO value is used in the `printf' function while
+     processing the `%m' format element and if the `gettext' function
+     would change this value (it is called before `printf' is called)
+     we would get a wrong message.
+
+     So there is no easy way to detect a missing message catalog beside
+     comparing the argument string with the result.  But it is normally
+     the task of the user to react on missing catalogs.  The program
+     cannot guess when a message catalog is really necessary since for
+     a user who speaks the language the program was developed in does
+     not need any translation.
+
+   The remaining two functions to access the message catalog add some
+functionality to select a message catalog which is not the default one.
+This is important if parts of the program are developed independently.
+Every part can have its own message catalog and all of them can be used
+at the same time.  The C library itself is an example: internally it
+uses the `gettext' functions but since it must not depend on a
+currently selected default message catalog it must specify all ambiguous
+information.
+
+ - Function: char * dgettext (const char *DOMAINNAME, const char *MSGID)
+     The `dgettext' functions acts just like the `gettext' function.
+     It only takes an additional first argument DOMAINNAME which guides
+     the selection of the message catalogs which are searched for the
+     translation.  If the DOMAINNAME parameter is the null pointer the
+     `dgettext' function is exactly equivalent to `gettext' since the
+     default value for the domain name is used.
+
+     As for `gettext' the return value type is `char *' which is an
+     anachronism.  The returned string must never be modified.
+
+ - Function: char * dcgettext (const char *DOMAINNAME, const char
+          *MSGID, int CATEGORY)
+     The `dcgettext' adds another argument to those which `dgettext'
+     takes.  This argument CATEGORY specifies the last piece of
+     information needed to localize the message catalog.  I.e., the
+     domain name and the locale category exactly specify which message
+     catalog has to be used (relative to a given directory, see below).
+
+     The `dgettext' function can be expressed in terms of `dcgettext'
+     by using
+
+          dcgettext (domain, string, LC_MESSAGES)
+
+     instead of
+
+          dgettext (domain, string)
+
+     This also shows which values are expected for the third parameter.
+     One has to use the available selectors for the categories
+     available in `locale.h'.  Normally the available values are
+     `LC_CTYPE', `LC_COLLATE', `LC_MESSAGES', `LC_MONETARY',
+     `LC_NUMERIC', and `LC_TIME'.  Please note that `LC_ALL' must not
+     be used and even though the names might suggest this, there is no
+     relation to the environments variables of this name.
+
+     The `dcgettext' function is only implemented for compatibility with
+     other systems which have `gettext' functions.  There is not really
+     any situation where it is necessary (or useful) to use a different
+     value but `LC_MESSAGES' in for the CATEGORY parameter.  We are
+     dealing with messages here and any other choice can only be
+     irritating.
+
+     As for `gettext' the return value type is `char *' which is an
+     anachronism.  The returned string must never be modified.
+
+   When using the three functions above in a program it is a frequent
+case that the MSGID argument is a constant string.  So it is worth to
+optimize this case.  Thinking shortly about this one will realize that
+as long as no new message catalog is loaded the translation of a message
+will not change.  This optimization is actually implemented by the
+`gettext', `dgettext' and `dcgettext' functions.
+
+
+File: libc.info,  Node: Locating gettext catalog,  Next: Advanced gettext functions,  Prev: Translation with gettext,  Up: Message catalogs with gettext
+
+How to determine which catalog to be used
+.........................................
+
+   The functions to retrieve the translations for a given message have a
+remarkable simple interface.  But to provide the user of the program
+still the opportunity to select exactly the translation s/he wants and
+also to provide the programmer the possibility to influence the way to
+locate the search for catalogs files there is a quite complicated
+underlying mechanism which controls all this.  The code is complicated
+the use is easy.
+
+   Basically we have two different tasks to perform which can also be
+performed by the `catgets' functions:
+
+  1. Locate the set of message catalogs.  There are a number of files
+     for different languages and which all belong to the package.
+     Usually they are all stored in the filesystem below a certain
+     directory.
+
+     There can be arbitrary many packages installed and they can follow
+     different guidelines for the placement of their files.
+
+  2. Relative to the location specified by the package the actual
+     translation files must be searched, based on the wishes of the
+     user.  I.e., for each language the user selects the program should
+     be able to locate the appropriate file.
+
+   This is the functionality required by the specifications for
+`gettext' and this is also what the `catgets' functions are able to do.
+But there are some problems unresolved:
+
+   * The language to be used can be specified in several different ways.
+     There is no generally accepted standard for this and the user
+     always expects the program understand what s/he means.  E.g., to
+     select the German translation one could write `de', `german', or
+     `deutsch' and the program should always react the same.
+
+   * Sometimes the specification of the user is too detailed.  If s/he,
+     e.g., specifies `de_DE.ISO-8859-1' which means German, spoken in
+     Germany, coded using the ISO 8859-1 character set there is the
+     possibility that a message catalog matching this exactly is not
+     available.  But there could be a catalog matching `de' and if the
+     character set used on the machine is always ISO 8859-1 there is no
+     reason why this later message catalog should not be used.  (We
+     call this "message inheritance".)
+
+   * If a catalog for a wanted language is not available it is not
+     always the second best choice to fall back on the language of the
+     developer and simply not translate any message.  Instead a user
+     might be better able to read the messages in another language and
+     so the user of the program should be able to define an precedence
+     order of languages.
+
+   We can divide the configuration actions in two parts: the one is
+performed by the programmer, the other by the user.  We will start with
+the functions the programmer can use since the user configuration will
+be based on this.
+
+   As the functions described in the last sections already mention
+separate sets of messages can be selected by a "domain name".  This is a
+simple string which should be unique for each program part with uses a
+separate domain.  It is possible to use in one program arbitrary many
+domains at the same time.  E.g., the GNU C Library itself uses a domain
+named `libc' while the program using the C Library could use a domain
+named `foo'.  The important point is that at any time exactly one
+domain is active.  This is controlled with the following function.
+
+ - Function: char * textdomain (const char *DOMAINNAME)
+     The `textdomain' function sets the default domain, which is used in
+     all future `gettext' calls, to DOMAINNAME.  Please note that
+     `dgettext' and `dcgettext' calls are not influenced if the
+     DOMAINNAME parameter of these functions is not the null pointer.
+
+     Before the first call to `textdomain' the default domain is
+     `messages'.  This is the name specified in the specification of
+     the `gettext' API.  This name is as good as any other name.  No
+     program should ever really use a domain with this name since this
+     can only lead to problems.
+
+     The function returns the value which is from now on taken as the
+     default domain.  If the system went out of memory the returned
+     value is `NULL' and the global variable ERRNO is set to `ENOMEM'.
+     Despite the return value type being `char *' the return string must
+     not be changed.  It is allocated internally by the `textdomain'
+     function.
+
+     If the DOMAINNAME parameter is the null pointer no new default
+     domain is set.  Instead the currently selected default domain is
+     returned.
+
+     If the DOMAINNAME parameter is the empty string the default domain
+     is reset to its initial value, the domain with the name `messages'.
+     This possibility is questionable to use since the domain `messages'
+     really never should be used.
+
+ - Function: char * bindtextdomain (const char *DOMAINNAME, const char
+          *DIRNAME)
+     The `bindtextdomain' function can be used to specify the directory
+     which contains the message catalogs for domain DOMAINNAME for the
+     different languages.  To be correct, this is the directory where
+     the hierarchy of directories is expected.  Details are explained
+     below.
+
+     For the programmer it is important to note that the translations
+     which come with the program have be placed in a directory
+     hierarchy starting at, say, `/foo/bar'.  Then the program should
+     make a `bindtextdomain' call to bind the domain for the current
+     program to this directory.  So it is made sure the catalogs are
+     found.  A correctly running program does not depend on the user
+     setting an environment variable.
+
+     The `bindtextdomain' function can be used several times and if the
+     DOMAINNAME argument is different the previously bound domains will
+     not be overwritten.
+
+     If the program which wish to use `bindtextdomain' at some point of
+     time use the `chdir' function to change the current working
+     directory it is important that the DIRNAME strings ought to be an
+     absolute pathname.  Otherwise the addressed directory might vary
+     with the time.
+
+     If the DIRNAME parameter is the null pointer `bindtextdomain'
+     returns the currently selected directory for the domain with the
+     name DOMAINNAME.
+
+     The `bindtextdomain' function returns a pointer to a string
+     containing the name of the selected directory name.  The string is
+     allocated internally in the function and must not be changed by the
+     user.  If the system went out of core during the execution of
+     `bindtextdomain' the return value is `NULL' and the global
+     variable ERRNO is set accordingly.
+

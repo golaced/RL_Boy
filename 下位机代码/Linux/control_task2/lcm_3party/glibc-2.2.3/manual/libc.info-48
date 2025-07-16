@@ -1,0 +1,1038 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Cancellation,  Next: Cleanup Handlers,  Prev: Thread Attributes,  Up: POSIX Threads
+
+Cancellation
+============
+
+   Cancellation is the mechanism by which a thread can terminate the
+execution of another thread. More precisely, a thread can send a
+cancellation request to another thread. Depending on its settings, the
+target thread can then either ignore the request, honor it immediately,
+or defer it till it reaches a cancellation point.  When threads are
+first created by `pthread_create', they always defer cancellation
+requests.
+
+   When a thread eventually honors a cancellation request, it behaves
+as if `pthread_exit(PTHREAD_CANCELED)' was called.  All cleanup handlers
+are executed in reverse order, finalization functions for
+thread-specific data are called, and finally the thread stops executing.
+If the cancelled thread was joinable, the return value
+`PTHREAD_CANCELED' is provided to whichever thread calls PTHREAD_JOIN
+on it. See `pthread_exit' for more information.
+
+   Cancellation points are the points where the thread checks for
+pending cancellation requests and performs them.  The POSIX threads
+functions `pthread_join', `pthread_cond_wait',
+`pthread_cond_timedwait', `pthread_testcancel', `sem_wait', and
+`sigwait' are cancellation points.  In addition, these system calls are
+cancellation points:
+
+accept                   open                     sendmsg
+close                    pause                    sendto
+connect                  read                     system
+fcntl                    recv                     tcdrain
+fsync                    recvfrom                 wait
+lseek                    recvmsg                  waitpid
+msync                    send                     write
+nanosleep                                         
+
+All library functions that call these functions (such as `printf') are
+also cancellation points.
+
+ - Function: int pthread_setcancelstate (int STATE, int *OLDSTATE)
+     `pthread_setcancelstate' changes the cancellation state for the
+     calling thread - that is, whether cancellation requests are
+     ignored or not. The STATE argument is the new cancellation state:
+     either `PTHREAD_CANCEL_ENABLE' to enable cancellation, or
+     `PTHREAD_CANCEL_DISABLE' to disable cancellation (cancellation
+     requests are ignored).
+
+     If OLDSTATE is not `NULL', the previous cancellation state is
+     stored in the location pointed to by OLDSTATE, and can thus be
+     restored later by another call to `pthread_setcancelstate'.
+
+     If the STATE argument is not `PTHREAD_CANCEL_ENABLE' or
+     `PTHREAD_CANCEL_DISABLE', `pthread_setcancelstate' fails and
+     returns `EINVAL'.  Otherwise it returns 0.
+
+ - Function: int pthread_setcanceltype (int TYPE, int *OLDTYPE)
+     `pthread_setcanceltype' changes the type of responses to
+     cancellation requests for the calling thread: asynchronous
+     (immediate) or deferred.  The TYPE argument is the new
+     cancellation type: either `PTHREAD_CANCEL_ASYNCHRONOUS' to cancel
+     the calling thread as soon as the cancellation request is
+     received, or `PTHREAD_CANCEL_DEFERRED' to keep the cancellation
+     request pending until the next cancellation point. If OLDTYPE is
+     not `NULL', the previous cancellation state is stored in the
+     location pointed to by OLDTYPE, and can thus be restored later by
+     another call to `pthread_setcanceltype'.
+
+     If the TYPE argument is not `PTHREAD_CANCEL_DEFERRED' or
+     `PTHREAD_CANCEL_ASYNCHRONOUS', `pthread_setcanceltype' fails and
+     returns `EINVAL'.  Otherwise it returns 0.
+
+ - Function: void pthread_testcancel (VOID)
+     `pthread_testcancel' does nothing except testing for pending
+     cancellation and executing it. Its purpose is to introduce explicit
+     checks for cancellation in long sequences of code that do not call
+     cancellation point functions otherwise.
+
+
+File: libc.info,  Node: Cleanup Handlers,  Next: Mutexes,  Prev: Cancellation,  Up: POSIX Threads
+
+Cleanup Handlers
+================
+
+   Cleanup handlers are functions that get called when a thread
+terminates, either by calling `pthread_exit' or because of
+cancellation. Cleanup handlers are installed and removed following a
+stack-like discipline.
+
+   The purpose of cleanup handlers is to free the resources that a
+thread may hold at the time it terminates. In particular, if a thread
+exits or is cancelled while it owns a locked mutex, the mutex will
+remain locked forever and prevent other threads from executing
+normally. The best way to avoid this is, just before locking the mutex,
+to install a cleanup handler whose effect is to unlock the mutex.
+Cleanup handlers can be used similarly to free blocks allocated with
+`malloc' or close file descriptors on thread termination.
+
+   Here is how to lock a mutex MUT in such a way that it will be
+unlocked if the thread is canceled while MUT is locked:
+
+     pthread_cleanup_push(pthread_mutex_unlock, (void *) &mut);
+     pthread_mutex_lock(&mut);
+     /* do some work */
+     pthread_mutex_unlock(&mut);
+     pthread_cleanup_pop(0);
+
+   Equivalently, the last two lines can be replaced by
+
+     pthread_cleanup_pop(1);
+
+   Notice that the code above is safe only in deferred cancellation mode
+(see `pthread_setcanceltype'). In asynchronous cancellation mode, a
+cancellation can occur between `pthread_cleanup_push' and
+`pthread_mutex_lock', or between `pthread_mutex_unlock' and
+`pthread_cleanup_pop', resulting in both cases in the thread trying to
+unlock a mutex not locked by the current thread. This is the main
+reason why asynchronous cancellation is difficult to use.
+
+   If the code above must also work in asynchronous cancellation mode,
+then it must switch to deferred mode for locking and unlocking the
+mutex:
+
+     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldtype);
+     pthread_cleanup_push(pthread_mutex_unlock, (void *) &mut);
+     pthread_mutex_lock(&mut);
+     /* do some work */
+     pthread_cleanup_pop(1);
+     pthread_setcanceltype(oldtype, NULL);
+
+   The code above can be rewritten in a more compact and efficient way,
+using the non-portable functions `pthread_cleanup_push_defer_np' and
+`pthread_cleanup_pop_restore_np':
+
+     pthread_cleanup_push_defer_np(pthread_mutex_unlock, (void *) &mut);
+     pthread_mutex_lock(&mut);
+     /* do some work */
+     pthread_cleanup_pop_restore_np(1);
+
+ - Function: void pthread_cleanup_push (void (*ROUTINE) (void *), void
+          *ARG)
+     `pthread_cleanup_push' installs the ROUTINE function with argument
+     ARG as a cleanup handler. From this point on to the matching
+     `pthread_cleanup_pop', the function ROUTINE will be called with
+     arguments ARG when the thread terminates, either through
+     `pthread_exit' or by cancellation. If several cleanup handlers are
+     active at that point, they are called in LIFO order: the most
+     recently installed handler is called first.
+
+ - Function: void pthread_cleanup_pop (int EXECUTE)
+     `pthread_cleanup_pop' removes the most recently installed cleanup
+     handler. If the EXECUTE argument is not 0, it also executes the
+     handler, by calling the ROUTINE function with arguments ARG. If
+     the EXECUTE argument is 0, the handler is only removed but not
+     executed.
+
+   Matching pairs of `pthread_cleanup_push' and `pthread_cleanup_pop'
+must occur in the same function, at the same level of block nesting.
+Actually, `pthread_cleanup_push' and `pthread_cleanup_pop' are macros,
+and the expansion of `pthread_cleanup_push' introduces an open brace
+`{' with the matching closing brace `}' being introduced by the
+expansion of the matching `pthread_cleanup_pop'.
+
+ - Function: void pthread_cleanup_push_defer_np (void (*ROUTINE) (void
+          *), void *ARG)
+     `pthread_cleanup_push_defer_np' is a non-portable extension that
+     combines `pthread_cleanup_push' and `pthread_setcanceltype'.  It
+     pushes a cleanup handler just as `pthread_cleanup_push' does, but
+     also saves the current cancellation type and sets it to deferred
+     cancellation. This ensures that the cleanup mechanism is effective
+     even if the thread was initially in asynchronous cancellation mode.
+
+ - Function: void pthread_cleanup_pop_restore_np (int EXECUTE)
+     `pthread_cleanup_pop_restore_np' pops a cleanup handler introduced
+     by `pthread_cleanup_push_defer_np', and restores the cancellation
+     type to its value at the time `pthread_cleanup_push_defer_np' was
+     called.
+
+   `pthread_cleanup_push_defer_np' and `pthread_cleanup_pop_restore_np'
+must occur in matching pairs, at the same level of block nesting.
+
+   The sequence
+
+     pthread_cleanup_push_defer_np(routine, arg);
+     ...
+     pthread_cleanup_pop_defer_np(execute);
+
+is functionally equivalent to (but more compact and efficient than)
+
+     {
+       int oldtype;
+       pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, &oldtype);
+       pthread_cleanup_push(routine, arg);
+       ...
+       pthread_cleanup_pop(execute);
+       pthread_setcanceltype(oldtype, NULL);
+     }
+
+
+File: libc.info,  Node: Mutexes,  Next: Condition Variables,  Prev: Cleanup Handlers,  Up: POSIX Threads
+
+Mutexes
+=======
+
+   A mutex is a MUTual EXclusion device, and is useful for protecting
+shared data structures from concurrent modifications, and implementing
+critical sections and monitors.
+
+   A mutex has two possible states: unlocked (not owned by any thread),
+and locked (owned by one thread). A mutex can never be owned by two
+different threads simultaneously. A thread attempting to lock a mutex
+that is already locked by another thread is suspended until the owning
+thread unlocks the mutex first.
+
+   None of the mutex functions is a cancellation point, not even
+`pthread_mutex_lock', in spite of the fact that it can suspend a thread
+for arbitrary durations. This way, the status of mutexes at
+cancellation points is predictable, allowing cancellation handlers to
+unlock precisely those mutexes that need to be unlocked before the
+thread stops executing. Consequently, threads using deferred
+cancellation should never hold a mutex for extended periods of time.
+
+   It is not safe to call mutex functions from a signal handler.  In
+particular, calling `pthread_mutex_lock' or `pthread_mutex_unlock' from
+a signal handler may deadlock the calling thread.
+
+ - Function: int pthread_mutex_init (pthread_mutex_t *MUTEX, const
+          pthread_mutexattr_t *MUTEXATTR)
+     `pthread_mutex_init' initializes the mutex object pointed to by
+     MUTEX according to the mutex attributes specified in MUTEXATTR.
+     If MUTEXATTR is `NULL', default attributes are used instead.
+
+     The LinuxThreads implementation supports only one mutex attribute,
+     the MUTEX TYPE, which is either "fast", "recursive", or "error
+     checking". The type of a mutex determines whether it can be locked
+     again by a thread that already owns it.  The default type is
+     "fast".
+
+     Variables of type `pthread_mutex_t' can also be initialized
+     statically, using the constants `PTHREAD_MUTEX_INITIALIZER' (for
+     timed mutexes), `PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP' (for
+     recursive mutexes), `PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP' (for
+     fast mutexes(, and `PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP' (for
+     error checking mutexes).
+
+     `pthread_mutex_init' always returns 0.
+
+ - Function: int pthread_mutex_lock (pthread_mutex_t *mutex))
+     `pthread_mutex_lock' locks the given mutex. If the mutex is
+     currently unlocked, it becomes locked and owned by the calling
+     thread, and `pthread_mutex_lock' returns immediately. If the mutex
+     is already locked by another thread, `pthread_mutex_lock' suspends
+     the calling thread until the mutex is unlocked.
+
+     If the mutex is already locked by the calling thread, the behavior
+     of `pthread_mutex_lock' depends on the type of the mutex. If the
+     mutex is of the "fast" type, the calling thread is suspended.  It
+     will remain suspended forever, because no other thread can unlock
+     the mutex.  If  the mutex is of the "error checking" type,
+     `pthread_mutex_lock' returns immediately with the error code
+     `EDEADLK'.  If the mutex is of the "recursive" type,
+     `pthread_mutex_lock' succeeds and returns immediately, recording
+     the number of times the calling thread has locked the mutex. An
+     equal number of `pthread_mutex_unlock' operations must be
+     performed before the mutex returns to the unlocked state.
+
+ - Function: int pthread_mutex_trylock (pthread_mutex_t *MUTEX)
+     `pthread_mutex_trylock' behaves identically to
+     `pthread_mutex_lock', except that it does not block the calling
+     thread if the mutex is already locked by another thread (or by the
+     calling thread in the case of a "fast" mutex). Instead,
+     `pthread_mutex_trylock' returns immediately with the error code
+     `EBUSY'.
+
+ - Function: int pthread_mutex_timedlock (pthread_mutex_t *MUTEX, const
+          struct timespec *ABSTIME)
+     The `pthread_mutex_timedlock' is similar to the
+     `pthread_mutex_lock' function but instead of blocking for in
+     indefinite time if the mutex is locked by another thread, it
+     returns when the time specified in ABSTIME is reached.
+
+     This function can only be used on standard ("timed") and "error
+     checking" mutexes.  It behaves just like `pthread_mutex_lock' for
+     all other types.
+
+     If the mutex is successfully locked, the function returns zero.
+     If the time specified in ABSTIME is reached without the mutex
+     being locked, `ETIMEDOUT' is returned.
+
+     This function was introduced in the POSIX.1d revision of the POSIX
+     standard.
+
+ - Function: int pthread_mutex_unlock (pthread_mutex_t *MUTEX)
+     `pthread_mutex_unlock' unlocks the given mutex. The mutex is
+     assumed to be locked and owned by the calling thread on entrance to
+     `pthread_mutex_unlock'. If the mutex is of the "fast" type,
+     `pthread_mutex_unlock' always returns it to the unlocked state. If
+     it is of the "recursive" type, it decrements the locking count of
+     the mutex (number of `pthread_mutex_lock' operations performed on
+     it by the calling thread), and only when this count reaches zero
+     is the mutex actually unlocked.
+
+     On "error checking" mutexes, `pthread_mutex_unlock' actually
+     checks at run-time that the mutex is locked on entrance, and that
+     it was locked by the same thread that is now calling
+     `pthread_mutex_unlock'.  If these conditions are not met,
+     `pthread_mutex_unlock' returns `EPERM', and the mutex remains
+     unchanged.  "Fast" and "recursive" mutexes perform no such checks,
+     thus allowing a locked mutex to be unlocked by a thread other than
+     its owner. This is non-portable behavior and must not be relied
+     upon.
+
+ - Function: int pthread_mutex_destroy (pthread_mutex_t *MUTEX)
+     `pthread_mutex_destroy' destroys a mutex object, freeing the
+     resources it might hold. The mutex must be unlocked on entrance.
+     In the LinuxThreads implementation, no resources are associated
+     with mutex objects, thus `pthread_mutex_destroy' actually does
+     nothing except checking that the mutex is unlocked.
+
+     If the mutex is locked by some thread, `pthread_mutex_destroy'
+     returns `EBUSY'.  Otherwise it returns 0.
+
+   If any of the above functions (except `pthread_mutex_init') is
+applied to an uninitialized mutex, they will simply return `EINVAL' and
+do nothing.
+
+   A shared global variable X can be protected by a mutex as follows:
+
+     int x;
+     pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+
+   All accesses and modifications to X should be bracketed by calls to
+`pthread_mutex_lock' and `pthread_mutex_unlock' as follows:
+
+     pthread_mutex_lock(&mut);
+     /* operate on x */
+     pthread_mutex_unlock(&mut);
+
+   Mutex attributes can be specified at mutex creation time, by passing
+a mutex attribute object as second argument to `pthread_mutex_init'.
+Passing `NULL' is equivalent to passing a mutex attribute object with
+all attributes set to their default values.
+
+ - Function: int pthread_mutexattr_init (pthread_mutexattr_t *ATTR)
+     `pthread_mutexattr_init' initializes the mutex attribute object
+     ATTR and fills it with default values for the attributes.
+
+     This function always returns 0.
+
+ - Function: int pthread_mutexattr_destroy (pthread_mutexattr_t *ATTR)
+     `pthread_mutexattr_destroy' destroys a mutex attribute object,
+     which must not be reused until it is reinitialized.
+     `pthread_mutexattr_destroy' does nothing in the LinuxThreads
+     implementation.
+
+     This function always returns 0.
+
+   LinuxThreads supports only one mutex attribute: the mutex type,
+which is either `PTHREAD_MUTEX_ADAPTIVE_NP' for "fast" mutexes,
+`PTHREAD_MUTEX_RECURSIVE_NP' for "recursive" mutexes,
+`PTHREAD_MUTEX_TIMED_NP' for "timed" mutexes, or
+`PTHREAD_MUTEX_ERRORCHECK_NP' for "error checking" mutexes.  As the
+`NP' suffix indicates, this is a non-portable extension to the POSIX
+standard and should not be employed in portable programs.
+
+   The mutex type determines what happens if a thread attempts to lock a
+mutex it already owns with `pthread_mutex_lock'. If the mutex is of the
+"fast" type, `pthread_mutex_lock' simply suspends the calling thread
+forever.  If the mutex is of the "error checking" type,
+`pthread_mutex_lock' returns immediately with the error code `EDEADLK'.
+If the mutex is of the "recursive" type, the call to
+`pthread_mutex_lock' returns immediately with a success return code.
+The number of times the thread owning the mutex has locked it is
+recorded in the mutex. The owning thread must call
+`pthread_mutex_unlock' the same number of times before the mutex
+returns to the unlocked state.
+
+   The default mutex type is "timed", that is, `PTHREAD_MUTEX_TIMED_NP'.
+
+ - Function: int pthread_mutexattr_settype (pthread_mutexattr_t *ATTR,
+          int TYPE)
+     `pthread_mutexattr_settype' sets the mutex type attribute in ATTR
+     to the value specified by TYPE.
+
+     If TYPE is not `PTHREAD_MUTEX_ADAPTIVE_NP',
+     `PTHREAD_MUTEX_RECURSIVE_NP', `PTHREAD_MUTEX_TIMED_NP', or
+     `PTHREAD_MUTEX_ERRORCHECK_NP', this function will return `EINVAL'
+     and leave ATTR unchanged.
+
+     The standard Unix98 identifiers `PTHREAD_MUTEX_DEFAULT',
+     `PTHREAD_MUTEX_NORMAL', `PTHREAD_MUTEX_RECURSIVE', and
+     `PTHREAD_MUTEX_ERRORCHECK' are also permitted.
+
+
+ - Function: int pthread_mutexattr_gettype (const pthread_mutexattr_t
+          *ATTR, int *TYPE)
+     `pthread_mutexattr_gettype' retrieves the current value of the
+     mutex type attribute in ATTR and stores it in the location pointed
+     to by TYPE.
+
+     This function always returns 0.
+
+
+File: libc.info,  Node: Condition Variables,  Next: POSIX Semaphores,  Prev: Mutexes,  Up: POSIX Threads
+
+Condition Variables
+===================
+
+   A condition (short for "condition variable") is a synchronization
+device that allows threads to suspend execution until some predicate on
+shared data is satisfied. The basic operations on conditions are: signal
+the condition (when the predicate becomes true), and wait for the
+condition, suspending the thread execution until another thread signals
+the condition.
+
+   A condition variable must always be associated with a mutex, to avoid
+the race condition where a thread prepares to wait on a condition
+variable and another thread signals the condition just before the first
+thread actually waits on it.
+
+ - Function: int pthread_cond_init (pthread_cond_t *COND,
+          pthread_condattr_t *cond_ATTR)
+     `pthread_cond_init' initializes the condition variable COND, using
+     the condition attributes specified in COND_ATTR, or default
+     attributes if COND_ATTR is `NULL'. The LinuxThreads implementation
+     supports no attributes for conditions, hence the COND_ATTR
+     parameter is actually ignored.
+
+     Variables of type `pthread_cond_t' can also be initialized
+     statically, using the constant `PTHREAD_COND_INITIALIZER'.
+
+     This function always returns 0.
+
+ - Function: int pthread_cond_signal (pthread_cond_t *COND)
+     `pthread_cond_signal' restarts one of the threads that are waiting
+     on the condition variable COND. If no threads are waiting on COND,
+     nothing happens. If several threads are waiting on COND, exactly
+     one is restarted, but it is not specified which.
+
+     This function always returns 0.
+
+ - Function: int pthread_cond_broadcast (pthread_cond_t *COND)
+     `pthread_cond_broadcast' restarts all the threads that are waiting
+     on the condition variable COND. Nothing happens if no threads are
+     waiting on COND.
+
+     This function always returns 0.
+
+ - Function: int pthread_cond_wait (pthread_cond_t *COND,
+          pthread_mutex_t *MUTEX)
+     `pthread_cond_wait' atomically unlocks the MUTEX (as per
+     `pthread_unlock_mutex') and waits for the condition variable COND
+     to be signaled. The thread execution is suspended and does not
+     consume any CPU time until the condition variable is signaled. The
+     MUTEX must be locked by the calling thread on entrance to
+     `pthread_cond_wait'. Before returning to the calling thread,
+     `pthread_cond_wait' re-acquires MUTEX (as per
+     `pthread_lock_mutex').
+
+     Unlocking the mutex and suspending on the condition variable is
+     done atomically. Thus, if all threads always acquire the mutex
+     before signaling the condition, this guarantees that the condition
+     cannot be signaled (and thus ignored) between the time a thread
+     locks the mutex and the time it waits on the condition variable.
+
+     This function always returns 0.
+
+ - Function: int pthread_cond_timedwait (pthread_cond_t *COND,
+          pthread_mutex_t *MUTEX, const struct timespec *ABSTIME)
+     `pthread_cond_timedwait' atomically unlocks MUTEX and waits on
+     COND, as `pthread_cond_wait' does, but it also bounds the duration
+     of the wait. If COND has not been signaled before time ABSTIME,
+     the mutex MUTEX is re-acquired and `pthread_cond_timedwait'
+     returns the error code `ETIMEDOUT'.  The wait can also be
+     interrupted by a signal; in that case `pthread_cond_timedwait'
+     returns `EINTR'.
+
+     The ABSTIME parameter specifies an absolute time, with the same
+     origin as `time' and `gettimeofday': an ABSTIME of 0 corresponds
+     to 00:00:00 GMT, January 1, 1970.
+
+ - Function: int pthread_cond_destroy (pthread_cond_t *COND)
+     `pthread_cond_destroy' destroys the condition variable COND,
+     freeing the resources it might hold.  If any threads are waiting
+     on the condition variable, `pthread_cond_destroy' leaves COND
+     untouched and returns `EBUSY'.  Otherwise it returns 0, and COND
+     must not be used again until it is reinitialized.
+
+     In the LinuxThreads implementation, no resources are associated
+     with condition variables, so `pthread_cond_destroy' actually does
+     nothing.
+
+   `pthread_cond_wait' and `pthread_cond_timedwait' are cancellation
+points. If a thread is cancelled while suspended in one of these
+functions, the thread immediately resumes execution, relocks the mutex
+specified by  MUTEX, and finally executes the cancellation.
+Consequently, cleanup handlers are assured that MUTEX is locked when
+they are called.
+
+   It is not safe to call the condition variable functions from a signal
+handler. In particular, calling `pthread_cond_signal' or
+`pthread_cond_broadcast' from a signal handler may deadlock the calling
+thread.
+
+   Consider two shared variables X and Y, protected by the mutex MUT,
+and a condition variable COND that is to be signaled whenever X becomes
+greater than Y.
+
+     int x,y;
+     pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
+   Waiting until X is greater than Y is performed as follows:
+
+     pthread_mutex_lock(&mut);
+     while (x <= y) {
+             pthread_cond_wait(&cond, &mut);
+     }
+     /* operate on x and y */
+     pthread_mutex_unlock(&mut);
+
+   Modifications on X and Y that may cause X to become greater than Y
+should signal the condition if needed:
+
+     pthread_mutex_lock(&mut);
+     /* modify x and y */
+     if (x > y) pthread_cond_broadcast(&cond);
+     pthread_mutex_unlock(&mut);
+
+   If it can be proved that at most one waiting thread needs to be waken
+up (for instance, if there are only two threads communicating through X
+and Y), `pthread_cond_signal' can be used as a slightly more efficient
+alternative to `pthread_cond_broadcast'. In doubt, use
+`pthread_cond_broadcast'.
+
+   To wait for X to becomes greater than Y with a timeout of 5 seconds,
+do:
+
+     struct timeval now;
+     struct timespec timeout;
+     int retcode;
+     
+     pthread_mutex_lock(&mut);
+     gettimeofday(&now);
+     timeout.tv_sec = now.tv_sec + 5;
+     timeout.tv_nsec = now.tv_usec * 1000;
+     retcode = 0;
+     while (x <= y && retcode != ETIMEDOUT) {
+             retcode = pthread_cond_timedwait(&cond, &mut, &timeout);
+     }
+     if (retcode == ETIMEDOUT) {
+             /* timeout occurred */
+     } else {
+             /* operate on x and y */
+     }
+     pthread_mutex_unlock(&mut);
+
+   Condition attributes can be specified at condition creation time, by
+passing a condition attribute object as second argument to
+`pthread_cond_init'.  Passing `NULL' is equivalent to passing a
+condition attribute object with all attributes set to their default
+values.
+
+   The LinuxThreads implementation supports no attributes for
+conditions. The functions on condition attributes are included only for
+compliance with the POSIX standard.
+
+ - Function: int pthread_condattr_init (pthread_condattr_t *ATTR)
+ - Function: int pthread_condattr_destroy (pthread_condattr_t *ATTR)
+     `pthread_condattr_init' initializes the condition attribute object
+     ATTR and fills it with default values for the attributes.
+     `pthread_condattr_destroy' destroys the condition attribute object
+     ATTR.
+
+     Both functions do nothing in the LinuxThreads implementation.
+
+     `pthread_condattr_init' and `pthread_condattr_destroy' always
+     return 0.
+
+
+File: libc.info,  Node: POSIX Semaphores,  Next: Thread-Specific Data,  Prev: Condition Variables,  Up: POSIX Threads
+
+POSIX Semaphores
+================
+
+   Semaphores are counters for resources shared between threads. The
+basic operations on semaphores are: increment the counter atomically,
+and wait until the counter is non-null and decrement it atomically.
+
+   Semaphores have a maximum value past which they cannot be
+incremented.  The macro `SEM_VALUE_MAX' is defined to be this maximum
+value.  In the GNU C library, `SEM_VALUE_MAX' is equal to `INT_MAX'
+(*note Range of Type::), but it may be much smaller on other systems.
+
+   The pthreads library implements POSIX 1003.1b semaphores.  These
+should not be confused with System V semaphores (`ipc', `semctl' and
+`semop').
+
+   All the semaphore functions and macros are defined in `semaphore.h'.
+
+ - Function: int sem_init (sem_t *SEM, int PSHARED, unsigned int VALUE)
+     `sem_init' initializes the semaphore object pointed to by SEM. The
+     count associated with the semaphore is set initially to VALUE. The
+     PSHARED argument indicates whether the semaphore is local to the
+     current process (PSHARED is zero) or is to be shared between
+     several processes (PSHARED is not zero).
+
+     On success `sem_init' returns 0.  On failure it returns -1 and sets
+     ERRNO to one of the following values:
+
+    `EINVAL'
+          VALUE exceeds the maximal counter value `SEM_VALUE_MAX'
+
+    `ENOSYS'
+          PSHARED is not zero.  LinuxThreads currently does not support
+          process-shared semaphores.  (This will eventually change.)
+
+ - Function: int sem_destroy (sem_t * SEM)
+     `sem_destroy' destroys a semaphore object, freeing the resources it
+     might hold.  If any threads are waiting on the semaphore when
+     `sem_destroy' is called, it fails and sets ERRNO to `EBUSY'.
+
+     In the LinuxThreads implementation, no resources are associated
+     with semaphore objects, thus `sem_destroy' actually does nothing
+     except checking that no thread is waiting on the semaphore.  This
+     will change when process-shared semaphores are implemented.
+
+ - Function: int sem_wait (sem_t * SEM)
+     `sem_wait' suspends the calling thread until the semaphore pointed
+     to by SEM has non-zero count. It then atomically decreases the
+     semaphore count.
+
+     `sem_wait' is a cancellation point.  It always returns 0.
+
+ - Function: int sem_trywait (sem_t * SEM)
+     `sem_trywait' is a non-blocking variant of `sem_wait'. If the
+     semaphore pointed to by SEM has non-zero count, the count is
+     atomically decreased and `sem_trywait' immediately returns 0.  If
+     the semaphore count is zero, `sem_trywait' immediately returns -1
+     and sets errno to `EAGAIN'.
+
+ - Function: int sem_post (sem_t * SEM)
+     `sem_post' atomically increases the count of the semaphore pointed
+     to by SEM. This function never blocks.
+
+     On processors supporting atomic compare-and-swap (Intel 486,
+     Pentium and later, Alpha, PowerPC, MIPS II, Motorola 68k,
+     Ultrasparc), the `sem_post' function is can safely be called from
+     signal handlers.  This is the only thread synchronization function
+     provided by POSIX threads that is async-signal safe.  On the Intel
+     386 and earlier Sparc chips, the current LinuxThreads
+     implementation of `sem_post' is not async-signal safe, because the
+     hardware does not support the required atomic operations.
+
+     `sem_post' always succeeds and returns 0, unless the semaphore
+     count would exceed `SEM_VALUE_MAX' after being incremented.  In
+     that case `sem_post' returns -1 and sets ERRNO to `EINVAL'.  The
+     semaphore count is left unchanged.
+
+ - Function: int sem_getvalue (sem_t * SEM, int * SVAL)
+     `sem_getvalue' stores in the location pointed to by SVAL the
+     current count of the semaphore SEM.  It always returns 0.
+
+
+File: libc.info,  Node: Thread-Specific Data,  Next: Threads and Signal Handling,  Prev: POSIX Semaphores,  Up: POSIX Threads
+
+Thread-Specific Data
+====================
+
+   Programs often need global or static variables that have different
+values in different threads. Since threads share one memory space, this
+cannot be achieved with regular variables. Thread-specific data is the
+POSIX threads answer to this need.
+
+   Each thread possesses a private memory block, the thread-specific
+data area, or TSD area for short. This area is indexed by TSD keys. The
+TSD area associates values of type `void *' to TSD keys. TSD keys are
+common to all threads, but the value associated with a given TSD key can
+be different in each thread.
+
+   For concreteness, the TSD areas can be viewed as arrays of `void *'
+pointers, TSD keys as integer indices into these arrays, and the value
+of a TSD key as the value of the corresponding array element in the
+calling thread.
+
+   When a thread is created, its TSD area initially associates `NULL'
+with all keys.
+
+ - Function: int pthread_key_create (pthread_key_t *KEY, void
+          (*destr_function) (void *))
+     `pthread_key_create' allocates a new TSD key. The key is stored in
+     the location pointed to by KEY. There is a limit of
+     `PTHREAD_KEYS_MAX' on the number of keys allocated at a given
+     time. The value initially associated with the returned key is
+     `NULL' in all currently executing threads.
+
+     The DESTR_FUNCTION argument, if not `NULL', specifies a destructor
+     function associated with the key. When a thread terminates via
+     `pthread_exit' or by cancellation, DESTR_FUNCTION is called on the
+     value associated with the key in that thread. The DESTR_FUNCTION
+     is not called if a key is deleted with `pthread_key_delete' or a
+     value is changed with `pthread_setspecific'.  The order in which
+     destructor functions are called at thread termination time is
+     unspecified.
+
+     Before the destructor function is called, the `NULL' value is
+     associated with the key in the current thread.  A destructor
+     function might, however, re-associate non-`NULL' values to that
+     key or some other key.  To deal with this, if after all the
+     destructors have been called for all non-`NULL' values, there are
+     still some non-`NULL' values with associated destructors, then the
+     process is repeated.  The LinuxThreads implementation stops the
+     process after `PTHREAD_DESTRUCTOR_ITERATIONS' iterations, even if
+     some non-`NULL' values with associated descriptors remain.  Other
+     implementations may loop indefinitely.
+
+     `pthread_key_create' returns 0 unless `PTHREAD_KEYS_MAX' keys have
+     already been allocated, in which case it fails and returns
+     `EAGAIN'.
+
+ - Function: int pthread_key_delete (pthread_key_t KEY)
+     `pthread_key_delete' deallocates a TSD key. It does not check
+     whether non-`NULL' values are associated with that key in the
+     currently executing threads, nor call the destructor function
+     associated with the key.
+
+     If there is no such key KEY, it returns `EINVAL'.  Otherwise it
+     returns 0.
+
+ - Function: int pthread_setspecific (pthread_key_t KEY, const void
+          *POINTER)
+     `pthread_setspecific' changes the value associated with KEY in the
+     calling thread, storing the given POINTER instead.
+
+     If there is no such key KEY, it returns `EINVAL'.  Otherwise it
+     returns 0.
+
+ - Function: void * pthread_getspecific (pthread_key_t KEY)
+     `pthread_getspecific' returns the value currently associated with
+     KEY in the calling thread.
+
+     If there is no such key KEY, it returns `NULL'.
+
+   The following code fragment allocates a thread-specific array of 100
+characters, with automatic reclaimation at thread exit:
+
+     /* Key for the thread-specific buffer */
+     static pthread_key_t buffer_key;
+     
+     /* Once-only initialisation of the key */
+     static pthread_once_t buffer_key_once = PTHREAD_ONCE_INIT;
+     
+     /* Allocate the thread-specific buffer */
+     void buffer_alloc(void)
+     {
+       pthread_once(&buffer_key_once, buffer_key_alloc);
+       pthread_setspecific(buffer_key, malloc(100));
+     }
+     
+     /* Return the thread-specific buffer */
+     char * get_buffer(void)
+     {
+       return (char *) pthread_getspecific(buffer_key);
+     }
+     
+     /* Allocate the key */
+     static void buffer_key_alloc()
+     {
+       pthread_key_create(&buffer_key, buffer_destroy);
+     }
+     
+     /* Free the thread-specific buffer */
+     static void buffer_destroy(void * buf)
+     {
+       free(buf);
+     }
+
+
+File: libc.info,  Node: Threads and Signal Handling,  Next: Threads and Fork,  Prev: Thread-Specific Data,  Up: POSIX Threads
+
+Threads and Signal Handling
+===========================
+
+ - Function: int pthread_sigmask (int HOW, const sigset_t *NEWMASK,
+          sigset_t *OLDMASK)
+     `pthread_sigmask' changes the signal mask for the calling thread as
+     described by the HOW and NEWMASK arguments. If OLDMASK is not
+     `NULL', the previous signal mask is stored in the location pointed
+     to by OLDMASK.
+
+     The meaning of the HOW and NEWMASK arguments is the same as for
+     `sigprocmask'. If HOW is `SIG_SETMASK', the signal mask is set to
+     NEWMASK. If HOW is `SIG_BLOCK', the signals specified to NEWMASK
+     are added to the current signal mask.  If HOW is `SIG_UNBLOCK',
+     the signals specified to NEWMASK are removed from the current
+     signal mask.
+
+     Recall that signal masks are set on a per-thread basis, but signal
+     actions and signal handlers, as set with `sigaction', are shared
+     between all threads.
+
+     The `pthread_sigmask' function returns 0 on success, and one of the
+     following error codes on error:
+    `EINVAL'
+          HOW is not one of `SIG_SETMASK', `SIG_BLOCK', or `SIG_UNBLOCK'
+
+    `EFAULT'
+          NEWMASK or OLDMASK point to invalid addresses
+
+ - Function: int pthread_kill (pthread_t THREAD, int SIGNO)
+     `pthread_kill' sends signal number SIGNO to the thread THREAD.
+     The signal is delivered and handled as described in *Note Signal
+     Handling::.
+
+     `pthread_kill' returns 0 on success, one of the following error
+     codes on error:
+    `EINVAL'
+          SIGNO is not a valid signal number
+
+    `ESRCH'
+          The thread THREAD does not exist (e.g. it has already
+          terminated)
+
+ - Function: int sigwait (const sigset_t *SET, int *SIG)
+     `sigwait' suspends the calling thread until one of the signals in
+     SET is delivered to the calling thread. It then stores the number
+     of the signal received in the location pointed to by SIG and
+     returns. The signals in SET must be blocked and not ignored on
+     entrance to `sigwait'. If the delivered signal has a signal handler
+     function attached, that function is _not_ called.
+
+     `sigwait' is a cancellation point.  It always returns 0.
+
+   For `sigwait' to work reliably, the signals being waited for must be
+blocked in all threads, not only in the calling thread, since otherwise
+the POSIX semantics for signal delivery do not guarantee that it's the
+thread doing the `sigwait' that will receive the signal.  The best way
+to achieve this is block those signals before any threads are created,
+and never unblock them in the program other than by calling `sigwait'.
+
+   Signal handling in LinuxThreads departs significantly from the POSIX
+standard. According to the standard, "asynchronous" (external) signals
+are addressed to the whole process (the collection of all threads),
+which then delivers them to one particular thread. The thread that
+actually receives the signal is any thread that does not currently block
+the signal.
+
+   In LinuxThreads, each thread is actually a kernel process with its
+own PID, so external signals are always directed to one particular
+thread.  If, for instance, another thread is blocked in `sigwait' on
+that signal, it will not be restarted.
+
+   The LinuxThreads implementation of `sigwait' installs dummy signal
+handlers for the signals in SET for the duration of the wait. Since
+signal handlers are shared between all threads, other threads must not
+attach their own signal handlers to these signals, or alternatively
+they should all block these signals (which is recommended anyway).
+
+
+File: libc.info,  Node: Threads and Fork,  Next: Streams and Fork,  Prev: Threads and Signal Handling,  Up: POSIX Threads
+
+Threads and Fork
+================
+
+   It's not intuitively obvious what should happen when a
+multi-threaded POSIX process calls `fork'. Not only are the semantics
+tricky, but you may need to write code that does the right thing at
+fork time even if that code doesn't use the `fork' function. Moreover,
+you need to be aware of interaction between `fork' and some library
+features like `pthread_once' and stdio streams.
+
+   When `fork' is called by one of the threads of a process, it creates
+a new process which is copy of the  calling process. Effectively, in
+addition to copying certain system objects, the function takes a
+snapshot of the memory areas of the parent process, and creates
+identical areas in the child.  To make matters more complicated, with
+threads it's possible for two or more threads to concurrently call fork
+to create two or more child processes.
+
+   The child process has a copy of the address space of the parent, but
+it does not inherit any of its threads. Execution of the child process
+is carried out by a new thread which returns from `fork' function with
+a return value of zero; it is the only thread in the child process.
+Because threads are not inherited across fork, issues arise. At the
+time of the call to `fork', threads in the parent process other than
+the one calling `fork' may have been executing critical regions of
+code.  As a result, the child process may get a copy of objects that
+are not in a well-defined state.  This potential problem affects all
+components of the program.
+
+   Any program component which will continue being used in a child
+process must correctly handle its state during `fork'. For this
+purpose, the POSIX interface provides the special function
+`pthread_atfork' for installing pointers to handler functions which are
+called from within `fork'.
+
+ - Function: int pthread_atfork (void (*PREPARE)(void), void
+          (*PARENT)(void), void (*CHILD)(void))
+     `pthread_atfork' registers handler functions to be called just
+     before and just after a new process is created with `fork'. The
+     PREPARE handler will be called from the parent process, just
+     before the new process is created. The PARENT handler will be
+     called from the parent process, just before `fork' returns. The
+     CHILD handler will be called from the child process, just before
+     `fork' returns.
+
+     `pthread_atfork' returns 0 on success and a non-zero error code on
+     error.
+
+     One or more of the three handlers PREPARE, PARENT and CHILD can be
+     given as `NULL', meaning that no handler needs to be called at the
+     corresponding point.
+
+     `pthread_atfork' can be called several times to install several
+     sets of handlers. At `fork' time, the PREPARE handlers are called
+     in LIFO order (last added with `pthread_atfork', first called
+     before `fork'), while the PARENT and CHILD handlers are called in
+     FIFO order (first added, first called).
+
+     If there is insufficient memory available to register the handlers,
+     `pthread_atfork' fails and returns `ENOMEM'.  Otherwise it returns
+     0.
+
+     The functions `fork' and `pthread_atfork' must not be regarded as
+     reentrant from the context of the handlers.  That is to say, if a
+     `pthread_atfork' handler invoked from within `fork' calls
+     `pthread_atfork' or `fork', the behavior is undefined.
+
+     Registering a triplet of handlers is an atomic operation with
+     respect to fork.  If new handlers are registered at about the same
+     time as a fork occurs, either all three handlers will be called,
+     or none of them will be called.
+
+     The handlers are inherited by the child process, and there is no
+     way to remove them, short of using `exec' to load a new pocess
+     image.
+
+
+   To understand the purpose of `pthread_atfork', recall that `fork'
+duplicates the whole memory space, including mutexes in their current
+locking state, but only the calling thread: other threads are not
+running in the child process. Thus, if a mutex is locked by a thread
+other than the thread calling `fork', that mutex will remain locked
+forever in the child process, possibly blocking the execution of the
+child process. Or if some shared data, such as a linked list, was in the
+middle of being updated by a thread in the parent process, the child
+will get a copy of the incompletely updated data which it cannot use.
+
+   To avoid this, install handlers with `pthread_atfork' as follows:
+have the PREPARE handler lock the mutexes (in locking order), and the
+PARENT handler unlock the mutexes. The CHILD handler should reset the
+mutexes using `pthread_mutex_init', as well as any other
+synchronization objects such as condition variables.
+
+   Locking the global mutexes before the fork ensures that all other
+threads are locked out of the critical regions of code protected by
+those mutexes.  Thus when `fork' takes a snapshot of the parent's
+address space, that snapshot will copy valid, stable data.  Resetting
+the synchronization objects in the child process will ensure they are
+properly cleansed of any artifacts from the threading subsystem of the
+parent process. For example, a mutex may inherit a wait queue of
+threads waiting for the lock; this wait queue makes no sense in the
+child process. Initializing the mutex takes care of this.
+
+
+File: libc.info,  Node: Streams and Fork,  Next: Miscellaneous Thread Functions,  Prev: Threads and Fork,  Up: POSIX Threads
+
+Streams and Fork
+================
+
+   The GNU standard I/O library has an internal mutex which guards the
+internal linked list of all standard C FILE objects. This mutex is
+properly taken care of during `fork' so that the child receives an
+intact copy of the list.  This allows the `fopen' function, and related
+stream-creating functions, to work correctly in the child process,
+since these functions need to insert into the list.
+
+   However, the individual stream locks are not completely taken care
+of.  Thus unless the multithreaded application takes special
+precautions in its use of `fork', the child process might not be able
+to safely use the streams that it inherited from the parent.   In
+general, for any given open stream in the parent that is to be used by
+the child process, the application must ensure that that stream is not
+in use by another thread when `fork' is called.  Otherwise an
+inconsistent copy of the stream object be produced. An easy way to
+ensure this is to use `flockfile' to lock the stream prior to calling
+`fork' and then unlock it with `funlockfile' inside the parent process,
+provided that the parent's threads properly honor these locks.  Nothing
+special needs to be done in the child process, since the library
+internally resets all stream locks.
+
+   Note that the stream locks are not shared between the parent and
+child.  For example, even if you ensure that, say, the stream `stdout'
+is properly treated and can be safely used in the child, the stream
+locks do not provide an exclusion mechanism between the parent and
+child. If both processes write to `stdout', strangely interleaved
+output may result regardless of the explicit use of `flockfile' or
+implicit locks.
+
+   Also note that these provisions are a GNU extension; other systems
+might not provide any way for streams to be used in the child of a
+multithreaded process.  POSIX requires that such a child process
+confines itself to calling only asynchronous safe functions, which
+excludes much of the library, including standard I/O.
+

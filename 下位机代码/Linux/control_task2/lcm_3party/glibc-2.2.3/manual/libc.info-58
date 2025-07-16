@@ -1,0 +1,300 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: File Index,  Prev: Variable Index,  Up: Top
+
+Program and File Index
+**********************
+
+* Menu:
+
+* -lbsd-compat <1>:                      Process Group Functions.
+* -lbsd-compat:                          Feature Test Macros.
+* /etc/group:                            Group Database.
+* /etc/hosts:                            Host Names.
+* /etc/localtime:                        TZ Variable.
+* /etc/networks:                         Networks Database.
+* /etc/passwd:                           User Database.
+* /etc/protocols:                        Protocols Database.
+* /etc/services:                         Services Database.
+* /share/lib/zoneinfo:                   TZ Variable.
+* argp.h:                                Argp.
+* argz.h:                                Argz Functions.
+* arpa/inet.h:                           Host Address Functions.
+* assert.h:                              Consistency Checking.
+* bsd-compat <1>:                        Process Group Functions.
+* bsd-compat:                            Feature Test Macros.
+* cd:                                    Working Directory.
+* chgrp:                                 File Owner.
+* chown:                                 File Owner.
+* complex.h <1>:                         Operations on Complex.
+* complex.h <2>:                         Complex Numbers.
+* complex.h:                             Mathematics.
+* ctype.h <1>:                           Case Conversion.
+* ctype.h <2>:                           Classification of Characters.
+* ctype.h:                               Character Handling.
+* dirent.h <1>:                          Random Access Directory.
+* dirent.h <2>:                          Reading/Closing Directory.
+* dirent.h <3>:                          Opening a Directory.
+* dirent.h <4>:                          Directory Entries.
+* dirent.h:                              Reserved Names.
+* envz.h:                                Envz Functions.
+* errno.h <1>:                           Error Codes.
+* errno.h <2>:                           Checking for Errors.
+* errno.h:                               Error Reporting.
+* execinfo.h:                            Backtraces.
+* fcntl.h <1>:                           Interrupt Input.
+* fcntl.h <2>:                           File Locks.
+* fcntl.h <3>:                           File Status Flags.
+* fcntl.h <4>:                           Descriptor Flags.
+* fcntl.h <5>:                           Duplicating Descriptors.
+* fcntl.h <6>:                           Control Operations.
+* fcntl.h <7>:                           Opening and Closing Files.
+* fcntl.h:                               Reserved Names.
+* float.h:                               Floating Point Parameters.
+* fnmatch.h:                             Wildcard Matching.
+* gcc:                                   ISO C.
+* gconv.h:                               glibc iconv Implementation.
+* grp.h <1>:                             Group Data Structure.
+* grp.h <2>:                             Setting Groups.
+* grp.h:                                 Reserved Names.
+* hostid:                                Host Identification.
+* hostname:                              Host Identification.
+* iconv.h:                               Generic Conversion Interface.
+* kill:                                  Termination Signals.
+* ksh:                                   Wildcard Matching.
+* langinfo.h:                            The Elegant and Fast Way.
+* limits.h <1>:                          Width of Type.
+* limits.h <2>:                          Limits for Files.
+* limits.h <3>:                          General Limits.
+* limits.h <4>:                          Selecting the Conversion.
+* limits.h:                              Reserved Names.
+* locale:                                Setting the Locale.
+* locale.h <1>:                          The Lame Way to Locale Data.
+* locale.h:                              Setting the Locale.
+* localtime:                             TZ Variable.
+* ls:                                    File Attributes.
+* malloc.h <1>:                          Statistics of Malloc.
+* malloc.h <2>:                          Hooks for Malloc.
+* malloc.h:                              Malloc Tunable Parameters.
+* math.h <1>:                            Rounding Functions.
+* math.h <2>:                            Normalization Functions.
+* math.h <3>:                            Absolute Value.
+* math.h <4>:                            Floating Point Classes.
+* math.h:                                Mathematics.
+* mcheck.h:                              Heap Consistency Checking.
+* mkdir:                                 Creating Directories.
+* netdb.h <1>:                           Networks Database.
+* netdb.h <2>:                           Protocols Database.
+* netdb.h <3>:                           Services Database.
+* netdb.h:                               Host Names.
+* netinet/in.h <1>:                      Byte Order.
+* netinet/in.h <2>:                      Ports.
+* netinet/in.h <3>:                      Host Address Data Type.
+* netinet/in.h:                          Internet Address Formats.
+* obstack.h:                             Creating Obstacks.
+* printf.h <1>:                          Conversion Specifier Options.
+* printf.h:                              Registering New Conversions.
+* pwd.h <1>:                             User Data Structure.
+* pwd.h:                                 Reserved Names.
+* setjmp.h <1>:                          Non-Local Exits and Signals.
+* setjmp.h:                              Non-Local Details.
+* sh:                                    Running a Command.
+* signal.h <1>:                          BSD Signal Handling.
+* signal.h <2>:                          Checking for Pending Signals.
+* signal.h <3>:                          Process Signal Mask.
+* signal.h <4>:                          Signal Sets.
+* signal.h <5>:                          Signaling Another Process.
+* signal.h <6>:                          Signaling Yourself.
+* signal.h <7>:                          Flags for Sigaction.
+* signal.h <8>:                          Advanced Signal Handling.
+* signal.h <9>:                          Basic Signal Handling.
+* signal.h <10>:                         Standard Signals.
+* signal.h:                              Reserved Names.
+* stdarg.h <1>:                          Argument Macros.
+* stdarg.h:                              Receiving Arguments.
+* stddef.h:                              Important Data Types.
+* stdint.h:                              Integers.
+* stdio.h <1>:                           Who Logged In.
+* stdio.h <2>:                           Identifying the Terminal.
+* stdio.h <3>:                           Signal Messages.
+* stdio.h <4>:                           Temporary Files.
+* stdio.h <5>:                           Deleting Files.
+* stdio.h <6>:                           Descriptors and Streams.
+* stdio.h <7>:                           Streams and Cookies.
+* stdio.h <8>:                           String Streams.
+* stdio.h <9>:                           Controlling Buffering.
+* stdio.h <10>:                          Flushing Buffers.
+* stdio.h <11>:                          Portable Positioning.
+* stdio.h <12>:                          File Positioning.
+* stdio.h <13>:                          Formatted Input Functions.
+* stdio.h <14>:                          Variable Arguments Output.
+* stdio.h <15>:                          Formatted Output Functions.
+* stdio.h <16>:                          Block Input/Output.
+* stdio.h <17>:                          Character Input.
+* stdio.h <18>:                          Simple Output.
+* stdio.h <19>:                          Opening Streams.
+* stdio.h <20>:                          Standard Streams.
+* stdio.h:                               Streams.
+* stdlib.h <1>:                          Running a Command.
+* stdlib.h <2>:                          Aborting a Program.
+* stdlib.h <3>:                          Exit Status.
+* stdlib.h <4>:                          Environment Access.
+* stdlib.h <5>:                          Parsing of Floats.
+* stdlib.h <6>:                          Parsing of Integers.
+* stdlib.h <7>:                          Absolute Value.
+* stdlib.h <8>:                          Integer Division.
+* stdlib.h <9>:                          SVID Random.
+* stdlib.h <10>:                         BSD Random.
+* stdlib.h <11>:                         ISO Random.
+* stdlib.h <12>:                         Allocation.
+* stdlib.h <13>:                         Array Sort Function.
+* stdlib.h <14>:                         Array Search Function.
+* stdlib.h <15>:                         Non-reentrant Character Conversion.
+* stdlib.h <16>:                         Selecting the Conversion.
+* stdlib.h <17>:                         Variable Size Automatic.
+* stdlib.h <18>:                         Aligned Memory Blocks.
+* stdlib.h <19>:                         Allocating Cleared Space.
+* stdlib.h <20>:                         Changing Block Size.
+* stdlib.h <21>:                         Freeing after Malloc.
+* stdlib.h:                              Basic Allocation.
+* string.h <1>:                          Signal Messages.
+* string.h <2>:                          Trivial Encryption.
+* string.h <3>:                          Finding Tokens in a String.
+* string.h <4>:                          Search Functions.
+* string.h <5>:                          Collation Functions.
+* string.h <6>:                          String/Array Comparison.
+* string.h <7>:                          Copying and Concatenation.
+* string.h:                              String Length.
+* sys/param.h:                           Host Identification.
+* sys/resource.h <1>:                    Traditional Scheduling Functions.
+* sys/resource.h <2>:                    Limits on Resources.
+* sys/resource.h:                        Resource Usage.
+* sys/socket.h <1>:                      Socket-Level Options.
+* sys/socket.h <2>:                      Socket Option Functions.
+* sys/socket.h <3>:                      Sending Datagrams.
+* sys/socket.h <4>:                      Socket Data Options.
+* sys/socket.h <5>:                      Receiving Data.
+* sys/socket.h <6>:                      Sending Data.
+* sys/socket.h <7>:                      Socket Pairs.
+* sys/socket.h <8>:                      Closing a Socket.
+* sys/socket.h <9>:                      Creating a Socket.
+* sys/socket.h <10>:                     Internet Namespace.
+* sys/socket.h <11>:                     Local Namespace Details.
+* sys/socket.h <12>:                     Reading Address.
+* sys/socket.h <13>:                     Setting Address.
+* sys/socket.h <14>:                     Address Formats.
+* sys/socket.h:                          Communication Styles.
+* sys/stat.h <1>:                        FIFO Special Files.
+* sys/stat.h <2>:                        Making Special Files.
+* sys/stat.h <3>:                        Setting Permissions.
+* sys/stat.h <4>:                        Permission Bits.
+* sys/stat.h <5>:                        Testing File Type.
+* sys/stat.h <6>:                        Attribute Meanings.
+* sys/stat.h <7>:                        Creating Directories.
+* sys/stat.h:                            Reserved Names.
+* sys/time.h <1>:                        Setting an Alarm.
+* sys/time.h <2>:                        High-Resolution Calendar.
+* sys/time.h:                            File Times.
+* sys/times.h <1>:                       Processor Time.
+* sys/times.h:                           Reserved Names.
+* sys/timex.h:                           High Accuracy Clock.
+* sys/types.h <1>:                       Setting Groups.
+* sys/types.h <2>:                       Setting User ID.
+* sys/types.h <3>:                       Reading Persona.
+* sys/types.h <4>:                       Terminal Access Functions.
+* sys/types.h <5>:                       Process Group Functions.
+* sys/types.h <6>:                       Process Identification.
+* sys/types.h:                           Waiting for I/O.
+* sys/un.h:                              Local Namespace Details.
+* sys/utsname.h:                         Platform Type.
+* sys/vlimit.h:                          Limits on Resources.
+* sys/vtimes.h:                          Resource Usage.
+* sys/wait.h <1>:                        BSD Wait Functions.
+* sys/wait.h <2>:                        Process Completion Status.
+* sys/wait.h:                            Process Completion.
+* termios.h <1>:                         Terminal Modes.
+* termios.h:                             Reserved Names.
+* time.h <1>:                            TZ Variable.
+* time.h <2>:                            Formatting Calendar Time.
+* time.h <3>:                            Simple Calendar Time.
+* time.h <4>:                            CPU Time.
+* time.h:                                File Times.
+* ulimit.h:                              Limits on Resources.
+* umask:                                 Setting Permissions.
+* unistd.h <1>:                          Options for Files.
+* unistd.h <2>:                          System Options.
+* unistd.h <3>:                          Host Identification.
+* unistd.h <4>:                          Who Logged In.
+* unistd.h <5>:                          Setting Groups.
+* unistd.h <6>:                          Setting User ID.
+* unistd.h <7>:                          Reading Persona.
+* unistd.h <8>:                          Terminal Access Functions.
+* unistd.h <9>:                          Process Group Functions.
+* unistd.h <10>:                         Executing a File.
+* unistd.h <11>:                         Creating a Process.
+* unistd.h <12>:                         Process Identification.
+* unistd.h <13>:                         Termination Internals.
+* unistd.h <14>:                         Using Getopt.
+* unistd.h <15>:                         Setting an Alarm.
+* unistd.h <16>:                         Is It a Terminal.
+* unistd.h <17>:                         Creating a Pipe.
+* unistd.h <18>:                         Testing File Access.
+* unistd.h <19>:                         File Owner.
+* unistd.h <20>:                         Deleting Files.
+* unistd.h <21>:                         Symbolic Links.
+* unistd.h <22>:                         Hard Links.
+* unistd.h <23>:                         Working Directory.
+* unistd.h <24>:                         Duplicating Descriptors.
+* unistd.h <25>:                         Descriptors and Streams.
+* unistd.h <26>:                         I/O Primitives.
+* unistd.h:                              Opening and Closing Files.
+* utime.h:                               File Times.
+* utmp.h <1>:                            Logging In and Out.
+* utmp.h:                                Manipulating the Database.
+* utmpx.h:                               XPG Functions.
+* varargs.h:                             Old Varargs.
+* wchar.h <1>:                           Parsing of Integers.
+* wchar.h <2>:                           Character Input.
+* wchar.h <3>:                           Simple Output.
+* wchar.h <4>:                           Converting Strings.
+* wchar.h <5>:                           Converting a Character.
+* wchar.h <6>:                           Keeping the state.
+* wchar.h <7>:                           Extended Char Intro.
+* wchar.h <8>:                           Collation Functions.
+* wchar.h:                               Copying and Concatenation.
+* wctype.h <1>:                          Wide Character Case Conversion.
+* wctype.h:                              Classification of Wide Characters.
+* zoneinfo:                              TZ Variable.
+
+

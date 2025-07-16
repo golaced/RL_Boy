@@ -1,0 +1,1195 @@
+This is libc.info, produced by makeinfo version 4.0 from libc.texinfo.
+
+INFO-DIR-SECTION GNU libraries
+START-INFO-DIR-ENTRY
+* Libc: (libc).                 C library.
+END-INFO-DIR-ENTRY
+
+   This file documents the GNU C library.
+
+   This is Edition 0.09 DRAFT, last updated 28 Aug 1999, of `The GNU C
+Library Reference Manual', for Version 2.2 Beta.
+
+   Copyright (C) 1993, '94, '95, '96, '97, '98, '99 Free Software
+Foundation, Inc.
+
+   Permission is granted to make and distribute verbatim copies of this
+manual provided the copyright notice and this permission notice are
+preserved on all copies.
+
+   Permission is granted to copy and distribute modified versions of
+this manual under the conditions for verbatim copying, provided also
+that the section entitled "GNU Library General Public License" is
+included exactly as in the original, and provided that the entire
+resulting derived work is distributed under the terms of a permission
+notice identical to this one.
+
+   Permission is granted to copy and distribute translations of this
+manual into another language, under the above conditions for modified
+versions, except that the text of the translation of the section
+entitled "GNU Library General Public License" must be approved for
+accuracy by the Foundation.
+
+
+File: libc.info,  Node: Scanning All Users,  Next: Writing a User Entry,  Prev: Lookup User,  Up: User Database
+
+Scanning the List of All Users
+------------------------------
+
+   This section explains how a program can read the list of all users in
+the system, one user at a time.  The functions described here are
+declared in `pwd.h'.
+
+   You can use the `fgetpwent' function to read user entries from a
+particular file.
+
+ - Function: struct passwd * fgetpwent (FILE *STREAM)
+     This function reads the next user entry from STREAM and returns a
+     pointer to the entry.  The structure is statically allocated and is
+     rewritten on subsequent calls to `fgetpwent'.  You must copy the
+     contents of the structure if you wish to save the information.
+
+     The stream must correspond to a file in the same format as the
+     standard password database file.
+
+ - Function: int fgetpwent_r (FILE *STREAM, struct passwd *RESULT_BUF,
+          char *BUFFER, size_t BUFLEN, struct passwd **RESULT)
+     This function is similar to `fgetpwent' in that it reads the next
+     user entry from STREAM.  But the result is returned in the
+     structure pointed to by RESULT_BUF.  The first BUFLEN bytes of the
+     additional buffer pointed to by BUFFER are used to contain
+     additional information, normally strings which are pointed to by
+     the elements of the result structure.
+
+     The stream must correspond to a file in the same format as the
+     standard password database file.
+
+     If the function returns zero RESULT points to the structure with
+     the wanted data (normally this is in RESULT_BUF).  If errors
+     occurred the return value is nonzero and RESULT contains a null
+     pointer.
+
+   The way to scan all the entries in the user database is with
+`setpwent', `getpwent', and `endpwent'.
+
+ - Function: void setpwent (void)
+     This function initializes a stream which `getpwent' and
+     `getpwent_r' use to read the user database.
+
+ - Function: struct passwd * getpwent (void)
+     The `getpwent' function reads the next entry from the stream
+     initialized by `setpwent'.  It returns a pointer to the entry.  The
+     structure is statically allocated and is rewritten on subsequent
+     calls to `getpwent'.  You must copy the contents of the structure
+     if you wish to save the information.
+
+     A null pointer is returned when no more entries are available.
+
+ - Function: int getpwent_r (struct passwd *RESULT_BUF, char *BUFFER,
+          int BUFLEN, struct passwd **RESULT)
+     This function is similar to `getpwent' in that it returns the next
+     entry from the stream initialized by `setpwent'.  Like
+     `fgetpwent_r', it uses the user-supplied buffers in RESULT_BUF and
+     BUFFER to return the information requested.
+
+     The return values are the same as for `fgetpwent_r'.
+
+
+ - Function: void endpwent (void)
+     This function closes the internal stream used by `getpwent' or
+     `getpwent_r'.
+
+
+File: libc.info,  Node: Writing a User Entry,  Prev: Scanning All Users,  Up: User Database
+
+Writing a User Entry
+--------------------
+
+ - Function: int putpwent (const struct passwd *P, FILE *STREAM)
+     This function writes the user entry `*P' to the stream STREAM, in
+     the format used for the standard user database file.  The return
+     value is zero on success and nonzero on failure.
+
+     This function exists for compatibility with SVID.  We recommend
+     that you avoid using it, because it makes sense only on the
+     assumption that the `struct passwd' structure has no members
+     except the standard ones; on a system which merges the traditional
+     Unix data base with other extended information about users, adding
+     an entry using this function would inevitably leave out much of
+     the important information.
+
+     The function `putpwent' is declared in `pwd.h'.
+
+
+File: libc.info,  Node: Group Database,  Next: Database Example,  Prev: User Database,  Up: Users and Groups
+
+Group Database
+==============
+
+   This section describes how to search and scan the database of
+registered groups.  The database itself is kept in the file
+`/etc/group' on most systems, but on some systems a special network
+service provides access to it.
+
+* Menu:
+
+* Group Data Structure::        What each group record contains.
+* Lookup Group::                How to look for a particular group.
+* Scanning All Groups::         Scanning the list of all groups.
+
+
+File: libc.info,  Node: Group Data Structure,  Next: Lookup Group,  Up: Group Database
+
+The Data Structure for a Group
+------------------------------
+
+   The functions and data structures for accessing the system group
+database are declared in the header file `grp.h'.
+
+ - Data Type: struct group
+     The `group' structure is used to hold information about an entry in
+     the system group database.  It has at least the following members:
+
+    `char *gr_name'
+          The name of the group.
+
+    `gid_t gr_gid'
+          The group ID of the group.
+
+    `char **gr_mem'
+          A vector of pointers to the names of users in the group.
+          Each user name is a null-terminated string, and the vector
+          itself is terminated by a null pointer.
+
+
+File: libc.info,  Node: Lookup Group,  Next: Scanning All Groups,  Prev: Group Data Structure,  Up: Group Database
+
+Looking Up One Group
+--------------------
+
+   You can search the group database for information about a specific
+group using `getgrgid' or `getgrnam'.  These functions are declared in
+`grp.h'.
+
+ - Function: struct group * getgrgid (gid_t GID)
+     This function returns a pointer to a statically-allocated structure
+     containing information about the group whose group ID is GID.
+     This structure may be overwritten by subsequent calls to
+     `getgrgid'.
+
+     A null pointer indicates there is no group with ID GID.
+
+ - Function: int getgrgid_r (gid_t GID, struct group *RESULT_BUF, char
+          *BUFFER, size_t BUFLEN, struct group **RESULT)
+     This function is similar to `getgrgid' in that it returns
+     information about the group whose group ID is GID.  However, it
+     fills the user supplied structure pointed to by RESULT_BUF with
+     the information instead of using a static buffer.  The first
+     BUFLEN bytes of the additional buffer pointed to by BUFFER are
+     used to contain additional information, normally strings which are
+     pointed to by the elements of the result structure.
+
+     If a group with ID GID is found, the pointer returned in RESULT
+     points to the record which contains the wanted data (i.e., RESULT
+     contains the value RESULT_BUF).  If no group is found or if an
+     error occurred, the pointer returned in RESULT is a null pointer.
+     The function returns zero or an error code.  If the buffer BUFFER
+     is too small to contain all the needed information, the error code
+     `ERANGE' is returned and ERRNO is set to `ERANGE'.
+
+ - Function: struct group * getgrnam (const char *NAME)
+     This function returns a pointer to a statically-allocated structure
+     containing information about the group whose group name is NAME.
+     This structure may be overwritten by subsequent calls to
+     `getgrnam'.
+
+     A null pointer indicates there is no group named NAME.
+
+ - Function: int getgrnam_r (const char *NAME, struct group
+          *RESULT_BUF, char *BUFFER, size_t BUFLEN, struct group
+          **RESULT)
+     This function is similar to `getgrnam' in that is returns
+     information about the group whose group name is NAME.  Like
+     `getgrgid_r', it uses the user supplied buffers in RESULT_BUF and
+     BUFFER, not a static buffer.
+
+     The return values are the same as for `getgrgid_r' `ERANGE'.
+
+
+File: libc.info,  Node: Scanning All Groups,  Prev: Lookup Group,  Up: Group Database
+
+Scanning the List of All Groups
+-------------------------------
+
+   This section explains how a program can read the list of all groups
+in the system, one group at a time.  The functions described here are
+declared in `grp.h'.
+
+   You can use the `fgetgrent' function to read group entries from a
+particular file.
+
+ - Function: struct group * fgetgrent (FILE *STREAM)
+     The `fgetgrent' function reads the next entry from STREAM.  It
+     returns a pointer to the entry.  The structure is statically
+     allocated and is overwritten on subsequent calls to `fgetgrent'.
+     You must copy the contents of the structure if you wish to save the
+     information.
+
+     The stream must correspond to a file in the same format as the
+     standard group database file.
+
+ - Function: int fgetgrent_r (FILE *STREAM, struct group *RESULT_BUF,
+          char *BUFFER, size_t BUFLEN, struct group **RESULT)
+     This function is similar to `fgetgrent' in that it reads the next
+     user entry from STREAM.  But the result is returned in the
+     structure pointed to by RESULT_BUF.  The first BUFLEN bytes of the
+     additional buffer pointed to by BUFFER are used to contain
+     additional information, normally strings which are pointed to by
+     the elements of the result structure.
+
+     This stream must correspond to a file in the same format as the
+     standard group database file.
+
+     If the function returns zero RESULT points to the structure with
+     the wanted data (normally this is in RESULT_BUF).  If errors
+     occurred the return value is non-zero and RESULT contains a null
+     pointer.
+
+   The way to scan all the entries in the group database is with
+`setgrent', `getgrent', and `endgrent'.
+
+ - Function: void setgrent (void)
+     This function initializes a stream for reading from the group data
+     base.  You use this stream by calling `getgrent' or `getgrent_r'.
+
+ - Function: struct group * getgrent (void)
+     The `getgrent' function reads the next entry from the stream
+     initialized by `setgrent'.  It returns a pointer to the entry.  The
+     structure is statically allocated and is overwritten on subsequent
+     calls to `getgrent'.  You must copy the contents of the structure
+     if you wish to save the information.
+
+ - Function: int getgrent_r (struct group *RESULT_BUF, char *BUFFER,
+          size_t BUFLEN, struct group **RESULT)
+     This function is similar to `getgrent' in that it returns the next
+     entry from the stream initialized by `setgrent'.  Like
+     `fgetgrent_r', it places the result in user-supplied buffers
+     pointed to RESULT_BUF and BUFFER.
+
+     If the function returns zero RESULT contains a pointer to the data
+     (normally equal to RESULT_BUF).  If errors occurred the return
+     value is non-zero and RESULT contains a null pointer.
+
+ - Function: void endgrent (void)
+     This function closes the internal stream used by `getgrent' or
+     `getgrent_r'.
+
+
+File: libc.info,  Node: Database Example,  Next: Netgroup Database,  Prev: Group Database,  Up: Users and Groups
+
+User and Group Database Example
+===============================
+
+   Here is an example program showing the use of the system database
+inquiry functions.  The program prints some information about the user
+running the program.
+
+     #include <grp.h>
+     #include <pwd.h>
+     #include <sys/types.h>
+     #include <unistd.h>
+     #include <stdlib.h>
+     
+     int
+     main (void)
+     {
+       uid_t me;
+       struct passwd *my_passwd;
+       struct group *my_group;
+       char **members;
+     
+       /* Get information about the user ID. */
+       me = getuid ();
+       my_passwd = getpwuid (me);
+       if (!my_passwd)
+         {
+           printf ("Couldn't find out about user %d.\n", (int) me);
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Print the information. */
+       printf ("I am %s.\n", my_passwd->pw_gecos);
+       printf ("My login name is %s.\n", my_passwd->pw_name);
+       printf ("My uid is %d.\n", (int) (my_passwd->pw_uid));
+       printf ("My home directory is %s.\n", my_passwd->pw_dir);
+       printf ("My default shell is %s.\n", my_passwd->pw_shell);
+     
+       /* Get information about the default group ID. */
+       my_group = getgrgid (my_passwd->pw_gid);
+       if (!my_group)
+         {
+           printf ("Couldn't find out about group %d.\n",
+                   (int) my_passwd->pw_gid);
+           exit (EXIT_FAILURE);
+         }
+     
+       /* Print the information. */
+       printf ("My default group is %s (%d).\n",
+               my_group->gr_name, (int) (my_passwd->pw_gid));
+       printf ("The members of this group are:\n");
+       members = my_group->gr_mem;
+       while (*members)
+         {
+           printf ("  %s\n", *(members));
+           members++;
+         }
+     
+       return EXIT_SUCCESS;
+     }
+
+   Here is some output from this program:
+
+     I am Throckmorton Snurd.
+     My login name is snurd.
+     My uid is 31093.
+     My home directory is /home/fsg/snurd.
+     My default shell is /bin/sh.
+     My default group is guest (12).
+     The members of this group are:
+       friedman
+       tami
+
+
+File: libc.info,  Node: Netgroup Database,  Prev: Database Example,  Up: Users and Groups
+
+Netgroup Database
+=================
+
+* Menu:
+
+* Netgroup Data::                  Data in the Netgroup database and where
+                                   it comes from.
+* Lookup Netgroup::                How to look for a particular netgroup.
+* Netgroup Membership::            How to test for netgroup membership.
+
+
+File: libc.info,  Node: Netgroup Data,  Next: Lookup Netgroup,  Up: Netgroup Database
+
+Netgroup Data
+-------------
+
+   Sometimes it is useful to group users according to other criteria
+(*note Group Database::).  E.g., it is useful to associate a certain
+group of users with a certain machine.  On the other hand grouping of
+host names is not supported so far.
+
+   In Sun Microsystems SunOS appeared a new kind of database, the
+netgroup database.  It allows grouping hosts, users, and domains
+freely, giving them individual names.  To be more concrete, a netgroup
+is a list of triples consisting of a host name, a user name, and a
+domain name where any of the entries can be a wildcard entry matching
+all inputs.  A last possibility is that names of other netgroups can
+also be given in the list specifying a netgroup.  So one can construct
+arbitrary hierarchies without loops.
+
+   Sun's implementation allows netgroups only for the `nis' or
+`nisplus' service, *note Services in the NSS configuration::.  The
+implementation in the GNU C library has no such restriction.  An entry
+in either of the input services must have the following form:
+
+     GROUPNAME ( GROUPNAME | `('HOSTNAME`,'USERNAME`,'`domainname'`)' )+
+
+   Any of the fields in the triple can be empty which means anything
+matches.  While describing the functions we will see that the opposite
+case is useful as well.  I.e., there may be entries which will not
+match any input.  For entries like this, a name consisting of the single
+character `-' shall be used.
+
+
+File: libc.info,  Node: Lookup Netgroup,  Next: Netgroup Membership,  Prev: Netgroup Data,  Up: Netgroup Database
+
+Looking up one Netgroup
+-----------------------
+
+   The lookup functions for netgroups are a bit different to all other
+system database handling functions.  Since a single netgroup can contain
+many entries a two-step process is needed.  First a single netgroup is
+selected and then one can iterate over all entries in this netgroup.
+These functions are declared in `netdb.h'.
+
+ - Function: int setnetgrent (const char *NETGROUP)
+     A call to this function initializes the internal state of the
+     library to allow following calls of the `getnetgrent' to iterate
+     over all entries in the netgroup with name NETGROUP.
+
+     When the call is successful (i.e., when a netgroup with this name
+     exists) the return value is `1'.  When the return value is `0' no
+     netgroup of this name is known or some other error occurred.
+
+   It is important to remember that there is only one single state for
+iterating the netgroups.  Even if the programmer uses the
+`getnetgrent_r' function the result is not really reentrant since
+always only one single netgroup at a time can be processed.  If the
+program needs to process more than one netgroup simultaneously she must
+protect this by using external locking.  This problem was introduced in
+the original netgroups implementation in SunOS and since we must stay
+compatible it is not possible to change this.
+
+   Some other functions also use the netgroups state.  Currently these
+are the `innetgr' function and parts of the implementation of the
+`compat' service part of the NSS implementation.
+
+ - Function: int getnetgrent (char **HOSTP, char **USERP, char
+          **DOMAINP)
+     This function returns the next unprocessed entry of the currently
+     selected netgroup.  The string pointers, in which addresses are
+     passed in the arguments HOSTP, USERP, and DOMAINP, will contain
+     after a successful call pointers to appropriate strings.  If the
+     string in the next entry is empty the pointer has the value `NULL'.
+     The returned string pointers are only valid if none of the netgroup
+     related functions are called.
+
+     The return value is `1' if the next entry was successfully read.  A
+     value of `0' means no further entries exist or internal errors
+     occurred.
+
+ - Function: int getnetgrent_r (char **HOSTP, char **USERP, char
+          **DOMAINP, char *BUFFER, int BUFLEN)
+     This function is similar to `getnetgrent' with only one exception:
+     the strings the three string pointers HOSTP, USERP, and DOMAINP
+     point to, are placed in the buffer of BUFLEN bytes starting at
+     BUFFER.  This means the returned values are valid even after other
+     netgroup related functions are called.
+
+     The return value is `1' if the next entry was successfully read and
+     the buffer contains enough room to place the strings in it.  `0' is
+     returned in case no more entries are found, the buffer is too
+     small, or internal errors occurred.
+
+     This function is a GNU extension.  The original implementation in
+     the SunOS libc does not provide this function.
+
+ - Function: void endnetgrent (void)
+     This function frees all buffers which were allocated to process
+     the last selected netgroup.  As a result all string pointers
+     returned by calls to `getnetgrent' are invalid afterwards.
+
+
+File: libc.info,  Node: Netgroup Membership,  Prev: Lookup Netgroup,  Up: Netgroup Database
+
+Testing for Netgroup Membership
+-------------------------------
+
+   It is often not necessary to scan the whole netgroup since often the
+only interesting question is whether a given entry is part of the
+selected netgroup.
+
+ - Function: int innetgr (const char *NETGROUP, const char *HOST, const
+          char *USER, const char *DOMAIN)
+     This function tests whether the triple specified by the parameters
+     HOSTP, USERP, and DOMAINP is part of the netgroup NETGROUP.  Using
+     this function has the advantage that
+
+       1. no other netgroup function can use the global netgroup state
+          since internal locking is used and
+
+       2. the function is implemented more efficiently than successive
+          calls to the other `set'/`get'/`endnetgrent' functions.
+
+     Any of the pointers HOSTP, USERP, and DOMAINP can be `NULL' which
+     means any value is accepted in this position.  This is also true
+     for the name `-' which should not match any other string otherwise.
+
+     The return value is `1' if an entry matching the given triple is
+     found in the netgroup.  The return value is `0' if the netgroup
+     itself is not found, the netgroup does not contain the triple or
+     internal errors occurred.
+
+
+File: libc.info,  Node: System Management,  Next: System Configuration,  Prev: Users and Groups,  Up: Top
+
+System Management
+*****************
+
+   This chapter describes facilities for controlling the system that
+underlies a process (including the operating system and hardware) and
+for getting information about it.  Anyone can generally use the
+informational facilities, but usually only a properly privileged process
+can make changes.
+
+* Menu:
+
+* Host Identification::         Determining the name of the machine.
+* Platform Type::               Determining operating system and basic
+                                  machine type
+* Filesystem Handling::         Controlling/querying mounts
+* System Parameters::           Getting and setting various system parameters
+
+   To get information on parameters of the system that are built into
+the system, such as the maximum length of a filename, *Note System
+Configuration::.
+
+
+File: libc.info,  Node: Host Identification,  Next: Platform Type,  Up: System Management
+
+Host Identification
+===================
+
+   This section explains how to identify the particular system on which
+your program is running.  First, let's review the various ways computer
+systems are named, which is a little complicated because of the history
+of the development of the Internet.
+
+   Every Unix system (also known as a host) has a host name, whether
+it's connected to a network or not.  In its simplest form, as used
+before computer networks were an issue, it's just a word like `chicken'.
+
+   But any system attached to the Internet or any network like it
+conforms to a more rigorous naming convention as part of the Domain
+Name System (DNS).  In DNS, every host name is composed of two parts:
+
+  1. hostname
+
+  2. domain name
+
+   You will note that "hostname" looks a lot like "host name", but is
+not the same thing, and that people often incorrectly refer to entire
+host names as "domain names."
+
+   In DNS, the full host name is properly called the FQDN (Fully
+Qualified Domain Name) and consists of the hostname, then a period,
+then the domain name.  The domain name itself usually has multiple
+components separated by periods.  So for example, a system's hostname
+may be `chicken' and its domain name might be `ai.mit.edu', so its FQDN
+(which is its host name) is `chicken.ai.mit.edu'.
+
+   Adding to the confusion, though, is that DNS is not the only name
+space in which a computer needs to be known.  Another name space is the
+NIS (aka YP) name space.  For NIS purposes, there is another domain
+name, which is called the NIS domain name or the YP domain name.  It
+need not have anything to do with the DNS domain name.
+
+   Confusing things even more is the fact that in DNS, it is possible
+for multiple FQDNs to refer to the same system.  However, there is
+always exactly one of them that is the true host name, and it is called
+the canonical FQDN.
+
+   In some contexts, the host name is called a "node name."
+
+   For more information on DNS host naming, *Note Host Names::.
+
+   Prototypes for these functions appear in `unistd.h'.
+
+   The programs `hostname', `hostid', and `domainname' work by calling
+these functions.
+
+ - Function: int gethostname (char *NAME, size_t SIZE)
+     This function returns the host name of the system on which it is
+     called, in the array NAME.  The SIZE argument specifies the size of
+     this array, in bytes.  Note that this is _not_ the DNS hostname.
+     If the system participates in DNS, this is the FQDN (see above).
+
+     The return value is `0' on success and `-1' on failure.  In the
+     GNU C library, `gethostname' fails if SIZE is not large enough;
+     then you can try again with a larger array.  The following `errno'
+     error condition is defined for this function:
+
+    `ENAMETOOLONG'
+          The SIZE argument is less than the size of the host name plus
+          one.
+
+     On some systems, there is a symbol for the maximum possible host
+     name length: `MAXHOSTNAMELEN'.  It is defined in `sys/param.h'.
+     But you can't count on this to exist, so it is cleaner to handle
+     failure and try again.
+
+     `gethostname' stores the beginning of the host name in NAME even
+     if the host name won't entirely fit.  For some purposes, a
+     truncated host name is good enough.  If it is, you can ignore the
+     error code.
+
+ - Function: int sethostname (const char *NAME, size_t LENGTH)
+     The `sethostname' function sets the host name of the system that
+     calls it to NAME, a string with length LENGTH.  Only privileged
+     processes are permitted to do this.
+
+     Usually `sethostname' gets called just once, at system boot time.
+     Often, the program that calls it sets it to the value it finds in
+     the file `/etc/hostname'.
+
+     Be sure to set the host name to the full host name, not just the
+     DNS hostname (see above).
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error condition is defined for this function:
+
+    `EPERM'
+          This process cannot set the host name because it is not
+          privileged.
+
+ - Function: int getdomainnname (char *NAME, size_t LENGTH)
+     `getdomainname' returns the NIS (aka YP) domain name of the system
+     on which it is called.  Note that this is not the more popular DNS
+     domain name.  Get that with `gethostname'.
+
+     The specifics of this function are analogous to `gethostname',
+     above.
+
+
+ - Function: int setdomainname (const char *NAME, size_t LENGTH)
+     `getdomainname' sets the NIS (aka YP) domain name of the system on
+     which it is called.  Note that this is not the more popular DNS
+     domain name.  Set that with `sethostname'.
+
+     The specifics of this function are analogous to `sethostname',
+     above.
+
+
+ - Function: long int gethostid (void)
+     This function returns the "host ID" of the machine the program is
+     running on.  By convention, this is usually the primary Internet
+     IP address of that machine, converted to a `long int'.  However,
+     on some systems it is a meaningless but unique number which is
+     hard-coded for each machine.
+
+     This is not widely used.  It arose in BSD 4.2, but was dropped in
+     BSD 4.4.  It is not required by POSIX.
+
+     The proper way to query the IP address is to use `gethostbyname'
+     on the results of `gethostname'.  For more information on IP
+     addresses, *Note Host Addresses::.
+
+ - Function: int sethostid (long int ID)
+     The `sethostid' function sets the "host ID" of the host machine to
+     ID.  Only privileged processes are permitted to do this.  Usually
+     it happens just once, at system boot time.
+
+     The proper way to establish the primary IP address of a system is
+     to configure the IP address resolver to associate that IP address
+     with the system's host name as returned by `gethostname'.  For
+     example, put a record for the system in `/etc/hosts'.
+
+     See `gethostid' above for more information on host ids.
+
+     The return value is `0' on success and `-1' on failure.  The
+     following `errno' error conditions are defined for this function:
+
+    `EPERM'
+          This process cannot set the host name because it is not
+          privileged.
+
+    `ENOSYS'
+          The operating system does not support setting the host ID.
+          On some systems, the host ID is a meaningless but unique
+          number hard-coded for each machine.
+
+
+File: libc.info,  Node: Platform Type,  Next: Filesystem Handling,  Prev: Host Identification,  Up: System Management
+
+Platform Type Identification
+============================
+
+   You can use the `uname' function to find out some information about
+the type of computer your program is running on.  This function and the
+associated data type are declared in the header file `sys/utsname.h'.
+
+   As a bonus, `uname' also gives some information identifying the
+particular system your program is running on.  This is the same
+information which you can get with functions targetted to this purpose
+described in *Note Host Identification::.
+
+ - Data Type: struct utsname
+     The `utsname' structure is used to hold information returned by
+     the `uname' function.  It has the following members:
+
+    `char sysname[]'
+          This is the name of the operating system in use.
+
+    `char release[]'
+          This is the current release level of the operating system
+          implementation.
+
+    `char version[]'
+          This is the current version level within the release of the
+          operating system.
+
+    `char machine[]'
+          This is a description of the type of hardware that is in use.
+
+          Some systems provide a mechanism to interrogate the kernel
+          directly for this information.  On systems without such a
+          mechanism, the GNU C library fills in this field based on the
+          configuration name that was specified when building and
+          installing the library.
+
+          GNU uses a three-part name to describe a system
+          configuration; the three parts are CPU, MANUFACTURER and
+          SYSTEM-TYPE, and they are separated with dashes.  Any
+          possible combination of three names is potentially
+          meaningful, but most such combinations are meaningless in
+          practice and even the meaningful ones are not necessarily
+          supported by any particular GNU program.
+
+          Since the value in `machine' is supposed to describe just the
+          hardware, it consists of the first two parts of the
+          configuration name: `CPU-MANUFACTURER'.  For example, it
+          might be one of these:
+
+               `"sparc-sun"', `"i386-ANYTHING"', `"m68k-hp"',
+               `"m68k-sony"', `"m68k-sun"', `"mips-dec"'
+
+    `char nodename[]'
+          This is the host name of this particular computer.  In the
+          GNU C library, the value is the same as that returned by
+          `gethostname'; see *Note Host Identification::.
+
+          gethostname() is implemented with a call to uname().
+
+    `char domainname[]'
+          This is the NIS or YP domain name.  It is the same value
+          returned by `getdomainname'; see *Note Host Identification::.
+          This element is a relatively recent invention and use of it
+          is not as portable as use of the rest of the structure.
+
+
+ - Function: int uname (struct utsname *INFO)
+     The `uname' function fills in the structure pointed to by INFO
+     with information about the operating system and host machine.  A
+     non-negative value indicates that the data was successfully stored.
+
+     `-1' as the value indicates an error.  The only error possible is
+     `EFAULT', which we normally don't mention as it is always a
+     possibility.
+
+
+File: libc.info,  Node: Filesystem Handling,  Next: System Parameters,  Prev: Platform Type,  Up: System Management
+
+Controlling and Querying Mounts
+===============================
+
+   All files are in filesystems, and before you can access any file, its
+filesystem must be mounted.  Because of Unix's concept of _Everything
+is a file_, mounting of filesystems is central to doing almost
+anything.  This section explains how to find out what filesystems are
+currently mounted and what filesystems are available for mounting, and
+how to change what is mounted.
+
+   The classic filesystem is the contents of a disk drive.  The concept
+is considerably more abstract, though, and lots of things other than
+disk drives can be mounted.
+
+   Some block devices don't correspond to traditional devices like disk
+drives.  For example, a loop device is a block device whose driver uses
+a regular file in another filesystem as its medium.  So if that regular
+file contains appropriate data for a filesystem, you can by mounting the
+loop device essentially mount a regular file.
+
+   Some filesystems aren't based on a device of any kind.  The "proc"
+filesystem, for example, contains files whose data is made up by the
+filesystem driver on the fly whenever you ask for it.  And when you
+write to it, the data you write causes changes in the system.  No data
+gets stored.
+
+* Menu:
+
+* Mount Information::           What is or could be mounted?
+* Mount-Unmount-Remount::       Controlling what is mounted and how
+
+
+File: libc.info,  Node: Mount Information,  Next: Mount-Unmount-Remount,  Up: Filesystem Handling
+
+Mount Information
+-----------------
+
+   For some programs it is desirable and necessary to access information
+about whether a certain filesystem is mounted and, if it is, where, or
+simply to get lists of all the available filesystems.  The GNU libc
+provides some functions to retrieve this information portably.
+
+   Traditionally Unix systems have a file named `/etc/fstab' which
+describes all possibly mounted filesystems.  The `mount' program uses
+this file to mount at startup time of the system all the necessary
+filesystems.  The information about all the filesystems actually mounted
+is normally kept in a file named `/etc/mtab'.  Both files share the
+same syntax and it is crucial that this syntax is followed all the
+time.  Therefore it is best to never directly write the files.  The
+functions described in this section can do this and they also provide
+the functionality to convert the external textual representation to the
+internal representation.
+
+   Note that the `fstab' and `mtab' files are maintained on a system by
+_convention_.  It is possible for the files not to exist or not to be
+consistent with what is really mounted or available to mount, if the
+system's administration policy allows it.  But programs that mount and
+unmount filesystems typically maintain and use these files as described
+herein.
+
+   The filenames given above should never be used directly.  The
+portable way to handle these file is to use the macros `_PATH_FSTAB',
+defined in `fstab.h' and `_PATH_MNTTAB', defined in `mntent.h',
+respectively.  There are also two alternate macro names `FSTAB' and
+`_PATH_MOUNTED' defined but both names are deprecated and kept only for
+backward compatibility.  The two former names should always be used.
+
+* Menu:
+
+* fstab::                       The `fstab' file
+* mtab::                        The `mtab' file
+* Other Mount Information::     Other (non-libc) sources of mount information
+
+
+File: libc.info,  Node: fstab,  Next: mtab,  Up: Mount Information
+
+The `fstab' file
+................
+
+   The internal representation for entries of the file is
+`struct fstab', defined in `fstab.h'.
+
+ - Data Type: struct fstab
+     This structure is used with the `getfsent', `getfsspec', and
+     `getfsfile' functions.
+
+    `char *fs_spec'
+          This element describes the device from which the filesystem
+          is mounted.  Normally this is the name of a special device,
+          such as a hard disk partition, but it could also be a more or
+          less generic string.  For "NFS" it would be a hostname and
+          directory name combination.
+
+          Even though the element is not declared `const' it shouldn't
+          be modified.  The missing `const' has historic reasons, since
+          this function predates ISO C.  The same is true for the other
+          string elements of this structure.
+
+    `char *fs_file'
+          This describes the mount point on the local system.  I.e.,
+          accessing any file in this filesystem has implicitly or
+          explicitly this string as a prefix.
+
+    `char *fs_vfstype'
+          This is the type of the filesystem.  Depending on what the
+          underlying kernel understands it can be any string.
+
+    `char *fs_mntops'
+          This is a string containing options passed to the kernel with
+          the `mount' call.  Again, this can be almost anything.  There
+          can be more than one option, separated from the others by a
+          comma.  Each option consists of a name and an optional value
+          part, introduced by an `=' character.
+
+          If the value of this element must be processed it should
+          ideally be done using the `getsubopt' function; see *Note
+          Suboptions::.
+
+    `const char *fs_type'
+          This name is poorly chosen.  This element points to a string
+          (possibly in the `fs_mntops' string) which describes the
+          modes with which the filesystem is mounted.  `fstab' defines
+          five macros to describe the possible values:
+
+         `FSTAB_RW'
+               The filesystems gets mounted with read and write enabled.
+
+         `FSTAB_RQ'
+               The filesystems gets mounted with read and write
+               enabled.  Write access is restricted by quotas.
+
+         `FSTAB_RO'
+               The filesystem gets mounted read-only.
+
+         `FSTAB_SW'
+               This is not a real filesystem, it is a swap device.
+
+         `FSTAB_XX'
+               This entry from the `fstab' file is totally ignored.
+
+          Testing for equality with these value must happen using
+          `strcmp' since these are all strings.  Comparing the pointer
+          will probably always fail.
+
+    `int fs_freq'
+          This element describes the dump frequency in days.
+
+    `int fs_passno'
+          This element describes the pass number on parallel dumps.  It
+          is closely related to the `dump' utility used on Unix systems.
+
+   To read the entire content of the of the `fstab' file the GNU libc
+contains a set of three functions which are designed in the usual way.
+
+ - Function: int setfsent (void)
+     This function makes sure that the internal read pointer for the
+     `fstab' file is at the beginning of the file.  This is done by
+     either opening the file or resetting the read pointer.
+
+     Since the file handle is internal to the libc this function is not
+     thread-safe.
+
+     This function returns a non-zero value if the operation was
+     successful and the `getfs*' functions can be used to read the
+     entries of the file.
+
+ - Function: void endfsent (void)
+     This function makes sure that all resources acquired by a prior
+     call to `setfsent' (explicitly or implicitly by calling
+     `getfsent') are freed.
+
+ - Function: struct fstab * getfsent (void)
+     This function returns the next entry of the `fstab' file.  If this
+     is the first call to any of the functions handling `fstab' since
+     program start or the last call of `endfsent', the file will be
+     opened.
+
+     The function returns a pointer to a variable of type `struct
+     fstab'.  This variable is shared by all threads and therefore this
+     function is not thread-safe.  If an error occurred `getfsent'
+     returns a `NULL' pointer.
+
+ - Function: struct fstab * getfsspec (const char *NAME)
+     This function returns the next entry of the `fstab' file which has
+     a string equal to NAME pointed to by the `fs_spec' element.  Since
+     there is normally exactly one entry for each special device it
+     makes no sense to call this function more than once for the same
+     argument.  If this is the first call to any of the functions
+     handling `fstab' since program start or the last call of
+     `endfsent', the file will be opened.
+
+     The function returns a pointer to a variable of type `struct
+     fstab'.  This variable is shared by all threads and therefore this
+     function is not thread-safe.  If an error occurred `getfsent'
+     returns a `NULL' pointer.
+
+ - Function: struct fstab * getfsfile (const char *NAME)
+     This function returns the next entry of the `fstab' file which has
+     a string equal to NAME pointed to by the `fs_file' element.  Since
+     there is normally exactly one entry for each mount point it makes
+     no sense to call this function more than once for the same
+     argument.  If this is the first call to any of the functions
+     handling `fstab' since program start or the last call of
+     `endfsent', the file will be opened.
+
+     The function returns a pointer to a variable of type `struct
+     fstab'.  This variable is shared by all threads and therefore this
+     function is not thread-safe.  If an error occurred `getfsent'
+     returns a `NULL' pointer.
+
+
+File: libc.info,  Node: mtab,  Next: Other Mount Information,  Prev: fstab,  Up: Mount Information
+
+The `mtab' file
+...............
+
+   The following functions and data structure access the `mtab' file.
+
+ - Data Type: struct mntent
+     This structure is used with the `getmntent', `getmntent_t',
+     `addmntent', and `hasmntopt' functions.
+
+    `char *mnt_fsname'
+          This element contains a pointer to a string describing the
+          name of the special device from which the filesystem is
+          mounted.  It corresponds to the `fs_spec' element in `struct
+          fstab'.
+
+    `char *mnt_dir'
+          This element points to a string describing the mount point of
+          the filesystem.  It corresponds to the `fs_file' element in
+          `struct fstab'.
+
+    `char *mnt_type'
+          `mnt_type' describes the filesystem type and is therefore
+          equivalent to `fs_vfstype' in `struct fstab'.  `mntent.h'
+          defines a few symbolic names for some of the values this
+          string can have.  But since the kernel can support arbitrary
+          filesystems it does not make much sense to give them symbolic
+          names.  If one knows the symbol name one also knows the
+          filesystem name.  Nevertheless here follows the list of the
+          symbols provided in `mntent.h'.
+
+         `MNTTYPE_IGNORE'
+               This symbol expands to `"ignore"'.  The value is
+               sometime used in `fstab' files to make sure entries are
+               not used without removing them.
+
+         `MNTTYPE_NFS'
+               Expands to `"nfs"'.  Using this macro sometimes could
+               make sense since it names the default NFS
+               implementation, in case both version 2 and 3 are
+               supported.
+
+         `MNTTYPE_SWAP'
+               This symbol expands to `"swap"'.  It names the special
+               `fstab' entry which names one of the possibly multiple
+               swap partitions.
+
+    `char *mnt_opts'
+          The element contains a string describing the options used
+          while mounting the filesystem.  As for the equivalent element
+          `fs_mntops' of `struct fstab' it is best to use the function
+          `getsubopt' (*note Suboptions::) to access the parts of this
+          string.
+
+          The `mntent.h' file defines a number of macros with string
+          values which correspond to some of the options understood by
+          the kernel.  There might be many more options which are
+          possible so it doesn't make much sense to rely on these
+          macros but to be consistent here is the list:
+
+         `MNTOPT_DEFAULTS'
+               Expands to `"defaults"'.  This option should be used
+               alone since it indicates all values for the customizable
+               values are chosen to be the default.
+
+         `MNTOPT_RO'
+               Expands to `"ro"'.  See the `FSTAB_RO' value, it means
+               the filesystem is mounted read-only.
+
+         `MNTOPT_RW'
+               Expand to `"rw"'.  See the `FSTAB_RW' value, it means the
+               filesystem is mounted with read and write permissions.
+
+         `MNTOPT_SUID'
+               Expands to `"suid"'.  This means that the SUID bit
+               (*note How Change Persona::) is respected when a program
+               from the filesystem is started.
+
+         `MNTOPT_NOSUID'
+               Expands to `"nosuid"'.  This is the opposite of
+               `MNTOPT_SUID', the SUID bit for all files from the
+               filesystem is ignored.
+
+         `MNTOPT_NOAUTO'
+               Expands to `"noauto"'.  At startup time the `mount'
+               program will ignore this entry if it is started with the
+               `-a' option to mount all filesystems mentioned in the
+               `fstab' file.
+
+          As for the `FSTAB_*' entries introduced above it is important
+          to use `strcmp' to check for equality.
+
+    `mnt_freq'
+          This elements corresponds to `fs_freq' and also specifies the
+          frequency in days in which dumps are made.
+
+    `mnt_passno'
+          This element is equivalent to `fs_passno' with the same
+          meaning which is uninteresting for all programs beside `dump'.
+
+   For accessing the `mtab' file there is again a set of three
+functions to access all entries in a row.  Unlike the functions to
+handle `fstab' these functions do not access a fixed file and there is
+even a thread safe variant of the get function.  Beside this the GNU
+libc contains functions to alter the file and test for specific options.
+
+ - Function: FILE * setmntent (const char *FILE, const char *MODE)
+     The `setmntent' function prepares the file named FILE which must
+     be in the format of a `fstab' and `mtab' file for the upcoming
+     processing through the other functions of the family.  The MODE
+     parameter can be chosen in the way the OPENTYPE parameter for
+     `fopen' (*note Opening Streams::) can be chosen.  If the file is
+     opened for writing the file is also allowed to be empty.
+
+     If the file was successfully opened `setmntent' returns a file
+     descriptor for future use.  Otherwise the return value is `NULL'
+     and `errno' is set accordingly.
+
+ - Function: int endmntent (FILE *STREAM)
+     This function takes for the STREAM parameter a file handle which
+     previously was returned from the `setmntent' call.  `endmntent'
+     closes the stream and frees all resources.
+
+     The return value is 1 unless an error occurred in which case it is
+     0.
+
+ - Function: struct mntent * getmntent (FILE *STREAM)
+     The `getmntent' function takes as the parameter a file handle
+     previously returned by successful call to `setmntent'.  It returns
+     a pointer to a static variable of type `struct mntent' which is
+     filled with the information from the next entry from the file
+     currently read.
+
+     The file format used prescribes the use of spaces or tab
+     characters to separate the fields.  This makes it harder to use
+     name containing one of these characters (e.g., mount points using
+     spaces).  Therefore these characters are encoded in the files and
+     the `getmntent' function takes care of the decoding while reading
+     the entries back in.  `'\040'' is used to encode a space
+     character, `'\012'' to encode a tab character and `'\\'' to encode
+     a backslash.
+
+     If there was an error or the end of the file is reached the return
+     value is `NULL'.
+
+     This function is not thread-safe since all calls to this function
+     return a pointer to the same static variable.  `getmntent_r'
+     should be used in situations where multiple threads access the
+     file.
+
+ - Function: struct mntent * getmntent_r (FILE *STREAM, struct mentent
+          *RESULT, char *BUFFER, int BUFSIZE)
+     The `getmntent_r' function is the reentrant variant of
+     `getmntent'.  It also returns the next entry from the file and
+     returns a pointer.  The actual variable the values are stored in
+     is not static, though.  Instead the function stores the values in
+     the variable pointed to by the RESULT parameter.  Additional
+     information (e.g., the strings pointed to by the elements of the
+     result) are kept in the buffer of size BUFSIZE pointed to by
+     BUFFER.
+
+     Escaped characters (space, tab, backslash) are converted back in
+     the same way as it happens for `getmentent'.
+
+     The function returns a `NULL' pointer in error cases.  Errors
+     could be:
+        * error while reading the file,
+
+        * end of file reached,
+
+        * BUFSIZE is too small for reading a complete new entry.
+
+ - Function: int addmntent (FILE *STREAM, const struct mntent *MNT)
+     The `addmntent' function allows adding a new entry to the file
+     previously opened with `setmntent'.  The new entries are always
+     appended.  I.e., even if the position of the file descriptor is
+     not at the end of the file this function does not overwrite an
+     existing entry following the current position.
+
+     The implication of this is that to remove an entry from a file one
+     has to create a new file while leaving out the entry to be removed
+     and after closing the file remove the old one and rename the new
+     file to the chosen name.
+
+     This function takes care of spaces and tab characters in the names
+     to be written to the file.  It converts them and the backslash
+     character into the format describe in the `getmntent' description
+     above.
+
+     This function returns 0 in case the operation was successful.
+     Otherwise the return value is 1 and `errno' is set appropriately.
+
+ - Function: char * hasmntopt (const struct mntent *MNT, const char
+          *OPT)
+     This function can be used to check whether the string pointed to
+     by the `mnt_opts' element of the variable pointed to by MNT
+     contains the option OPT.  If this is true a pointer to the
+     beginning of the option in the `mnt_opts' element is returned.  If
+     no such option exists the function returns `NULL'.
+
+     This function is useful to test whether a specific option is
+     present but when all options have to be processed one is better
+     off with using the `getsubopt' function to iterate over all
+     options in the string.
+
+
+File: libc.info,  Node: Other Mount Information,  Prev: mtab,  Up: Mount Information
+
+Other (Non-libc) Sources of Mount Information
+.............................................
+
+   On a system with a Linux kernel and the `proc' filesystem, you can
+get information on currently mounted filesystems from the file `mounts'
+in the `proc' filesystem.  Its format is similar to that of the `mtab'
+file, but represents what is truly mounted without relying on
+facilities outside the kernel to keep `mtab' up to date.
+
